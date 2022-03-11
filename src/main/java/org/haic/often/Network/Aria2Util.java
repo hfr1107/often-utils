@@ -54,7 +54,7 @@ public class Aria2Util {
 	 * @param method URI类型
 	 * @return this
 	 */
-	@Contract(pure = true) public static Aria2Util connect(@NotNull URIMethod method) {
+	@Contract(pure = true) public static Aria2Util connect(@NotNull URIUtils.URIMethod method) {
 		return connect(method, "localhost", 6800);
 	}
 
@@ -66,7 +66,7 @@ public class Aria2Util {
 	 * @return this
 	 */
 	@Contract(pure = true) public static Aria2Util connect(@NotNull String host, int port) {
-		return connect(URIMethod.HTTP, host, port);
+		return connect(URIUtils.URIMethod.HTTP, host, port);
 	}
 
 	/**
@@ -77,8 +77,8 @@ public class Aria2Util {
 	 * @param port   端口
 	 * @return this
 	 */
-	@Contract(pure = true) public static Aria2Util connect(@NotNull URIMethod method, @NotNull String host, int port) {
-		return config().setAria2RpcUrl(method.value + "://" + host + ":" + port + "/jsonrpc");
+	@Contract(pure = true) public static Aria2Util connect(@NotNull URIUtils.URIMethod method, @NotNull String host, int port) {
+		return config().setAria2RpcUrl(method.getValue() + "://" + host + ":" + port + "/jsonrpc");
 	}
 
 	/**
@@ -738,43 +738,6 @@ public class Aria2Util {
 			this.value = value;
 		}
 
-		@Contract(pure = true) public String getValue() {
-			return value;
-		}
-	}
-
-	/**
-	 * URI协议常量
-	 */
-	public enum URIMethod {
-		/**
-		 * http 协议
-		 */
-		HTTP("http"),
-		/**
-		 * https 协议
-		 */
-		HTTPS("https"),
-		/**
-		 * ws 协议
-		 */
-		WS("ws"),
-		/**
-		 * wws 协议
-		 */
-		WWS("wws");
-
-		private final String value;
-
-		URIMethod(String value) {
-			this.value = value;
-		}
-
-		/**
-		 * 获得 枚举方法的值
-		 *
-		 * @return value
-		 */
 		@Contract(pure = true) public String getValue() {
 			return value;
 		}
