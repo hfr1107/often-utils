@@ -1,8 +1,8 @@
 package org.haic.often.Tuple;
 
-public final class Tuple {
+public class Tuple {
 
-	private Tuple() {
+	protected Tuple() {
 	}
 
 	public static <A, B> TwoTuple<A, B> of(A A, B b) {
