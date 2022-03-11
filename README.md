@@ -30,7 +30,6 @@ NetworkFileUtil.connect(fileUrl)
 .filename("qq.apk")  //设置文件名，文件名会替换非法字符，不设置会自动获取文件名   
 .retry(4，1000)  //重试次数,以及重试等待间隔, true为无限重试
 .multithread(10)  //多线程下载,无法获取文件大小转为全量下载,默认线程16  
-//.interval(50)  //方法废弃,已修复同步多线程数据丢失问题
 .errorExit(true)  //下载失败抛出执行异常,默认false,可用于检测错误  
 .download(folder); //设置存放的文件夹
 ```
@@ -39,8 +38,8 @@ NetworkFileUtil.connect(fileUrl)
 
 ### 说明:
 
-1.支持ws协议,仅send()方法访问  
-2.目前仅支持发送链接,对应下载情况并未设置方法,其实也简单,拿返回数据对接端口,可查看官方文档
+1.支持ws,wss协议,仅send()方法访问  
+2.支持aria2 API交互
 
 ### 简单示例:
 
@@ -51,7 +50,12 @@ Aria2Util.connect("127.0.0.1", 6800)  //地址以及端口
 .setToken("12345")  //设置token  
 .setProxy() //为所有链接添加代理
 .proxy(proxyHost, proxyPort) // 访问地址的代理
-.send(); //get() post()
+// .remove(gid) // 删除指定下载
+// .pause(gid) // 暂停指定下载
+// .unpause(gid) // 继续指定下载
+// .tellStatus(gid) //获取指定下载进度状态等信息
+// .session(Aria2Method,gid) // 其它API接口
+.post(); // get() send()
 ```
 
 网络访问工具类
