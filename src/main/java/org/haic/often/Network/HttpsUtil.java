@@ -629,7 +629,7 @@ public class HttpsUtil {
 		 * @return 响应流
 		 */
 		@Contract(pure = true) public InputStream bodyStream() throws IOException {
-			return URIUtils.statusIsOK(statusCode()) ? conn.getInputStream() : conn.getErrorStream();
+			return URIUtils.statusIsNormal(statusCode()) ? conn.getInputStream() : conn.getErrorStream();
 		}
 
 		/**
