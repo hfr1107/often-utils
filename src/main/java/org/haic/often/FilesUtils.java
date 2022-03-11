@@ -111,7 +111,7 @@ public class FilesUtils {
 	 * @return 文件夹路径
 	 */
 	@Contract(pure = true) private static String getSystemDefaultDirectory(String id) {
-		String[] value = RunCmd.dos("REG", "QUERY", "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", "/v", id)
+		String[] value = RunTime.dos("REG", "QUERY", "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", "/v", id)
 				.readInfo().split(" ");
 		return value[value.length - 1];
 	}

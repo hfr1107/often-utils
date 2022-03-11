@@ -19,7 +19,7 @@ import java.util.List;
  * @version 1.0
  * @since 2021/12/25 06:50
  */
-public class RunCmd {
+public class RunTime {
 
 	protected Charset charset = StandardCharsets.UTF_8; // 字符集格式
 	protected File directory = new File(System.getProperty("user.dir")); // 工作目录
@@ -27,36 +27,36 @@ public class RunCmd {
 	protected List<String> command = new ArrayList<>(); // 命令
 	protected String terminal; // 默认终端
 
-	protected RunCmd() {
+	protected RunTime() {
 	}
 
 	/**
-	 * 设置 终端命令
+	 * 设置待执行的命令
 	 *
-	 * @param dos 终端命令
+	 * @param dos 待执行的命令
 	 * @return new RunCmd
 	 */
-	@Contract(pure = true) public static RunCmd dos(@NotNull String... dos) {
+	@Contract(pure = true) public static RunTime dos(@NotNull String... dos) {
 		return dos(Arrays.stream(dos).toList());
 	}
 
 	/**
-	 * 设置 终端命令
+	 * 设置待执行的命令
 	 *
-	 * @param dos 终端命令
+	 * @param dos 待执行的命令
 	 * @return new RunCmd
 	 */
-	@Contract(pure = true) public static RunCmd dos(@NotNull List<String> dos) {
+	@Contract(pure = true) public static RunTime dos(@NotNull List<String> dos) {
 		return config().command(dos);
 	}
 
 	/**
-	 * 获取 new RunCmd
+	 * 获取新的实例
 	 *
-	 * @return new RunCmd
+	 * @return new RunTime
 	 */
-	@Contract(pure = true) protected static RunCmd config() {
-		return new RunCmd();
+	@Contract(pure = true) protected static RunTime config() {
+		return new RunTime();
 	}
 
 	/**
@@ -65,7 +65,7 @@ public class RunCmd {
 	 * @param command 终端命令
 	 * @return this
 	 */
-	@Contract(pure = true) protected RunCmd command(@NotNull List<String> command) {
+	@Contract(pure = true) protected RunTime command(@NotNull List<String> command) {
 		if (Judge.isEmpty(terminal)) {
 			this.command = command;
 		} else {
@@ -82,7 +82,7 @@ public class RunCmd {
 	 *
 	 * @return this
 	 */
-	@Contract(pure = true) public RunCmd terminal() {
+	@Contract(pure = true) public RunTime terminal() {
 		return terminal(Terminal.CMD);
 	}
 
@@ -92,7 +92,7 @@ public class RunCmd {
 	 * @param terminal 枚举Terminal类可执行终端
 	 * @return this
 	 */
-	@Contract(pure = true) public RunCmd terminal(@NotNull Terminal terminal) {
+	@Contract(pure = true) public RunTime terminal(@NotNull Terminal terminal) {
 		return terminal(terminal.value);
 	}
 
@@ -102,7 +102,7 @@ public class RunCmd {
 	 * @param terminal 终端路径
 	 * @return this
 	 */
-	@Contract(pure = true) public RunCmd terminal(@NotNull String terminal) {
+	@Contract(pure = true) public RunTime terminal(@NotNull String terminal) {
 		this.terminal = terminal;
 		return command(this.command);
 	}
@@ -113,7 +113,7 @@ public class RunCmd {
 	 * @param CharsetName 字符集编码名
 	 * @return this
 	 */
-	@Contract(pure = true) public RunCmd charset(@NotNull String CharsetName) {
+	@Contract(pure = true) public RunTime charset(@NotNull String CharsetName) {
 		charset(Charset.forName(CharsetName));
 		return this;
 	}
@@ -124,7 +124,7 @@ public class RunCmd {
 	 * @param charset 字符集编码
 	 * @return this
 	 */
-	@Contract(pure = true) public RunCmd charset(@NotNull Charset charset) {
+	@Contract(pure = true) public RunTime charset(@NotNull Charset charset) {
 		this.charset = charset;
 		return this;
 	}
@@ -135,7 +135,7 @@ public class RunCmd {
 	 * @param directory 工作目录路径
 	 * @return this
 	 */
-	@Contract(pure = true) public RunCmd directory(@NotNull String directory) {
+	@Contract(pure = true) public RunTime directory(@NotNull String directory) {
 		return directory(new File(directory));
 	}
 
@@ -145,7 +145,7 @@ public class RunCmd {
 	 * @param directory 工作目录
 	 * @return this
 	 */
-	@Contract(pure = true) public RunCmd directory(@NotNull File directory) {
+	@Contract(pure = true) public RunTime directory(@NotNull File directory) {
 		this.directory = directory;
 		return this;
 	}

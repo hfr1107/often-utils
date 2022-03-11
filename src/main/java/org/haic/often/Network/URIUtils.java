@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import org.apache.http.HttpStatus;
 import org.haic.often.Base64Utils;
 import org.haic.often.Judge;
-import org.haic.often.RunCmd;
+import org.haic.often.RunTime;
 import org.haic.often.StringUtils;
 import org.haic.often.Tuple.ThreeTuple;
 import org.haic.often.Tuple.TupleUtil;
@@ -168,7 +168,7 @@ public class URIUtils {
 	 * @return 连接状态
 	 */
 	@Contract(pure = true) public static boolean pingIp(@NotNull String host) {
-		return Judge.isEmpty(RunCmd.dos("ping", host, "-n", "1", "-w", "5000").execute());
+		return Judge.isEmpty(RunTime.dos("ping", host, "-n", "1", "-w", "5000").execute());
 	}
 
 	/**
