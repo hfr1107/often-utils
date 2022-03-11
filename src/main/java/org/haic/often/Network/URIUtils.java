@@ -7,7 +7,7 @@ import org.haic.often.Judge;
 import org.haic.often.RunTime;
 import org.haic.often.StringUtils;
 import org.haic.often.Tuple.ThreeTuple;
-import org.haic.often.Tuple.TupleUtil;
+import org.haic.often.Tuple.Tuple;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -38,7 +38,7 @@ public class URIUtils {
 	 */
 	@Contract(pure = true) public static ThreeTuple<String, String, String> getFormData(@NotNull String key, @NotNull String fileName) {
 		String boundary = UUID.randomUUID().toString();
-		return TupleUtil.tuple(boundary, "\r\n--" + boundary + "\r\n" + "content-disposition: form-data; name=\"" + key + "\"; filename=\"" + fileName
+		return Tuple.of(boundary, "\r\n--" + boundary + "\r\n" + "content-disposition: form-data; name=\"" + key + "\"; filename=\"" + fileName
 				+ "\"\r\ncontent-type: application/octet-stream; charset=utf-8\r\n\r\n", "\r\n--" + boundary + "--\r\n");
 	}
 

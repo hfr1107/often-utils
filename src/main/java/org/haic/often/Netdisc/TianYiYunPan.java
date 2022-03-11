@@ -4,7 +4,7 @@ import org.haic.often.Network.JsoupUtil;
 import org.haic.often.StringUtils;
 import org.haic.often.Tuple.FourTuple;
 import org.haic.often.Tuple.ThreeTuple;
-import org.haic.often.Tuple.TupleUtil;
+import org.haic.often.Tuple.Tuple;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.nodes.Document;
@@ -90,7 +90,7 @@ public class TianYiYunPan {
 		for (Element element : JsoupUtil.connect(listApi).data(listData).get().select("file")) {
 			String fileName = Objects.requireNonNull(element.selectFirst("name")).text();
 			String id = Objects.requireNonNull(element.selectFirst("id")).text();
-			fileInfos.add(TupleUtil.tuple(fileName, id, urlInfo.second));
+			fileInfos.add(Tuple.of(fileName, id, urlInfo.second));
 		}
 		return fileInfos;
 	}
@@ -108,7 +108,7 @@ public class TianYiYunPan {
 		String shareId = Objects.requireNonNull(docData.selectFirst("shareId")).text();
 		String isFolder = Objects.requireNonNull(docData.selectFirst("isFolder")).text();
 		String shareMode = Objects.requireNonNull(docData.selectFirst("shareMode")).text();
-		return TupleUtil.tuple(fileId, shareId, isFolder, shareMode);
+		return Tuple.of(fileId, shareId, isFolder, shareMode);
 	}
 
 }

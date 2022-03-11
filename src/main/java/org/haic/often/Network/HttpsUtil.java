@@ -4,7 +4,7 @@ import org.haic.often.Judge;
 import org.haic.often.Multithread.MultiThreadUtils;
 import org.haic.often.StreamUtils;
 import org.haic.often.Tuple.ThreeTuple;
-import org.haic.often.Tuple.TupleUtil;
+import org.haic.often.Tuple.Tuple;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection.Method;
@@ -249,7 +249,7 @@ public class HttpsUtil {
 	 */
 	@Contract(pure = true) public HttpsUtil data(@NotNull String key, @NotNull String fileName, @NotNull InputStream inputStream) {
 		ThreeTuple<String, String, String> fromData = URIUtils.getFormData(key, fileName);
-		file = TupleUtil.tuple(fromData.second, inputStream, fromData.third);
+		file = Tuple.of(fromData.second, inputStream, fromData.third);
 		return header("content-type", "multipart/form-data; boundary=" + fromData.first);
 	}
 
