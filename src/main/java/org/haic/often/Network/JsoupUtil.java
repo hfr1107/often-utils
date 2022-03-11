@@ -472,7 +472,7 @@ public class JsoupUtil {
 			response = executeProgram(conn);
 			statusCode = Judge.isNull(response) ? statusCode : response.statusCode();
 		}
-		if (errorExit && !URIUtils.statusIsOK(statusCode) && !URIUtils.statusIsRedirect(statusCode)) {
+		if (errorExit && !URIUtils.statusIsNormal(statusCode)) {
 			throw new RuntimeException("连接URL失败，状态码: " + statusCode + " URL: " + url);
 		}
 		return response;

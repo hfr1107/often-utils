@@ -85,17 +85,27 @@ public class URIUtils {
 	}
 
 	/**
-	 * 判断连接是否正常
+	 * 判断连接是否正常,状态码200+或300+
 	 *
 	 * @param statusCode 状态码
-	 * @return 连接状态正常 boolean
+	 * @return 连接状态 boolean
+	 */
+	@Contract(pure = true) public static boolean statusIsNormal(int statusCode) {
+		return statusCode >= HttpStatus.SC_OK && statusCode < HttpStatus.SC_BAD_REQUEST;
+	}
+
+	/**
+	 * 判断连接是否成功,状态码200+
+	 *
+	 * @param statusCode 状态码
+	 * @return 连接状态 boolean
 	 */
 	@Contract(pure = true) public static boolean statusIsOK(int statusCode) {
 		return statusCode >= HttpStatus.SC_OK && statusCode < HttpStatus.SC_MULTIPLE_CHOICES;
 	}
 
 	/**
-	 * 判断连接是否超时,或中断
+	 * 判断连接是否超时,或中断,状态码0或408
 	 *
 	 * @param statusCode 状态码
 	 * @return 连接状态 boolean
@@ -105,17 +115,17 @@ public class URIUtils {
 	}
 
 	/**
-	 * 判断连接是否重定向
+	 * 判断连接是否重定向,状态码300+
 	 *
 	 * @param statusCode 状态码
-	 * @return 连接状态重定向 boolean
+	 * @return 连接状态 boolean
 	 */
 	@Contract(pure = true) public static boolean statusIsRedirect(int statusCode) {
 		return statusCode >= HttpStatus.SC_MULTIPLE_CHOICES && statusCode < HttpStatus.SC_BAD_REQUEST;
 	}
 
 	/**
-	 * 判断连接是否请求错误
+	 * 判断连接是否请求错误,状态码400+(排除408)
 	 *
 	 * @param statusCode 状态码
 	 * @return 连接状态 boolean
@@ -125,7 +135,7 @@ public class URIUtils {
 	}
 
 	/**
-	 * 判断连接是否请求错误
+	 * 判断连接是否请求错误,状态码500+
 	 *
 	 * @param statusCode 状态码
 	 * @return 连接状态 boolean

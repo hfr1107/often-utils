@@ -418,7 +418,7 @@ public class HttpsUtil {
 	 */
 	@Contract(pure = true) public Document get(@NotNull Method method) {
 		Response response = execute(method);
-		return Judge.isNull(response) ? null : Jsoup.parse(response.body());
+		return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body()) : null;
 	}
 
 	/**
@@ -444,7 +444,7 @@ public class HttpsUtil {
 			response = executeProgram(url);
 			statusCode = Judge.isNull(response) ? statusCode : response.statusCode();
 		}
-		if (errorExit && !URIUtils.statusIsOK(statusCode) && !URIUtils.statusIsRedirect(statusCode)) {
+		if (errorExit && !URIUtils.statusIsNormal(statusCode)) {
 			throw new RuntimeException("连接URL失败，状态码: " + statusCode + " URL: " + url);
 		}
 		return response;
@@ -492,6 +492,13 @@ public class HttpsUtil {
 		}
 	}
 
+	/**
+	 * 创建HttpURLConnection实例
+	 *
+	 * @param url url链接
+	 * @return HttpURLConnection实例
+	 * @throws IOException 如果发生 I/O 异常
+	 */
 	protected HttpURLConnection connection(@NotNull String url) throws IOException {
 		HttpURLConnection conn = (HttpURLConnection) URIUtils.getURL(url).openConnection(proxy);
 		conn.setRequestMethod(method.name()); // 请求方法
@@ -594,7 +601,8 @@ public class HttpsUtil {
 		/**
 		 * 获取 cookie
 		 *
-		 * @return cookie
+		 * @param name cookie name
+		 * @return cookie value
 		 */
 		@Contract(pure = true) public String cookie(@NotNull String name) {
 			return cookies().get(name);
