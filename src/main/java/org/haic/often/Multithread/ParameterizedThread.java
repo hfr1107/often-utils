@@ -11,6 +11,10 @@ package org.haic.often.Multithread;
 public class ParameterizedThread<T> implements Runnable {
 	protected Runnable runnable;
 
+	public ParameterizedThread(Runnable runnable) {
+		this.runnable = runnable;
+	}
+
 	public ParameterizedThread(T A, OneParameterizedThread.ParameterizedThreadStart<T> parameterStart) {
 		runnable = new OneParameterizedThread<>(A, parameterStart);
 	}
