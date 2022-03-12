@@ -61,7 +61,7 @@ public class ParameterizedThread<T> implements Runnable {
 		runnable.run();
 	}
 
-	protected record OneParameterizedThread<T>(T A, ParameterizedThreadStart<T> parameterStart) implements Runnable {
+	public record OneParameterizedThread<T>(T A, ParameterizedThreadStart<T> parameterStart) implements Runnable {
 		/**
 		 * run method to be called in that separately executing thread.
 		 */
@@ -80,7 +80,7 @@ public class ParameterizedThread<T> implements Runnable {
 		}
 	}
 
-	protected record TwoParameterizedThread<T>(T A, T B, ParameterizedThreadStart<T, T> parameterStart) implements Runnable {
+	public record TwoParameterizedThread<T>(T A, T B, ParameterizedThreadStart<T, T> parameterStart) implements Runnable {
 		/**
 		 * run method to be called in that separately executing thread.
 		 */
@@ -99,7 +99,7 @@ public class ParameterizedThread<T> implements Runnable {
 		}
 	}
 
-	protected record ThreeParameterizedThread<T>(T A, T B, T C, ParameterizedThreadStart<T, T, T> parameterStart) implements Runnable {
+	public record ThreeParameterizedThread<T>(T A, T B, T C, ParameterizedThreadStart<T, T, T> parameterStart) implements Runnable {
 		/**
 		 * run method to be called in that separately executing thread.
 		 */
@@ -118,7 +118,7 @@ public class ParameterizedThread<T> implements Runnable {
 		}
 	}
 
-	protected record FourParameterizedThread<T>(T A, T B, T C, T D, ParameterizedThreadStart<T, T, T, T> parameterStart) implements Runnable {
+	public record FourParameterizedThread<T>(T A, T B, T C, T D, ParameterizedThreadStart<T, T, T, T> parameterStart) implements Runnable {
 		/**
 		 * run method to be called in that separately executing thread.
 		 */
@@ -137,7 +137,7 @@ public class ParameterizedThread<T> implements Runnable {
 		}
 	}
 
-	protected record FiveParameterizedThread<T>(T A, T B, T C, T D, T E, ParameterizedThreadStart<T, T, T, T, T> parameterStart) implements Runnable {
+	public record FiveParameterizedThread<T>(T A, T B, T C, T D, T E, ParameterizedThreadStart<T, T, T, T, T> parameterStart) implements Runnable {
 		/**
 		 * run method to be called in that separately executing thread.
 		 */
@@ -156,7 +156,7 @@ public class ParameterizedThread<T> implements Runnable {
 		}
 	}
 
-	protected record SixParameterizedThread<T>(T A, T B, T C, T D, T E, T F, ParameterizedThreadStart<T, T, T, T, T, T> parameterStart) implements Runnable {
+	public record SixParameterizedThread<T>(T A, T B, T C, T D, T E, T F, ParameterizedThreadStart<T, T, T, T, T, T> parameterStart) implements Runnable {
 		/**
 		 * run method to be called in that separately executing thread.
 		 */
@@ -175,7 +175,7 @@ public class ParameterizedThread<T> implements Runnable {
 		}
 	}
 
-	protected record SevenParameterizedThread<T>(T A, T B, T C, T D, T E, T F, T G, ParameterizedThreadStart<T, T, T, T, T, T, T> parameterStart)
+	public record SevenParameterizedThread<T>(T A, T B, T C, T D, T E, T F, T G, ParameterizedThreadStart<T, T, T, T, T, T, T> parameterStart)
 			implements Runnable {
 		/**
 		 * run method to be called in that separately executing thread.
@@ -195,7 +195,7 @@ public class ParameterizedThread<T> implements Runnable {
 		}
 	}
 
-	protected record EightParameterizedThread<T>(T A, T B, T C, T D, T E, T F, T G, T H, ParameterizedThreadStart<T, T, T, T, T, T, T, T> parameterStart)
+	public record EightParameterizedThread<T>(T A, T B, T C, T D, T E, T F, T G, T H, ParameterizedThreadStart<T, T, T, T, T, T, T, T> parameterStart)
 			implements Runnable {
 		/**
 		 * run method to be called in that separately executing thread.
@@ -215,7 +215,7 @@ public class ParameterizedThread<T> implements Runnable {
 		}
 	}
 
-	protected record NineParameterizedThread<T>(T A, T B, T C, T D, T E, T F, T G, T H, T I, ParameterizedThreadStart<T, T, T, T, T, T, T, T, T> parameterStart)
+	public record NineParameterizedThread<T>(T A, T B, T C, T D, T E, T F, T G, T H, T I, ParameterizedThreadStart<T, T, T, T, T, T, T, T, T> parameterStart)
 			implements Runnable {
 		/**
 		 * run method to be called in that separately executing thread.
@@ -235,8 +235,8 @@ public class ParameterizedThread<T> implements Runnable {
 		}
 	}
 
-	protected record TenParameterizedThread<T>(T A, T B, T C, T D, T E, T F, T G, T H, T I, T J,
-											   ParameterizedThreadStart<T, T, T, T, T, T, T, T, T, T> parameterStart) implements Runnable {
+	public record TenParameterizedThread<T>(T A, T B, T C, T D, T E, T F, T G, T H, T I, T J,
+											ParameterizedThreadStart<T, T, T, T, T, T, T, T, T, T> parameterStart) implements Runnable {
 		/**
 		 * run method to be called in that separately executing thread.
 		 */
