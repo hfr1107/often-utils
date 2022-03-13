@@ -221,8 +221,13 @@ public class LocalCookies {
 		/**
 		 * Returns all cookies
 		 */
-		public Set<Cookie> getCookies() {
-			return processCookies(cookieStore, null);
+		public Map<String, Map<String, String>> getCookies() {
+			Map<String, Map<String, String>> result = new HashMap<>();
+			Set<Cookie> cookies = processCookies(cookieStore, null);
+			for (Cookie cookie : cookies) {
+				result.put(cookie.getDomain(), Map.of(cookie.getName(), cookie.getValue()));
+			}
+			return result;
 		}
 
 		/**
@@ -230,7 +235,7 @@ public class LocalCookies {
 		 */
 		public Map<String, String> getCookiesForDomain(String domain) {
 			return processCookies(cookieStore, domain).parallelStream().filter(cookie -> !Judge.isEmpty(cookie.getValue()))
-					.collect(Collectors.toMap(LocalCookies.Cookie::getName, LocalCookies.Cookie::getValue, (e1, e2) -> e1));
+					.collect(Collectors.toMap(LocalCookies.Cookie::getName, LocalCookies.Cookie::getValue, (e1, e2) -> e2));
 		}
 
 		/**

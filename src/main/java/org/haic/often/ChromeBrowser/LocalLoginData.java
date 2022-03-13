@@ -150,8 +150,13 @@ public class LocalLoginData {
 		 * Returns all login data
 		 */
 
-		public Set<LoginData> getLoginDatas() {
-			return processLoginDatas(loginDataStore, null);
+		public Map<String, Map<String, String>> getLoginDatas() {
+			Map<String, Map<String, String>> result = new HashMap<>();
+			Set<LoginData> loginDatas = processLoginDatas(loginDataStore, null);
+			for (LoginData loginData : loginDatas) {
+				result.put(loginData.getDomain(), Map.of(loginData.getName(), loginData.getValue()));
+			}
+			return result;
 		}
 
 		/**
