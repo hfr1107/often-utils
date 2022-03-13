@@ -136,6 +136,6 @@ Zip4jUtils.origin(file).passwd("123456").deCompress(folder) // 带密码解压
 Map<String, String> cookies = LocalCookies.home() //获取本地浏览器cookie  
 .getCookiesForDomain("pixiv.net"); //获取对应域  
 
-Map<String, String> loginDatas = LoginDatas.home() // 获取LoginData(账号和密码)  
+Map<String, String> loginDatas = LocalLoginData.home() // 获取LoginData(账号和密码)  
 .getLoginDatasForDomain("pixiv.net");
 ```

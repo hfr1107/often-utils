@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  * @version 1.0
  * @since 2022/1/20 20:04
  */
-public class LoginDatas {
+public class LocalLoginData {
 
 	/**
 	 * 用户文件夹路径 C:\\users\\xxx\\AppData\\Local\\Microsoft\\Edge\\User Data
