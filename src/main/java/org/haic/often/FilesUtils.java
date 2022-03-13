@@ -654,7 +654,7 @@ public class FilesUtils {
 	 * @return 复制是否成功
 	 */
 	@Contract(pure = true) public static boolean copyFile(@NotNull File input, @NotNull File output) {
-		return ReadWriteUtils.orgin(input).copy(output);
+		return ReadWriteUtils.orgin(input).channelCopy(output);
 	}
 
 	/**
@@ -669,14 +669,9 @@ public class FilesUtils {
 			return false;
 		}
 		for (File file : iterateFiles(input)) {
-			File thisFile = file;
-			File newFile = new File(file.getName());
-			do {
-				thisFile = thisFile.getParentFile();
-				newFile = new File(thisFile.getName(), newFile.getPath());
-
-			} while (!thisFile.equals(input));
-			if (!copyFile(file, new File(output, newFile.getPath()))) {
+			String filePath = file.getAbsolutePath();
+			File newFile = new File(output + filePath.substring(input.getAbsolutePath().length()));
+			if (!copyFile(file, newFile)) {
 				return false;
 			}
 		}

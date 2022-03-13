@@ -76,7 +76,9 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils {
 	 * @return Map - name, value
 	 */
 	@Contract(pure = true) public static Map<String, String> toMap(@NotNull String str) {
-		return Arrays.stream(str.replaceAll("\\{*}*", "").split(str.contains(";") ? ";" : ",")).map(l -> l.split("="))
+		str = str.startsWith("{") ? str.substring(1) : str;
+		str = str.endsWith("}") ? str.substring(0, str.length() - 1) : str;
+		return Arrays.stream(str.split(str.contains(";") ? ";" : ",")).map(l -> l.split("="))
 				.collect(Collectors.toMap(l -> StringUtils.deletePefix(l[0], " "), l -> l[1]));
 	}
 
@@ -89,8 +91,9 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils {
 	 * @return Map - name, value
 	 */
 	@Contract(pure = true) public static Map<String, String> toMap(@NotNull String str, @NotNull String split) {
-		return Arrays.stream(str.replaceAll("\\{*}*", "").split(split)).map(l -> l.split("="))
-				.collect(Collectors.toMap(l -> StringUtils.deletePefix(l[0], " "), l -> l[1]));
+		str = str.startsWith("{") ? str.substring(1) : str;
+		str = str.endsWith("}") ? str.substring(0, str.length() - 1) : str;
+		return Arrays.stream(str.split(split)).map(l -> l.split("=")).collect(Collectors.toMap(l -> StringUtils.deletePefix(l[0], " "), l -> l[1]));
 	}
 
 	/**

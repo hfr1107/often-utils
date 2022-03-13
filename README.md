@@ -128,7 +128,7 @@ Zip4jUtils.origin(file).passwd("123456").deCompress(folder) // 带密码解压
 
 1.一键获取本地浏览器的数据,理论上chromium内核都支持  
 2.home()方法,默认win版edge用户路径,其它浏览器添加参数,路径至User Data目录  
-3.遗憾的是leveldb(Local Storage)读取的问题目前无法解决
+3.leveldb(Local Storage)读取如果键值存在中文,会发生乱码
 
 ### 简单示例:
 
@@ -138,4 +138,7 @@ Map<String, String> cookies = LocalCookies.home() //获取本地浏览器cookie
 
 Map<String, String> loginDatas = LocalLoginData.home() // 获取LoginData(账号和密码)  
 .getLoginDatasForDomain("pixiv.net");
+
+Map<String, String> storages = LocalStorage.home() // 获取 Local Storage  
+.getStoragesForDomain("pixiv.net");
 ```
