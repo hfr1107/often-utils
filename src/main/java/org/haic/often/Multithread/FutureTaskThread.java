@@ -61,8 +61,8 @@ public class FutureTaskThread<T, V> implements Callable<V> {
 	/**
 	 * a method with parameter
 	 *
-	 * @return ·ºÐÍ·µ»Ø
-	 * @throws Exception Å×³öÒì³£
+	 * @return æ³›åž‹è¿”å›ž
+	 * @throws Exception æŠ›å‡ºå¼‚å¸¸
 	 */
 	@Override public V call() throws Exception {
 		return callable.call();
