@@ -1,15 +1,13 @@
 package org.haic.often.ChromeBrowser;
 
+import com.protonail.leveldb.jna.*;
 import org.haic.often.FilesUtils;
 import org.haic.often.Judge;
 import org.haic.often.StringUtils;
-import org.iq80.leveldb.*;
-import org.iq80.leveldb.impl.Iq80DBFactory;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -127,24 +125,18 @@ public class LocalStorage {
 		}
 
 		public Map<String, Map<String, String>> processLevelDB(File localStorageStore) {
-			Map<String, Map<String, String>> result = new HashMap<>();
-			DBFactory factory = new Iq80DBFactory();
 			FilesUtils.copyDirectory(localStorageStore, localStorageStoreCopy);
-			FilesUtils.iterateFiles(localStorageStoreCopy).stream().filter(f -> f.getName().endsWith(".ldb"))
-					.forEach(f -> FilesUtils.afterFileSuffix(f, "sst"));
-			Options options = new Options();
-			options.compressionType(CompressionType.SNAPPY);
-			try (DB db = factory.open(localStorageStoreCopy, options)) {
-				Snapshot snapshot = db.getSnapshot(); // 读取当前快照，重启服务仍能读取，说明快照持久化至磁盘
-				ReadOptions readOptions = new ReadOptions(); // 读取操作
-				readOptions.fillCache(false); // 遍历中swap出来的数据，不应该保存在memtable中
-				readOptions.snapshot(snapshot);    // 默认snapshot为当前
-				DBIterator it = db.iterator(readOptions);
-				while (it.hasNext()) {
-					Map.Entry<byte[], byte[]> entry = it.next();
+			Map<String, Map<String, String>> result = new HashMap<>();
+			try (LevelDB levelDB = new LevelDB(localStorageStoreCopy.getPath(), new LevelDBOptions());
+					LevelDBKeyValueIterator iterator = new LevelDBKeyValueIterator(levelDB, new LevelDBReadOptions() {{
+						setFillCache(false);// 遍历中swap出来的数据，不应该保存在memtable中
+						setSnapshot(levelDB.createSnapshot());
+					}})) {
+				while (iterator.hasNext()) {
+					KeyValuePair entry = iterator.next();
 					String key = new String(entry.getKey(), charset);
 					if (key.startsWith("_http")) {
-						key = key.replace("_http", "http");
+						key = key.substring(1);
 						int index = key.indexOf((char) 0);
 						String domain = key.substring(0, index);
 						String name = StringUtils.filter(key.substring(index + 1));
@@ -161,8 +153,6 @@ public class LocalStorage {
 						}
 					}
 				}
-			} catch (IOException e) {
-				e.printStackTrace();
 			} finally {
 				FilesUtils.deleteDirectory(localStorageStoreCopy);
 			}
