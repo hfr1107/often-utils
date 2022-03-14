@@ -322,6 +322,40 @@ public class ReadWriteUtils {
 	}
 
 	/**
+	 * RandomAccessFile 文件复制
+	 *
+	 * @param out 指定输出文件
+	 * @return 文件复制
+	 */
+	@Contract(pure = true) public boolean randomAccessCopy(@NotNull String out) {
+		return randomAccessCopy(new File(out));
+	}
+
+	/**
+	 * RandomAccessFile 文件复制
+	 *
+	 * @param out 指定输出文件
+	 * @return 文件复制
+	 */
+	@Contract(pure = true) public boolean randomAccessCopy(@NotNull File out) {
+		File parent = out.getParentFile();
+		if (!Judge.isNull(parent)) {
+			FilesUtils.createFolder(parent);
+		}
+		try (RandomAccessFile inputRandomAccess = new RandomAccessFile(source, "r"); RandomAccessFile outputRandomAccess = new RandomAccessFile(out, "rw")) {
+			byte[] buffer = new byte[bufferSize];
+			int length;
+			while (!Judge.isMinusOne(length = inputRandomAccess.read(buffer))) {
+				outputRandomAccess.write(buffer, 0, length);
+			}
+			return true;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	/**
 	 * FileChannel 文件复制
 	 *
 	 * @param out 指定输出文件
@@ -343,40 +377,11 @@ public class ReadWriteUtils {
 			FilesUtils.createFolder(parent);
 		}
 		try (FileChannel inputChannel = new FileInputStream(source).getChannel(); FileChannel outputChannel = new FileOutputStream(out).getChannel()) {
-			outputChannel.transferFrom(inputChannel, 0, inputChannel.size());
-			return true;
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
-
-	/**
-	 * RandomAccessFile 文件复制
-	 *
-	 * @param out 指定输出文件
-	 * @return 文件复制
-	 */
-	@Contract(pure = true) public boolean randomAccessCopy(@NotNull String out) {
-		return randomAccessCopy(new File(out));
-	}
-
-	/**
-	 * RandomAccessFile 文件复制
-	 *
-	 * @param out 指定输出文件
-	 * @return 文件复制
-	 */
-	@Contract(pure = true) public boolean randomAccessCopy(@NotNull File out) {
-		File parent = source.getParentFile();
-		if (!Judge.isNull(parent)) {
-			FilesUtils.createFolder(parent);
-		}
-		try (RandomAccessFile inputRandomAccess = new RandomAccessFile(source, "r"); RandomAccessFile outputRandomAccess = new RandomAccessFile(out, "rw")) {
-			byte[] buffer = new byte[bufferSize];
-			int length;
-			while (!Judge.isMinusOne(length = inputRandomAccess.read(buffer))) {
-				outputRandomAccess.write(buffer, 0, length);
+			int count = 0;
+			long size = inputChannel.size();
+			while (count < size) { // 循环支持2G以上文件
+				int position = count;
+				count += outputChannel.transferFrom(inputChannel, position, size - position);
 			}
 			return true;
 		} catch (IOException e) {
@@ -395,8 +400,6 @@ public class ReadWriteUtils {
 		return mappedCopy(new File(out));
 	}
 
-	// ================================================== ReadUtils ==================================================
-
 	/**
 	 * MappedByteBuffer 文件复制
 	 *
@@ -410,13 +413,18 @@ public class ReadWriteUtils {
 		}
 		try (FileChannel inputChannel = new FileInputStream(source).getChannel(); FileChannel outputChannel = new RandomAccessFile(out, "rw").getChannel()) {
 			long size = inputChannel.size();
-			outputChannel.map(FileChannel.MapMode.READ_WRITE, 0, size).put(inputChannel.map(FileChannel.MapMode.READ_ONLY, 0, size));
+			for (long i = 0; i < size; i += Integer.MAX_VALUE) {
+				long position = Integer.MAX_VALUE * i;
+				outputChannel.map(FileChannel.MapMode.READ_WRITE, position, size - position)
+						.put(inputChannel.map(FileChannel.MapMode.READ_ONLY, position, size - position));
+			}
 			return true;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		return false;
 	}
+	// ================================================== ReadUtils ==================================================
 
 	/**
 	 * 遍历文件或文件夹,按行读取内容
