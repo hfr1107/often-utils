@@ -1,27 +1,27 @@
 package org.haic.often.Multithread.Parameterized;
 
 /**
- * record class eight parameter's  parameterized Thread
+ * record class three parameter's  parameterized Thread
  *
  * @author haicdust
  * @version 1.0
  * @since 2022/3/14 17:23
  */
-public record EightParameterizedThread<T>(T A, T B, T C, T D, T E, T F, T G, T H, Runnable<T, T, T, T, T, T, T, T> runnable) implements Runnable {
+public record ThreeParameterized<T>(T A, T B, T C, Runnable<T, T, T> runnable) implements Runnable {
 	/**
 	 * run method to be called in that separately executing thread.
 	 */
 	@Override public void run() {
-		runnable.run(A, B, C, D, E, F, G, H);
+		runnable.run(A, B, C);
 	}
 
 	/**
 	 * Runnable defines the start method for starting a thread.
 	 */
-	public interface Runnable<A, B, C, D, E, F, G, H> {
+	public interface Runnable<A, B, C> {
 		/**
 		 * a method with parameter
 		 */
-		void run(A A, B B, C C, D D, E E, F F, G G, H H);
+		void run(A A, B B, C C);
 	}
 }

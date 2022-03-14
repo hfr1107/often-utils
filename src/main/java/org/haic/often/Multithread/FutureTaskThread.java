@@ -18,44 +18,44 @@ public class FutureTaskThread<T, V> implements Callable<V> {
 		this.callable = callable;
 	}
 
-	public FutureTaskThread(T A, OneFutureTaskThread.Callable<T, V> callable) {
-		this.callable = new OneFutureTaskThread<>(A, callable);
+	public FutureTaskThread(T A, OneFutureTask.Callable<T, V> callable) {
+		this.callable = new OneFutureTask<>(A, callable);
 	}
 
-	public FutureTaskThread(T A, T B, TwoFutureTaskThread.Callable<T, T, V> callable) {
-		this.callable = new TwoFutureTaskThread<>(A, B, callable);
+	public FutureTaskThread(T A, T B, TwoFutureTask.Callable<T, T, V> callable) {
+		this.callable = new TwoFutureTask<>(A, B, callable);
 	}
 
-	public FutureTaskThread(T A, T B, T C, ThreeFutureTaskThread.Callable<T, T, T, V> callable) {
-		this.callable = new ThreeFutureTaskThread<>(A, B, C, callable);
+	public FutureTaskThread(T A, T B, T C, ThreeFutureTask.Callable<T, T, T, V> callable) {
+		this.callable = new ThreeFutureTask<>(A, B, C, callable);
 	}
 
-	public FutureTaskThread(T A, T B, T C, T D, FourFutureTaskThread.Callable<T, T, T, T, V> callable) {
-		this.callable = new FourFutureTaskThread<>(A, B, C, D, callable);
+	public FutureTaskThread(T A, T B, T C, T D, FourFutureTask.Callable<T, T, T, T, V> callable) {
+		this.callable = new FourFutureTask<>(A, B, C, D, callable);
 	}
 
-	public FutureTaskThread(T A, T B, T C, T D, T E, FiveFutureTaskThread.Callable<T, T, T, T, T, V> callable) {
-		this.callable = new FiveFutureTaskThread<>(A, B, C, D, E, callable);
+	public FutureTaskThread(T A, T B, T C, T D, T E, FiveFutureTask.Callable<T, T, T, T, T, V> callable) {
+		this.callable = new FiveFutureTask<>(A, B, C, D, E, callable);
 	}
 
-	public FutureTaskThread(T A, T B, T C, T D, T E, T F, SixFutureTaskThread.Callable<T, T, T, T, T, T, V> callable) {
-		this.callable = new SixFutureTaskThread<>(A, B, C, D, E, F, callable);
+	public FutureTaskThread(T A, T B, T C, T D, T E, T F, SixFutureTask.Callable<T, T, T, T, T, T, V> callable) {
+		this.callable = new SixFutureTask<>(A, B, C, D, E, F, callable);
 	}
 
-	public FutureTaskThread(T A, T B, T C, T D, T E, T F, T G, SevenFutureTaskThread.Callable<T, T, T, T, T, T, T, V> callable) {
-		this.callable = new SevenFutureTaskThread<>(A, B, C, D, E, F, G, callable);
+	public FutureTaskThread(T A, T B, T C, T D, T E, T F, T G, SevenFutureTask.Callable<T, T, T, T, T, T, T, V> callable) {
+		this.callable = new SevenFutureTask<>(A, B, C, D, E, F, G, callable);
 	}
 
-	public FutureTaskThread(T A, T B, T C, T D, T E, T F, T G, T H, EightFutureTaskThread.Callable<T, T, T, T, T, T, T, T, V> callable) {
-		this.callable = new EightFutureTaskThread<>(A, B, C, D, E, F, G, H, callable);
+	public FutureTaskThread(T A, T B, T C, T D, T E, T F, T G, T H, EightFutureTask.Callable<T, T, T, T, T, T, T, T, V> callable) {
+		this.callable = new EightFutureTask<>(A, B, C, D, E, F, G, H, callable);
 	}
 
-	public FutureTaskThread(T A, T B, T C, T D, T E, T F, T G, T H, T I, NineFutureTaskThread.Callable<T, T, T, T, T, T, T, T, T, V> callable) {
-		this.callable = new NineFutureTaskThread<>(A, B, C, D, E, F, G, H, I, callable);
+	public FutureTaskThread(T A, T B, T C, T D, T E, T F, T G, T H, T I, NineFutureTask.Callable<T, T, T, T, T, T, T, T, T, V> callable) {
+		this.callable = new NineFutureTask<>(A, B, C, D, E, F, G, H, I, callable);
 	}
 
-	public FutureTaskThread(T A, T B, T C, T D, T E, T F, T G, T H, T I, T J, TenFutureTaskThread.Callable<T, T, T, T, T, T, T, T, T, T, V> callable) {
-		this.callable = new TenFutureTaskThread<>(A, B, C, D, E, F, G, H, I, J, callable);
+	public FutureTaskThread(T A, T B, T C, T D, T E, T F, T G, T H, T I, T J, TenFutureTask.Callable<T, T, T, T, T, T, T, T, T, T, V> callable) {
+		this.callable = new TenFutureTask<>(A, B, C, D, E, F, G, H, I, J, callable);
 	}
 
 	/**

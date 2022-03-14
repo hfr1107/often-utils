@@ -3,24 +3,24 @@ package org.haic.often.Multithread.FutureTask;
 import java.util.concurrent.Callable;
 
 /**
- * record class one parameter's  parameterized FutureTask Thread
+ * record class two parameter's  parameterized FutureTask Thread
  *
  * @author haicdust
  * @version 1.0
- * @since 2022/3/14 17:23
+ * @since 2022/3/14 17:46
  */
-public record OneFutureTaskThread<T, V>(T A, Callable<T, V> callable) implements Callable<V> {
+public record TwoFutureTask<T, V>(T A, T B, Callable<T, T, V> callable) implements Callable<V> {
 	/**
 	 * run method to be called in that separately executing thread.
 	 */
 	@Override public V call() throws Exception {
-		return callable.call(A);
+		return callable.call(A, B);
 	}
 
 	/**
 	 * FutureTaskThread defines the start method for starting a thread.
 	 */
-	public interface Callable<A, V> {
-		V call(A A) throws Exception;
+	public interface Callable<A, B, V> {
+		V call(A A, B B) throws Exception;
 	}
 }

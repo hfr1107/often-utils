@@ -7,7 +7,7 @@ package org.haic.often.Multithread.Parameterized;
  * @version 1.0
  * @since 2022/3/14 17:23
  */
-public record FourParameterizedThread<T>(T A, T B, T C, T D, Runnable<T, T, T, T> runnable) implements Runnable {
+public record FourParameterized<T>(T A, T B, T C, T D, Runnable<T, T, T, T> runnable) implements Runnable {
 	/**
 	 * run method to be called in that separately executing thread.
 	 */

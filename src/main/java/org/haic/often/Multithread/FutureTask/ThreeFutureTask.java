@@ -9,7 +9,7 @@ import java.util.concurrent.Callable;
  * @version 1.0
  * @since 2022/3/14 17:46
  */
-public record ThreeFutureTaskThread<T, V>(T A, T B, T C, Callable<T, T, T, V> callable) implements Callable<V> {
+public record ThreeFutureTask<T, V>(T A, T B, T C, Callable<T, T, T, V> callable) implements Callable<V> {
 	/**
 	 * run method to be called in that separately executing thread.
 	 */
