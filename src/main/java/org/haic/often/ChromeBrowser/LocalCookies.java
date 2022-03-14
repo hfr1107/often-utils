@@ -22,6 +22,9 @@ import java.sql.Statement;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 /**
  * 获取本地浏览器cookie
  *
@@ -84,18 +87,19 @@ public class LocalCookies {
 	protected static byte[] encryptedValueDecrypt(byte[] encryptedValue, String encryptedKey) {
 		Security.addProvider(new BouncyCastleProvider());
 
-		// int keyLength = 256 / 8;
+		int keyLength = 256 / 8;
 		int nonceLength = 96 / 8;
 		String kEncryptionVersionPrefix = "v10";
 		int GCM_TAG_LENGTH = 16;
 
 		try {
 			byte[] encryptedKeyBytes = Base64.decodeBase64(encryptedKey);
-			// assertTrue(new String(encryptedKeyBytes).startsWith("DPAPI")); // 断言条件为真，如果不是，它会抛出没有消息的AssertionError
+			assert new String(encryptedKeyBytes).startsWith("DPAPI");
+			assertTrue(new String(encryptedKeyBytes).startsWith("DPAPI")); // 断言条件为真，如果不是，它会抛出没有消息的AssertionError
 			encryptedKeyBytes = Arrays.copyOfRange(encryptedKeyBytes, "DPAPI".length(), encryptedKeyBytes.length);
 			WinDPAPI winDPAPI = WinDPAPI.newInstance(WinDPAPI.CryptProtectFlag.CRYPTPROTECT_UI_FORBIDDEN);
 			byte[] keyBytes = winDPAPI.unprotectData(encryptedKeyBytes);
-			// assertEquals(keyLength, keyBytes.length); // 断言两个多头相等。如果不是，则抛出AssertionError
+			assertEquals(keyLength, keyBytes.length); // 断言两个多头相等。如果不是，则抛出AssertionError
 			byte[] nonce = Arrays.copyOfRange(encryptedValue, kEncryptionVersionPrefix.length(), kEncryptionVersionPrefix.length() + nonceLength);
 			encryptedValue = Arrays.copyOfRange(encryptedValue, kEncryptionVersionPrefix.length() + nonceLength, encryptedValue.length);
 			Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
