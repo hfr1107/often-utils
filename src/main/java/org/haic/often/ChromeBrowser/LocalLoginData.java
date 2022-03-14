@@ -164,7 +164,7 @@ public class LocalLoginData {
 		 */
 		public Map<String, String> getLoginDatasForDomain(String domain) {
 			return processLoginDatas(loginDataStore, domain).parallelStream().filter(loginData -> !Judge.isEmpty(loginData.getValue()))
-					.collect(Collectors.toMap(LoginData::getName, LoginData::getValue, (e1, e2) -> e1));
+					.collect(Collectors.toMap(LoginData::getName, LoginData::getValue, (e1, e2) -> e2));
 		}
 
 		/**
