@@ -1,6 +1,7 @@
 package org.haic.often.ChromeBrowser;
 
 import org.haic.often.FilesUtils;
+import org.haic.often.Judge;
 import org.haic.often.StringUtils;
 import org.iq80.leveldb.*;
 import org.iq80.leveldb.impl.Iq80DBFactory;
@@ -13,6 +14,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 获取本地浏览器 Local Storage 数据
@@ -102,13 +104,8 @@ public class LocalStorage {
 		 * Returns localStorage leveldb for a given domain
 		 */
 		public Map<String, String> getStoragesForDomain(String domain) {
-			Map<String, String> result = new HashMap<>();
-			for (Map.Entry<String, Map<String, String>> storage : getStorages().entrySet()) {
-				if (storage.getKey().contains(domain)) {
-					result = storage.getValue();
-				}
-			}
-			return result;
+			Optional<Map.Entry<String, Map<String, String>>> result = getStorages().entrySet().stream().filter(l -> l.getKey().contains(domain)).findFirst();
+			return result.isPresent() ? result.get().getValue() : new HashMap<>();
 		}
 
 		/**
@@ -152,7 +149,16 @@ public class LocalStorage {
 						String domain = key.substring(0, index);
 						String name = StringUtils.filter(key.substring(index + 1));
 						String value = StringUtils.filter(new String(entry.getValue(), charset));
-						result.put(domain, Map.of(name, value));
+						Map<String, String> info = result.get(domain);
+						if (Judge.isNull(info)) {
+							result.put(domain, new HashMap<>() {
+								{
+									put(name, value);
+								}
+							});
+						} else {
+							info.put(name, value);
+						}
 					}
 				}
 			} catch (IOException e) {
