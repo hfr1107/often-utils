@@ -594,8 +594,11 @@ public class HttpsUtil {
 		 * @return cookies
 		 */
 		@Contract(pure = true) public Map<String, String> cookies() {
-			return conn.getHeaderFields().get("Set-Cookie").stream().map(l -> l.split("="))
-					.collect(Collectors.toMap(l -> l[0], l -> Judge.isEmpty(l[1]) ? l[1] : l[1].substring(0, l[1].indexOf(";"))));
+			List<String> cookies = conn.getHeaderFields().get("Set-Cookie");
+			return Judge.isNull(cookies) ?
+					new HashMap<>() :
+					cookies.stream().map(l -> l.split("="))
+							.collect(Collectors.toMap(l -> l[0], l -> Judge.isEmpty(l[1]) ? l[1] : l[1].substring(0, l[1].indexOf(";"))));
 		}
 
 		/**
