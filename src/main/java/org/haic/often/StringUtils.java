@@ -78,8 +78,7 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils {
 	@Contract(pure = true) public static Map<String, String> toMap(@NotNull String str) {
 		str = str.startsWith("{") ? str.substring(1) : str;
 		str = str.endsWith("}") ? str.substring(0, str.length() - 1) : str;
-		return Arrays.stream(str.split(str.contains(";") ? ";" : ",")).map(l -> l.split("="))
-				.collect(Collectors.toMap(l -> StringUtils.deletePefix(l[0], " "), l -> l[1]));
+		return Arrays.stream(str.split(",")).map(l -> l.split("=")).collect(Collectors.toMap(l -> StringUtils.deletePefix(l[0], " "), l -> l[1]));
 	}
 
 	/**

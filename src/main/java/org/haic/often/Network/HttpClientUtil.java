@@ -25,7 +25,6 @@ import org.apache.http.ssl.SSLContexts;
 import org.haic.often.Judge;
 import org.haic.often.Multithread.MultiThreadUtils;
 import org.haic.often.StreamUtils;
-import org.haic.often.StringUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection.Method;
@@ -614,7 +613,18 @@ public class HttpClientUtil {
 		 * @return 请求头
 		 */
 		@Contract(pure = true) public Map<String, String> headers() {
-			return Arrays.stream(response.getAllHeaders()).collect(Collectors.toMap(NameValuePair::getName, NameValuePair::getValue));
+			Map<String, String> headers = new HashMap<>();
+			for (Header header : response.getAllHeaders()) {
+				String name = header.getName().toLowerCase();
+				String value = header.getValue();
+				if (name.equals("set-cookie")) {
+					String cookie = headers.get(name);
+					headers.put(name, Judge.isEmpty(cookie) ? "[" + value + "]" : cookie.substring(0, cookie.length() - 1) + ", " + value + "]");
+				} else {
+					headers.put(name, value);
+				}
+			}
+			return headers;
 		}
 
 		/**
@@ -623,11 +633,9 @@ public class HttpClientUtil {
 		 * @return 请求头的值
 		 */
 		@Contract(pure = true) public String header(@NotNull String name) {
-			StringBuilder result = new StringBuilder();
-			for (Header header : response.getHeaders(name)) {
-				result.append("; ").append(header.getValue());
-			}
-			return result.substring(2);
+			String header = headers().get(name);
+			header = header.startsWith("[") ? header.substring(1) : header;
+			return header.endsWith("]") ? header.substring(0, header.length() - 1) : header;
 		}
 
 		/**
@@ -636,7 +644,8 @@ public class HttpClientUtil {
 		 * @return cookies
 		 */
 		@Contract(pure = true) public Map<String, String> cookies() {
-			return StringUtils.toMap(headers().get("set-cookie"));
+			return Arrays.stream(response.getHeaders("Set-Cookie")).map(l -> l.getValue().split("="))
+					.collect(Collectors.toMap(l -> l[0], l -> Judge.isEmpty(l[1]) ? l[1] : l[1].substring(0, l[1].indexOf(";"))));
 		}
 
 		/**

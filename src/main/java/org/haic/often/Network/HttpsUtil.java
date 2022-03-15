@@ -571,8 +571,10 @@ public class HttpsUtil {
 		 * @return 请求头
 		 */
 		@Contract(pure = true) public Map<String, String> headers() {
-			return conn.getHeaderFields().entrySet().stream()
-					.collect(Collectors.toMap(Map.Entry::getKey, stringListEntry -> stringListEntry.getValue().toString()));
+			Map<String, String> headers = conn.getHeaderFields().entrySet().stream()
+					.collect(Collectors.toMap(l -> String.valueOf(l.getKey()).toLowerCase(), l -> l.getValue().toString()));
+			headers.remove("null");
+			return headers;
 		}
 
 		/**
@@ -581,7 +583,9 @@ public class HttpsUtil {
 		 * @return 请求头的值
 		 */
 		@Contract(pure = true) public String header(@NotNull String name) {
-			return conn.getHeaderField(name);
+			String header = headers().get(name);
+			header = header.startsWith("[") ? header.substring(1) : header;
+			return header.endsWith("]") ? header.substring(0, header.length() - 1) : header;
 		}
 
 		/**
@@ -590,12 +594,8 @@ public class HttpsUtil {
 		 * @return cookies
 		 */
 		@Contract(pure = true) public Map<String, String> cookies() {
-			Map<String, String> cookies = new HashMap<>();
-			for (String str : conn.getHeaderFields().get("set-cookie")) {
-				String[] cookie = str.split("=");
-				cookies.put(cookie[0], Judge.isEmpty(cookie[1]) ? "" : cookie[1]);
-			}
-			return cookies;
+			return conn.getHeaderFields().get("Set-Cookie").stream().map(l -> l.split("="))
+					.collect(Collectors.toMap(l -> l[0], l -> Judge.isEmpty(l[1]) ? l[1] : l[1].substring(0, l[1].indexOf(";"))));
 		}
 
 		/**

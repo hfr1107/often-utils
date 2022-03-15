@@ -14,11 +14,7 @@ import org.jsoup.nodes.Document;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -588,7 +584,8 @@ public class HtmlUnitUtil {
 		 * @return cookies
 		 */
 		@Contract(pure = true) public Map<String, String> cookies() {
-			return headers().entrySet().stream().filter(l -> l.getKey().equals("set-cookie")).collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+			return page.getWebResponse().getResponseHeaders().stream().filter(l -> l.getName().equalsIgnoreCase("set-cookie")).map(l -> l.getValue().split("="))
+					.collect(Collectors.toMap(l -> l[0], l -> Judge.isEmpty(l[1]) ? l[1] : l[1].substring(0, l[1].indexOf(";"))));
 		}
 
 		/**
@@ -607,7 +604,19 @@ public class HtmlUnitUtil {
 		 * @return Map
 		 */
 		@Contract(pure = true) public Map<String, String> headers() {
-			return page.getWebResponse().getResponseHeaders().stream().collect(Collectors.toMap(NameValuePair::getName, NameValuePair::getValue));
+			Map<String, String> headers = new HashMap<>();
+			for (NameValuePair header : page.getWebResponse().getResponseHeaders()) {
+				String name = header.getName().toLowerCase();
+				String value = header.getValue();
+				if (name.equals("set-cookie")) {
+					String cookie = headers.get(name);
+					headers.put(name, Judge.isEmpty(cookie) ? "[" + value + "]" : cookie.substring(0, cookie.length() - 1) + ", " + value + "]");
+				} else {
+					headers.put(name, value);
+				}
+			}
+			return headers;
+			//return page.getWebResponse().getResponseHeaders().stream().collect(Collectors.toMap(NameValuePair::getName, NameValuePair::getValue));
 		}
 
 		/**
@@ -616,7 +625,9 @@ public class HtmlUnitUtil {
 		 * @return value
 		 */
 		@Contract(pure = true) public String header(@NotNull String name) {
-			return page.getWebResponse().getResponseHeaderValue(name);
+			String header = headers().get(name);
+			header = header.startsWith("[") ? header.substring(1) : header;
+			return header.endsWith("]") ? header.substring(0, header.length() - 1) : header;
 		}
 
 		/**
