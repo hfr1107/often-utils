@@ -230,8 +230,7 @@ public class URIUtils {
 	 * @return 新浪微博Cookies
 	 */
 	@NotNull @Contract(pure = true) public static Map<String, String> getWeiBoCookies() {
-		// API
-		String ajaxUrl = "https://weibo.com/ajax/";
+		String ajaxUrl = "https://weibo.com/ajax/"; // API
 		String genvisitor = "https://passport.weibo.com/visitor/genvisitor";
 		String visitor = "https://passport.weibo.com/visitor/visitor";
 
@@ -239,7 +238,7 @@ public class URIUtils {
 
 		String genvisitorInfo = JsoupUtil.connect(genvisitor).data("cb", "gen_callback").post().text();
 		genvisitorInfo = genvisitorInfo.substring(genvisitorInfo.indexOf("{"), genvisitorInfo.lastIndexOf("}") + 1);
-		String tid = JSONObject.parseObject(JSONObject.parseObject(genvisitorInfo).getString("data")).getString("tid");
+		String tid = JSONObject.parseObject(genvisitorInfo).getJSONObject("data").getString("tid");
 		Map<String, String> visitorData = new HashMap<>();
 		visitorData.put("a", "incarnate");
 		visitorData.put("cb", "cross_domain");
@@ -247,8 +246,7 @@ public class URIUtils {
 		visitorData.put("t", tid);
 		String visitorInfo = JsoupUtil.connect(visitor).data(visitorData).get().text();
 		visitorInfo = visitorInfo.substring(visitorInfo.indexOf("{"), visitorInfo.lastIndexOf("}") + 1);
-
-		JSONObject visitorInfoData = JSONObject.parseObject(JSONObject.parseObject(visitorInfo).getString("data"));
+		JSONObject visitorInfoData = JSONObject.parseObject(visitorInfo).getJSONObject("data");
 		cookies.put("SUB", visitorInfoData.getString("sub"));
 		cookies.put("SUBP", visitorInfoData.getString("subp"));
 

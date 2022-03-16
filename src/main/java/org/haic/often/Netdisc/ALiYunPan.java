@@ -77,10 +77,10 @@ public class ALiYunPan {
 	 * @return Map - 文件名,文件ID
 	 */
 	public static Map<String, String> getInfosAsPage(String shareId) {
-		JSONObject apiJson = new JSONObject();
-		apiJson.put("share_id", shareId);
-		Document doc = JsoupUtil.connect(dataApi).requestBody(apiJson.toString()).post();
-		JSONArray fileInfoArray = JSONArray.parseArray(JSONObject.parseObject(doc.text()).getString("file_infos"));
+		Document doc = JsoupUtil.connect(dataApi).requestBody(new JSONObject() {{
+			put("share_id", shareId);
+		}}.toJSONString()).post();
+		JSONArray fileInfoArray = JSONObject.parseObject(doc.text()).getJSONArray("file_infos");
 		Map<String, String> filesInfo = new HashMap<>();
 		for (int i = 0; i < fileInfoArray.size(); i++) {
 			JSONObject fileInfo = fileInfoArray.getJSONObject(i);
