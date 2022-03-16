@@ -425,7 +425,7 @@ public class HttpClientUtil {
 		}
 
 		@Contract(pure = true) public int statusCode() {
-			return response.getStatusLine().getStatusCode();
+			return Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.getStatusLine().getStatusCode();
 		}
 
 		@Contract(pure = true) public String header(@NotNull String name) {
