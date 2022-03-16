@@ -2,8 +2,8 @@ package org.haic.often.Netdisc;
 
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.codec.binary.Base64;
-import org.haic.often.Network.Jsoup.Connection;
-import org.haic.often.Network.Jsoup.JsoupUtil;
+import org.haic.often.Network.Connection;
+import org.haic.often.Network.JsoupUtil;
 import org.haic.often.StringUtils;
 import org.haic.often.Tuple.FourTuple;
 import org.haic.often.Tuple.ThreeTuple;

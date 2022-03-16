@@ -14,26 +14,18 @@ import java.security.cert.X509Certificate;
  * @version 1.0
  * @since 2022/2/25 18:16
  */
-public class SSLSocketFactory {
-	/**
-	 * 获得HTTPS忽略证书验证的SocketFactory对象
-	 *
-	 * @return SocketFactory
-	 */
-	public static javax.net.ssl.SSLSocketFactory getSocketFactory() {
-		return SSLSocketFactory.MyX509TrustManagerUtil().getSocketFactory();
-	}
+public class IgnoreSSLSocket {
 
 	/**
 	 * 获得HTTPS忽略证书验证的SSLContext
 	 *
 	 * @return SSLContext
 	 */
-	public static SSLContext MyX509TrustManagerUtil() {
+	public static SSLContext MyX509TrustManager() {
 		TrustManager[] tm = { new MyX509TrustManager() };
 		SSLContext ctx = null;
 		try {
-			ctx = SSLContext.getInstance("TLS");
+			ctx = SSLContext.getInstance("TLSv1.2");
 			ctx.init(null, tm, null);
 		} catch (Exception e) {
 			e.printStackTrace();

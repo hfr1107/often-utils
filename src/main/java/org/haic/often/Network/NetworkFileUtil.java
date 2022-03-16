@@ -5,13 +5,11 @@ import org.haic.often.FilesUtils;
 import org.haic.often.Judge;
 import org.haic.often.Multithread.MultiThreadUtils;
 import org.haic.often.Multithread.ParameterizedThread;
-import org.haic.often.Network.Jsoup.JsoupUtil;
 import org.haic.often.ReadWriteUtils;
 import org.haic.often.StringUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection;
-import org.jsoup.Connection.Response;
 
 import java.io.*;
 import java.net.InetSocketAddress;

@@ -3,7 +3,7 @@ package org.haic.often.Netdisc;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.haic.often.Judge;
-import org.haic.often.Network.Jsoup.JsoupUtil;
+import org.haic.often.Network.JsoupUtil;
 import org.haic.often.StringUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -149,7 +149,7 @@ public class LanZouYunPan {
 
 		// 处理json数据
 		JSONObject fileInfo = JSONObject.parseObject(JsoupUtil.connect(downApi).referrer(downUrl).data(params).post().text());
-		return JsoupUtil.connect(fileInfo.getString("dom") + "/file/" + fileInfo.getString("url")).execute().url().toExternalForm();
+		return JsoupUtil.connect(fileInfo.getString("dom") + "/file/" + fileInfo.getString("url")).execute().url();
 	}
 
 	/**
@@ -164,7 +164,7 @@ public class LanZouYunPan {
 		JSONObject fileInfo = JSONObject.parseObject(
 				JsoupUtil.connect(downApi).requestBody(StringUtils.extractRegex(JsoupUtil.connect(lanzouUrl).execute().body(), "action=.*&p=") + password)
 						.referrer(lanzouUrl).post().text());
-		return JsoupUtil.connect(fileInfo.getString("dom") + "/file/" + fileInfo.getString("url")).execute().url().toExternalForm();
+		return JsoupUtil.connect(fileInfo.getString("dom") + "/file/" + fileInfo.getString("url")).execute().url();
 
 	}
 

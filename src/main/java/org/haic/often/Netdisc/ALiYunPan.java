@@ -2,7 +2,7 @@ package org.haic.often.Netdisc;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import org.haic.often.Network.Jsoup.JsoupUtil;
+import org.haic.often.Network.JsoupUtil;
 import org.jsoup.nodes.Document;
 
 import java.util.HashMap;

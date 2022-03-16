@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection.Method;
 import org.jsoup.nodes.Document;
 
+import javax.net.ssl.SSLContext;
 import java.io.InputStream;
 import java.net.Proxy;
 import java.util.List;
@@ -36,6 +37,16 @@ public abstract class Connection {
 	 * @return 一个新的 Connection 对象，具有共享的 Cookie 存储和来自此 Connection 和 Request 的初始化设置
 	 */
 	@Contract(pure = true) public abstract Connection newRequest();
+
+	/**
+	 * 连接sslSocketFactory （ SSLSocketFactory  sslSocketFactory）
+	 * <p>
+	 * 设置自定义 SSL 套接字工厂
+	 *
+	 * @param sslSocket 自定义 SSL 套接字工厂
+	 * @return 此连接，用于链接
+	 */
+	@Contract(pure = true) public abstract Connection sslSocketFactory(SSLContext sslSocket);
 
 	/**
 	 * 连接用户代理（ 字符串 用户代理）<br/>

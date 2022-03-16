@@ -12,6 +12,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,6 +46,7 @@ public class HttpsUtil {
 	}
 
 	protected static class HttpConnection extends Connection {
+
 		protected String url; // URL
 		protected String params = ""; // 请求参数
 		protected int retry; // 请求异常重试次数
@@ -58,9 +61,11 @@ public class HttpsUtil {
 		protected Map<String, String> cookies = new HashMap<>(); // cookies
 		protected List<Integer> retryStatusCodes = new ArrayList<>();
 		protected ThreeTuple<String, InputStream, String> file;
+		protected SSLSocketFactory sslSocketFactory;
 
 		protected HttpConnection(@NotNull String url) {
 			this.url = url;
+			sslSocketFactory = IgnoreSSLSocket.MyX509TrustManager().getSocketFactory();
 			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
 			header("user-agent", UserAgent.chrome()); // 设置随机请求头;
 		}
@@ -80,6 +85,11 @@ public class HttpsUtil {
 			params = "";
 			headers = new HashMap<>();
 			method = Method.GET;
+			return this;
+		}
+
+		@Contract(pure = true) public Connection sslSocketFactory(SSLContext sslSocket) {
+			sslSocketFactory = sslSocket.getSocketFactory();
 			return this;
 		}
 
@@ -304,7 +314,7 @@ public class HttpsUtil {
 
 			// https 忽略证书验证
 			if (url.startsWith("https")) { // 在握手期间，如果 URL 的主机名和服务器的标识主机名不匹配，则验证机制可以回调此接口的实现程序来确定是否应该允许此连接。
-				((HttpsURLConnection) conn).setSSLSocketFactory(SSLSocketFactory.getSocketFactory());
+				((HttpsURLConnection) conn).setSSLSocketFactory(sslSocketFactory);
 				((HttpsURLConnection) conn).setHostnameVerifier((arg0, arg1) -> true);
 			}
 

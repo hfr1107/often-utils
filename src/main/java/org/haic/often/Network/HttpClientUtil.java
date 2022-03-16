@@ -17,6 +17,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
@@ -31,6 +32,7 @@ import org.jsoup.Connection.Method;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -73,7 +75,6 @@ public class HttpClientUtil {
 		protected boolean unlimitedRetry;// 请求异常无限重试
 		protected boolean errorExit; // 错误退出
 		protected boolean followRedirects = true; // 重定向
-		protected boolean isSocksProxy; // 是否Socks代理
 		protected HttpHost proxy;
 		protected Method method = Method.GET;
 
@@ -83,6 +84,7 @@ public class HttpClientUtil {
 		protected List<NameValuePair> params = new ArrayList<>();
 		protected HttpClientContext context = HttpClientContext.create();
 		protected CloseableHttpClient httpclient;
+		protected HttpClientBuilder httpClientBuilder = HttpClients.custom();
 		protected HttpEntity entity;
 
 		protected HttpConnection(@NotNull String url) {
@@ -100,6 +102,11 @@ public class HttpClientUtil {
 			params = new ArrayList<>();
 			headers = new HashMap<>();
 			method = Method.GET;
+			return this;
+		}
+
+		@Contract(pure = true) public Connection sslSocketFactory(SSLContext sslSocket) {
+			httpClientBuilder.setSSLContext(IgnoreSSLSocket.MyX509TrustManager());
 			return this;
 		}
 
@@ -185,15 +192,12 @@ public class HttpClientUtil {
 		}
 
 		@Contract(pure = true) public Connection socks(@NotNull String proxyHost, int proxyPort) {
-			httpclient = HttpClientHelper.createClient();
-			this.isSocksProxy = true;
+			httpClientBuilder = httpClientBuilder.setConnectionManager(HttpClientHelper.PoolingHttpClientConnectionManager());
 			this.context.setAttribute("socks.address", new InetSocketAddress(proxyHost, proxyPort));
 			return this;
 		}
 
 		@Contract(pure = true) public Connection proxy(@NotNull String proxyHost, int proxyPort) {
-			httpclient = HttpClients.createDefault();
-			this.isSocksProxy = false;
 			this.proxy = new HttpHost(proxyHost, proxyPort, "HTTP");
 			return this;
 		}
@@ -313,7 +317,7 @@ public class HttpClientUtil {
 			// 设置cookies
 			request.setHeader("cookie", cookies.entrySet().stream().map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.joining("; ")));
 
-			httpclient = Judge.isNull(httpclient) ? HttpClients.createDefault() : httpclient;
+			httpclient = Judge.isNull(httpclient) ? httpClientBuilder.build() : httpclient;
 
 			HttpResponse response = executeProgram(request);
 			int statusCode = Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.statusCode();
@@ -351,9 +355,12 @@ public class HttpClientUtil {
 		 * @return CloseableHttpClient实例
 		 */
 		public static CloseableHttpClient createClient() {
-			return HttpClients.custom().setConnectionManager(new PoolingHttpClientConnectionManager(
-					RegistryBuilder.<ConnectionSocketFactory>create().register("http", new MyConnectionSocketFactory())
-							.register("https", new MySSLConnectionSocketFactory()).build())).build();
+			return HttpClients.custom().setConnectionManager(PoolingHttpClientConnectionManager()).build();
+		}
+
+		public static PoolingHttpClientConnectionManager PoolingHttpClientConnectionManager() {
+			return new PoolingHttpClientConnectionManager(RegistryBuilder.<ConnectionSocketFactory>create().register("http", new MyConnectionSocketFactory())
+					.register("https", new MySSLConnectionSocketFactory()).build());
 		}
 
 		/**

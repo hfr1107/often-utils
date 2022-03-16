@@ -1,25 +1,21 @@
-package org.haic.often.Network.Jsoup;
+package org.haic.often.Network;
 
 import org.haic.often.Judge;
 import org.haic.often.Multithread.MultiThreadUtils;
-import org.haic.often.Network.HttpStatus;
-import org.haic.often.Network.URIUtils;
-import org.haic.often.Network.UserAgent;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection.Method;
-import org.jsoup.Connection.Response;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.parser.Parser;
 
-import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpCookie;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -64,12 +60,18 @@ public class JsoupUtil {
 			header("user-agent", UserAgent.chrome());
 		}
 
-		@Contract(pure = true) public Connection url(URL url) {
-			return url(url.toExternalForm());
+		@Contract(pure = true) public Connection url(@NotNull String url) {
+			conn.url(this.url = url);
+			return this;
 		}
 
-		@Contract(pure = true) public Connection url(String url) {
-			conn.url(this.url = url);
+		@Contract(pure = true) public Connection newRequest() {
+			conn.newRequest();
+			return this;
+		}
+
+		@Contract(pure = true) public Connection sslSocketFactory(SSLContext sslSocket) {
+			conn.sslSocketFactory(sslSocket.getSocketFactory());
 			return this;
 		}
 
@@ -106,11 +108,6 @@ public class JsoupUtil {
 
 		@Contract(pure = true) public Connection maxBodySize(int bytes) {
 			conn.maxBodySize(bytes);
-			return this;
-		}
-
-		@Contract(pure = true) public Connection sslSocketFactory(SSLSocketFactory sslSocketFactory) {
-			conn.sslSocketFactory(sslSocketFactory);
 			return this;
 		}
 
@@ -202,11 +199,6 @@ public class JsoupUtil {
 			return this;
 		}
 
-		@Contract(pure = true) public Connection newRequest() {
-			conn.newRequest();
-			return this;
-		}
-
 		@Contract(pure = true) public Connection retry(int retry) {
 			this.retry = retry;
 			return this;
@@ -268,15 +260,76 @@ public class JsoupUtil {
 			return response;
 		}
 
-		@Contract(pure = true) protected Response executeProgram(@NotNull org.jsoup.Connection conn) {
-			Response response;
+		@Contract(pure = true) protected HttpResponse executeProgram(@NotNull org.jsoup.Connection conn) {
+			org.jsoup.Connection.Response response;
 			try {
 				response = conn.execute();
 			} catch (IOException e) {
 				return null;
 			}
-			return response;
+			return new HttpResponse(response);
 		}
+	}
+
+	/**
+	 * 响应接口
+	 *
+	 * @author haicdust
+	 * @version 1.0
+	 * @since 2022/3/16 10:28
+	 */
+	protected static class HttpResponse extends Response {
+		protected org.jsoup.Connection.Response response;
+
+		protected HttpResponse(org.jsoup.Connection.Response response) {
+			this.response = response;
+		}
+
+		@Contract(pure = true) public String url() {
+			return response.url().toExternalForm();
+		}
+
+		@Contract(pure = true) public int statusCode() {
+			return Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.statusCode();
+		}
+
+		@Contract(pure = true) public String header(@NotNull String name) {
+			return response.header(name);
+		}
+
+		@Contract(pure = true) public Map<String, String> headers() {
+			return response.headers();
+		}
+
+		@Contract(pure = true) public String cookie(@NotNull String name) {
+			return response.cookie(name);
+		}
+
+		@Contract(pure = true) public Map<String, String> cookies() {
+			return response.cookies();
+		}
+
+		@Contract(pure = true) public HttpResponse charset(@NotNull String charsetName) {
+			response.charset(charsetName);
+			return this;
+		}
+
+		@Contract(pure = true) public HttpResponse charset(@NotNull Charset charset) {
+			return charset(charset.name());
+		}
+
+		@Contract(pure = true) public String body() {
+			return response.body();
+		}
+
+		@Contract(pure = true) public InputStream bodyStream() {
+			return response.bodyStream();
+		}
+
+		@Contract(pure = true) public byte[] bodyAsBytes() {
+			return response.bodyAsBytes();
+		}
+
 	}
 
 }
