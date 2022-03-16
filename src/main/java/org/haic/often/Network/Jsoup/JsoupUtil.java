@@ -14,6 +14,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.parser.Parser;
 
 import javax.net.ssl.SSLSocketFactory;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.CookieStore;
 import java.net.InetSocketAddress;
@@ -41,7 +42,8 @@ public class JsoupUtil {
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public static Connection connect(@NotNull String url) {
-		return new HttpConnection2(url, Jsoup.connect(url)).header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8").header("user-agent", UserAgent.chrome());
+		return new HttpConnection2(url, Jsoup.connect(url).maxBodySize(0).timeout(0).ignoreContentType(true).ignoreHttpErrors(true)).header("accept-language",
+				"zh-CN,zh;q=0.9,en;q=0.8").header("user-agent", UserAgent.chrome());
 	}
 
 	protected static class HttpConnection2 extends Connection {
@@ -273,7 +275,7 @@ public class JsoupUtil {
 			Response response;
 			try {
 				response = conn.execute();
-			} catch (Exception e) {
+			} catch (IOException e) {
 				return null;
 			}
 			return response;

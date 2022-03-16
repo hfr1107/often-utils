@@ -516,7 +516,7 @@ public class NetworkFileUtil {
 				return HttpStatus.SC_OK;
 			}
 			if (conf.isFile()) {
-				return method(NetworkFileUtil.Method.FILE).download(folder);
+				return method(Method.FILE).download(folder);
 			}
 
 			String contentLength = response.header("content-length"); // 获取文件大小
