@@ -44,7 +44,7 @@ public class TianYiYunPan {
 	 * @param password 密码
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public static TianYiYunPanApi login(@NotNull String userName, @NotNull String password) {
+	@Contract(pure = true) public static TianYiYunPanAPI login(@NotNull String userName, @NotNull String password) {
 		return cookies(TianYiYunPanLogin.login(userName, password));
 	}
 
@@ -54,8 +54,8 @@ public class TianYiYunPan {
 	 * @param cookies cookies
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public static TianYiYunPanApi cookies(@NotNull Map<String, String> cookies) {
-		return new TianYiYunPanApi(cookies);
+	@Contract(pure = true) public static TianYiYunPanAPI cookies(@NotNull Map<String, String> cookies) {
+		return new TianYiYunPanAPI(cookies);
 	}
 
 	/**
@@ -100,10 +100,10 @@ public class TianYiYunPan {
 		return Tuple.of(fileId, shareId, isFolder, shareMode);
 	}
 
-	public static class TianYiYunPanApi {
+	public static class TianYiYunPanAPI {
 		public Map<String, String> cookies;
 
-		protected TianYiYunPanApi(Map<String, String> cookies) {
+		protected TianYiYunPanAPI(Map<String, String> cookies) {
 			this.cookies = cookies;
 		}
 
@@ -151,9 +151,9 @@ public class TianYiYunPan {
 	}
 
 	public static class TianYiYunPanLogin {
-		public static final String loginUrl_url = "https://cloud.189.cn/api/portal/loginUrl.action";
+		public static final String loginUrl = "https://cloud.189.cn/api/portal/loginUrl.action";
 		public static final String encryptConfUrl = "https://open.e.189.cn/api/logbox/config/encryptConf.do";
-		public static final String loginSubmit_url = "https://open.e.189.cn/api/logbox/oauth2/loginSubmit.do";
+		public static final String loginSubmitUrl = "https://open.e.189.cn/api/logbox/oauth2/loginSubmit.do";
 
 		public static Map<String, String> login(@NotNull String userName, @NotNull String password) {
 			Connection conn = JsoupUtil.connect(encryptConfUrl);
@@ -163,7 +163,7 @@ public class TianYiYunPan {
 			userName = pre + encrypt(userName, pubKey);
 			password = pre + encrypt(password, pubKey);
 
-			Document doc = conn.url(loginUrl_url).get();
+			Document doc = conn.url(loginUrl).get();
 			String loginUrlText = doc.select("script[type='text/javascript']").toString();
 
 			String captcha_token = doc.select("input[name='captchaToken']").attr("value");
@@ -199,7 +199,7 @@ public class TianYiYunPan {
 			data.put("isOauth2", isOauth2);
 			data.put("paramId", paramId);
 
-			return conn.url(loginSubmit_url).header("lt", lt).header("reqid", reqId).header("referer", encryptConfUrl).data(data).method(Method.POST).execute()
+			return conn.url(loginSubmitUrl).header("lt", lt).header("reqid", reqId).header("referer", encryptConfUrl).data(data).method(Method.POST).execute()
 					.cookies();
 
 		}
