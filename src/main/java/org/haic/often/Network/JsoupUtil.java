@@ -39,10 +39,10 @@ public class JsoupUtil {
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public static Connection connect(@NotNull String url) {
-		return new HttpConnection2(url, Jsoup.connect(url).maxBodySize(0).timeout(0).ignoreContentType(true).ignoreHttpErrors(true));
+		return new HttpConnection(url, Jsoup.connect(url));
 	}
 
-	protected static class HttpConnection2 extends Connection {
+	protected static class HttpConnection extends Connection {
 		protected String url; // 请求URL
 		protected int retry; // 请求异常重试次数
 		protected int MILLISECONDS_SLEEP; // 重试等待时间
@@ -50,12 +50,13 @@ public class JsoupUtil {
 		protected boolean errorExit; // 错误退出
 
 		protected List<Integer> retryStatusCodes = new ArrayList<>(); // 重试的错误状态码
+		protected Parser parser = Parser.htmlParser();
 
 		protected org.jsoup.Connection conn;
 
-		protected HttpConnection2(String url, org.jsoup.Connection conn) {
+		protected HttpConnection(String url, org.jsoup.Connection conn) {
 			this.url = url;
-			this.conn = conn;
+			this.conn = conn.maxBodySize(0).timeout(0).ignoreContentType(true).ignoreHttpErrors(true);
 			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
 			header("user-agent", UserAgent.chrome());
 		}
@@ -108,6 +109,11 @@ public class JsoupUtil {
 
 		@Contract(pure = true) public Connection maxBodySize(int bytes) {
 			conn.maxBodySize(bytes);
+			return this;
+		}
+
+		@Contract(pure = true) public Connection parser(@NotNull Parser parser) {
+			this.parser = parser;
 			return this;
 		}
 
@@ -184,16 +190,6 @@ public class JsoupUtil {
 			return this;
 		}
 
-		@Contract(pure = true) public Connection parser(Parser parser) {
-			conn.parser(parser);
-			return this;
-		}
-
-		@Contract(pure = true) public Connection postDataCharset(@NotNull String charset) {
-			conn.postDataCharset(charset);
-			return this;
-		}
-
 		@Contract(pure = true) public Connection method(@NotNull Method method) {
 			conn.method(method);
 			return this;
@@ -238,12 +234,12 @@ public class JsoupUtil {
 
 		@Contract(pure = true) public Document get() {
 			Response response = method(Method.GET).execute();
-			return Judge.isNull(response) ? null : Jsoup.parse(response.body());
+			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body(), parser) : null;
 		}
 
 		@Contract(pure = true) public Document post() {
 			Response response = method(Method.POST).execute();
-			return Judge.isNull(response) ? null : Jsoup.parse(response.body());
+			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body(), parser) : null;
 		}
 
 		@Contract(pure = true) public Response execute() {
@@ -260,7 +256,7 @@ public class JsoupUtil {
 			return response;
 		}
 
-		@Contract(pure = true) protected HttpResponse executeProgram(@NotNull org.jsoup.Connection conn) {
+		@Contract(pure = true) protected Response executeProgram(@NotNull org.jsoup.Connection conn) {
 			org.jsoup.Connection.Response response;
 			try {
 				response = conn.execute();
@@ -309,12 +305,12 @@ public class JsoupUtil {
 			return response.cookies();
 		}
 
-		@Contract(pure = true) public HttpResponse charset(@NotNull String charsetName) {
+		@Contract(pure = true) public Response charset(@NotNull String charsetName) {
 			response.charset(charsetName);
 			return this;
 		}
 
-		@Contract(pure = true) public HttpResponse charset(@NotNull Charset charset) {
+		@Contract(pure = true) public Response charset(@NotNull Charset charset) {
 			return charset(charset.name());
 		}
 

@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection.Method;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.parser.Parser;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -57,6 +58,7 @@ public class HttpsUtil {
 		protected boolean followRedirects = true; // 重定向
 		protected Proxy proxy = Proxy.NO_PROXY; // 代理
 		protected Method method = Method.GET;
+		protected Parser parser = Parser.htmlParser();
 		protected Map<String, String> headers = new HashMap<>(); // 请求头
 		protected Map<String, String> cookies = new HashMap<>(); // cookies
 		protected List<Integer> retryStatusCodes = new ArrayList<>();
@@ -116,6 +118,11 @@ public class HttpsUtil {
 
 		@Contract(pure = true) public Connection timeout(int millis) {
 			this.timeout = millis;
+			return this;
+		}
+
+		@Contract(pure = true) public Connection parser(@NotNull Parser parser) {
+			this.parser = parser;
 			return this;
 		}
 
@@ -227,19 +234,18 @@ public class HttpsUtil {
 		}
 
 		@Contract(pure = true) public Document get() {
-			method(Method.GET);
-			HttpResponse response = execute();
-			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body()) : null;
+			Response response = method(Method.GET).execute();
+			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body(), parser) : null;
 		}
 
 		@Contract(pure = true) public Document post() {
 			method(Method.POST);
-			HttpResponse response = execute();
-			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body()) : null;
+			Response response = execute();
+			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body(), parser) : null;
 		}
 
-		@Contract(pure = true) public HttpResponse execute() {
-			HttpResponse response = executeProgram(url);
+		@Contract(pure = true) public Response execute() {
+			Response response = executeProgram(url);
 			int statusCode = Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.statusCode();
 			for (int i = 0; (URIUtils.statusIsTimeout(statusCode) || retryStatusCodes.contains(statusCode)) && (i < retry || unlimitedRetry); i++) {
 				MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP); // 程序等待
@@ -257,7 +263,7 @@ public class HttpsUtil {
 		 *
 		 * @return this
 		 */
-		@Contract(pure = true) protected HttpResponse executeProgram(@NotNull String url) {
+		@Contract(pure = true) protected Response executeProgram(@NotNull String url) {
 			try {
 				HttpURLConnection conn = null;
 				switch (method) {
@@ -286,7 +292,7 @@ public class HttpsUtil {
 				}
 
 				// 维护cookies
-				HttpResponse response = new HttpResponse(conn);
+				Response response = new HttpResponse(conn);
 				cookies.putAll(response.cookies());
 
 				String redirectUrl; // 修复重定向
@@ -382,11 +388,11 @@ public class HttpsUtil {
 							.collect(Collectors.toMap(l -> l.substring(0, l.indexOf("=")), l -> l.substring(l.indexOf("=") + 1), (e1, e2) -> e2));
 		}
 
-		@Contract(pure = true) public HttpResponse charset(@NotNull String charsetName) {
+		@Contract(pure = true) public Response charset(@NotNull String charsetName) {
 			return charset(Charset.forName(charsetName));
 		}
 
-		@Contract(pure = true) public HttpResponse charset(@NotNull Charset charset) {
+		@Contract(pure = true) public Response charset(@NotNull Charset charset) {
 			this.charset = charset;
 			return this;
 		}

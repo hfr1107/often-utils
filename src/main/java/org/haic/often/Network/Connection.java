@@ -4,6 +4,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection.Method;
 import org.jsoup.nodes.Document;
+import org.jsoup.parser.Parser;
 
 import javax.net.ssl.SSLContext;
 import java.io.InputStream;
@@ -102,6 +103,16 @@ public abstract class Connection {
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public abstract Connection timeout(int millis);
+
+	/**
+	 * 连接解析器（ Parser parser）
+	 * 在解析对文档的响应时提供备用解析器。如果未设置，则默认使用 HTML 解析器，除非响应内容类型是 XML，在这种情况下使用 XML 解析器。
+	 * 参数：
+	 * parser - 备用解析器
+	 * 回报：
+	 * 此连接，用于链接
+	 */
+	@Contract(pure = true) public abstract Connection parser(@NotNull Parser parser);
 
 	/**
 	 * 连接头（ 字符串 名称， 字符串 值）<br/>

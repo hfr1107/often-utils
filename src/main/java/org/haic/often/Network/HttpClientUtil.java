@@ -31,6 +31,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection.Method;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.parser.Parser;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -77,6 +78,7 @@ public class HttpClientUtil {
 		protected boolean followRedirects = true; // 重定向
 		protected HttpHost proxy;
 		protected Method method = Method.GET;
+		protected Parser parser = Parser.htmlParser();
 
 		protected Map<String, String> headers = new HashMap<>(); // 请求头
 		protected Map<String, String> cookies = new HashMap<>(); // 请求头
@@ -133,6 +135,11 @@ public class HttpClientUtil {
 
 		@Contract(pure = true) public Connection timeout(int millis) {
 			this.timeout = millis;
+			return this;
+		}
+
+		@Contract(pure = true) public Connection parser(@NotNull Parser parser) {
+			this.parser = parser;
 			return this;
 		}
 
@@ -259,17 +266,17 @@ public class HttpClientUtil {
 
 		@Contract(pure = true) public Document get() {
 			method(Method.GET);
-			HttpResponse response = execute();
-			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body()) : null;
+			Response response = execute();
+			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body(), parser) : null;
 		}
 
 		@Contract(pure = true) public Document post() {
 			method(Method.POST);
-			HttpResponse response = execute();
-			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body()) : null;
+			Response response = execute();
+			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body(), parser) : null;
 		}
 
-		@Contract(pure = true) public HttpResponse execute() {
+		@Contract(pure = true) public Response execute() {
 			HttpUriRequest request = null;
 			try {
 				URI builder = new URIBuilder(url).setParameters(params).build();
@@ -319,7 +326,7 @@ public class HttpClientUtil {
 
 			httpclient = Judge.isNull(httpclient) ? httpClientBuilder.build() : httpclient;
 
-			HttpResponse response = executeProgram(request);
+			Response response = executeProgram(request);
 			int statusCode = Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.statusCode();
 			for (int i = 0; (URIUtils.statusIsTimeout(statusCode) || retryStatusCodes.contains(statusCode)) && (i < retry || unlimitedRetry); i++) {
 				MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP); // 程序等待
@@ -332,14 +339,14 @@ public class HttpClientUtil {
 			return response;
 		}
 
-		@Contract(pure = true) protected HttpResponse executeProgram(@NotNull HttpUriRequest request) {
+		@Contract(pure = true) protected Response executeProgram(@NotNull HttpUriRequest request) {
 			CloseableHttpResponse response;
 			try {
 				response = httpclient.execute(request, context);
 			} catch (IOException e) {
 				return null;
 			}
-			HttpResponse httpHesponse = new HttpResponse(request, response, context);
+			Response httpHesponse = new HttpResponse(request, response, context);
 			cookies.putAll(httpHesponse.cookies());
 			return httpHesponse;
 		}
@@ -421,6 +428,12 @@ public class HttpClientUtil {
 			return response.getStatusLine().getStatusCode();
 		}
 
+		@Contract(pure = true) public String header(@NotNull String name) {
+			String header = headers().get(name);
+			header = header.startsWith("[") ? header.substring(1) : header;
+			return header.endsWith("]") ? header.substring(0, header.length() - 1) : header;
+		}
+
 		@Contract(pure = true) public Map<String, String> headers() {
 			Map<String, String> headers = new HashMap<>();
 			for (Header header : response.getAllHeaders()) {
@@ -436,10 +449,8 @@ public class HttpClientUtil {
 			return headers;
 		}
 
-		@Contract(pure = true) public String header(@NotNull String name) {
-			String header = headers().get(name);
-			header = header.startsWith("[") ? header.substring(1) : header;
-			return header.endsWith("]") ? header.substring(0, header.length() - 1) : header;
+		@Contract(pure = true) public String cookie(@NotNull String name) {
+			return cookies().get(name);
 		}
 
 		@Contract(pure = true) public Map<String, String> cookies() {
@@ -450,8 +461,13 @@ public class HttpClientUtil {
 							.collect(Collectors.toMap(l -> l.substring(0, l.indexOf("=")), l -> l.substring(l.indexOf("=") + 1), (e1, e2) -> e2));
 		}
 
-		@Contract(pure = true) public String cookie(@NotNull String name) {
-			return cookies().get(name);
+		@Contract(pure = true) public Response charset(@NotNull String charsetName) {
+			return charset(Charset.forName(charsetName));
+		}
+
+		@Contract(pure = true) public Response charset(@NotNull Charset charset) {
+			this.charset = charset;
+			return this;
 		}
 
 		@Contract(pure = true) public String body() {
@@ -476,15 +492,6 @@ public class HttpClientUtil {
 				return null;
 			}
 			return result;
-		}
-
-		@Contract(pure = true) public HttpResponse charset(@NotNull String charsetName) {
-			return charset(Charset.forName(charsetName));
-		}
-
-		@Contract(pure = true) public HttpResponse charset(@NotNull Charset charset) {
-			this.charset = charset;
-			return this;
 		}
 
 	}
