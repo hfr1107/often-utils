@@ -30,6 +30,14 @@ public abstract class Connection {
 	@Contract(pure = true) public abstract Connection url(@NotNull String url);
 
 	/**
+	 * 连接newRequest ()
+	 * 创建一个新请求，使用此 Connection 作为会话状态并初始化连接设置（然后可以独立于返回的 Connection.Request 对象）。
+	 *
+	 * @return 一个新的 Connection 对象，具有共享的 Cookie 存储和来自此 Connection 和 Request 的初始化设置
+	 */
+	@Contract(pure = true) public abstract Connection newRequest();
+
+	/**
 	 * 连接用户代理（ 字符串 用户代理）<br/>
 	 * 设置请求用户代理标头
 	 *
@@ -120,6 +128,15 @@ public abstract class Connection {
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public abstract Connection cookies(@NotNull Map<String, String> cookies);
+
+	/**
+	 * CookieStore  - Map < String , String >
+	 * <p>
+	 * 获取此 Connection 使用的 cookie 存储。
+	 *
+	 * @return cookieStore
+	 */
+	@Contract(pure = true) public abstract Map<String, String> cookieStore();
 
 	/**
 	 * 连接数据（ 字符串 键、 字符串 值）<br/>

@@ -36,8 +36,6 @@ import java.util.stream.Collectors;
  */
 public class HtmlUnitUtil {
 
-	protected static WebClient webClient;
-
 	/**
 	 * 公共静态连接连接（ 字符串 网址）<br/>
 	 * 使用定义的请求 URL 创建一个新的Connection （会话），用于获取和解析 HTML 页面
@@ -52,7 +50,7 @@ public class HtmlUnitUtil {
 		Logger.getLogger("org.apache.http.client").setLevel(Level.OFF);
 
 		// HtmlUnit 模拟浏览器,浏览器基本设置
-		webClient = new WebClient(BrowserVersion.CHROME);
+		WebClient webClient = new WebClient(BrowserVersion.CHROME);
 		webClient.getCookieManager().setCookiesEnabled(true); // 启动cookie
 		webClient.getOptions().setThrowExceptionOnScriptError(false);// 当JS执行出错的时候是否抛出异常
 		webClient.getOptions().setThrowExceptionOnFailingStatusCode(false);// 当HTTP的状态非200时是否抛出异常
@@ -66,7 +64,7 @@ public class HtmlUnitUtil {
 		webClient.setAjaxController(new NicelyResynchronizingAjaxController());// 设置支持AJAX
 		webClient.getOptions().setTimeout(0); // 设置连接超时时间
 
-		return new HttpConnection().url(url).header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8").header("user-agent", UserAgent.chrome());
+		return new HttpConnection(webClient, url);
 	}
 
 	protected static class HttpConnection extends Connection {
@@ -79,14 +77,21 @@ public class HtmlUnitUtil {
 		protected int MILLISECONDS_SLEEP; // 重试等待时间
 
 		protected List<NameValuePair> params = new ArrayList<>(); // params
+		protected Map<String, String> cookies = new HashMap<>(); // cookes
 		protected List<Integer> retryStatusCodes = new ArrayList<>();
 
+		protected WebClient webClient;
 		protected WebRequest request; // 会话
 
-		@Contract(pure = true) public Connection url(@NotNull String url) {
-			this.request = new WebRequest(URIUtils.getURL(this.url = url));
+		protected HttpConnection(@NotNull WebClient webClient, @NotNull String url) {
+			this.webClient = webClient;
 			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
-			return header("user-agent", UserAgent.chrome()); // 设置随机请求头
+			header("user-agent", UserAgent.chrome()); // 设置随机请求头
+		}
+
+		@Contract(pure = true) public Connection url(@NotNull String url) {
+			request.setUrl(URIUtils.getURL(this.url = url));
+			return this;
 		}
 
 		@Contract(pure = true) public Connection userAgent(@NotNull String userAgent) {
@@ -126,11 +131,13 @@ public class HtmlUnitUtil {
 		}
 
 		@Contract(pure = true) public Connection cookie(@NotNull String name, @NotNull String value) {
+			cookies.put(name, value);
 			String cookie = request.getAdditionalHeader("cookie");
 			return header("cookie", Judge.isEmpty(cookie) ? name + "=" + value : cookie + "; " + name + "=" + value);
 		}
 
 		@Contract(pure = true) public Connection cookies(@NotNull Map<String, String> cookies) {
+			this.cookies = cookies;
 			String cookie = cookies.toString().replaceAll(",", ";");
 			return header("cookie", cookie.substring(1, cookie.length() - 1));
 		}
@@ -300,6 +307,7 @@ public class HtmlUnitUtil {
 				return null;
 			}
 			webClient.waitForBackgroundJavaScriptStartingBefore(waitJSTime); // 设置JS超时时间
+			cookies.putAll(response.cookies());
 			return response;
 		}
 	}
@@ -342,8 +350,9 @@ public class HtmlUnitUtil {
 		}
 
 		@Contract(pure = true) public Map<String, String> cookies() {
-			return page.getWebResponse().getResponseHeaders().stream().filter(l -> l.getName().equalsIgnoreCase("set-cookie")).map(l -> l.getValue().split("="))
-					.collect(Collectors.toMap(l -> l[0], l -> Judge.isEmpty(l[1]) ? l[1] : l[1].substring(0, l[1].indexOf(";"))));
+			return page.getWebResponse().getResponseHeaders().stream().filter(l -> l.getName().equalsIgnoreCase("set-cookie"))
+					.map(l -> l.getValue().substring(0, l.getValue().indexOf(";")))
+					.collect(Collectors.toMap(l -> l.substring(0, l.indexOf("=")), l -> l.substring(l.indexOf("=") + 1), (e1, e2) -> e2));
 		}
 
 		@Contract(pure = true) public String header(@NotNull String name) {

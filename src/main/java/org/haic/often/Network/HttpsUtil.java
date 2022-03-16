@@ -40,7 +40,7 @@ public class HttpsUtil {
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public static Connection connect(@NotNull String url) {
-		return new HttpConnection().url(url).header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8").header("user-agent", UserAgent.chrome());
+		return new HttpConnection(url);
 	}
 
 	protected static class HttpConnection extends Connection {
@@ -55,8 +55,15 @@ public class HttpsUtil {
 		protected Proxy proxy = Proxy.NO_PROXY; // 代理
 		protected Method method = Method.GET;
 		protected Map<String, String> headers = new HashMap<>(); // 请求头
+		protected Map<String, String> cookies = new HashMap<>(); // cookies
 		protected List<Integer> retryStatusCodes = new ArrayList<>();
 		protected ThreeTuple<String, InputStream, String> file;
+
+		protected HttpConnection(@NotNull String url) {
+			this.url = url;
+			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
+			header("user-agent", UserAgent.chrome()); // 设置随机请求头;
+		}
 
 		/**
 		 * 设置要获取的请求 URL，协议必须是 HTTP 或 HTTPS
@@ -66,6 +73,13 @@ public class HttpsUtil {
 		 */
 		@Contract(pure = true) public Connection url(@NotNull String url) {
 			this.url = url;
+			return this;
+		}
+
+		@Contract(pure = true) public Connection newRequest() {
+			params = "";
+			headers = new HashMap<>();
+			method = Method.GET;
 			return this;
 		}
 
@@ -106,13 +120,17 @@ public class HttpsUtil {
 		}
 
 		@Contract(pure = true) public Connection cookie(@NotNull String name, @NotNull String value) {
-			String cookie = headers.get("cookie");
-			return header("cookie", Judge.isEmpty(cookie) ? name + "=" + value : cookie + "; " + name + "=" + value);
+			cookies.put(name, value);
+			return this;
 		}
 
 		@Contract(pure = true) public Connection cookies(@NotNull Map<String, String> cookies) {
-			String cookie = cookies.toString().replaceAll(",", ";");
-			return header("cookie", cookie.substring(1, cookie.length() - 1));
+			this.cookies = cookies;
+			return this;
+		}
+
+		@Contract(pure = true) public Map<String, String> cookieStore() {
+			return cookies;
 		}
 
 		@Contract(pure = true) public Connection data(@NotNull String key, @NotNull String value) {
@@ -256,11 +274,16 @@ public class HttpsUtil {
 					}
 				}
 				}
+
+				// 维护cookies
+				HttpResponse response = new HttpResponse(conn);
+				cookies.putAll(response.cookies());
+
 				String redirectUrl; // 修复重定向
-				if (followRedirects && URIUtils.statusIsRedirect(conn.getResponseCode()) && !Judge.isEmpty(redirectUrl = conn.getHeaderField("location"))) {
+				if (followRedirects && URIUtils.statusIsRedirect(response.statusCode()) && !Judge.isEmpty(redirectUrl = conn.getHeaderField("location"))) {
 					return executeProgram(redirectUrl);
 				}
-				return new HttpResponse(conn);
+				return response;
 			} catch (IOException e) {
 				return null;
 			}
@@ -289,6 +312,10 @@ public class HttpsUtil {
 			for (Map.Entry<String, String> entry : headers.entrySet()) {
 				conn.setRequestProperty(entry.getKey(), entry.getValue());
 			}
+
+			// 设置cookies
+			conn.setRequestProperty("cookie", cookies.entrySet().stream().map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.joining("; ")));
+
 			return conn;
 		}
 	}
@@ -341,8 +368,8 @@ public class HttpsUtil {
 			List<String> cookies = conn.getHeaderFields().get("Set-Cookie");
 			return Judge.isNull(cookies) ?
 					new HashMap<>() :
-					cookies.stream().map(l -> l.split("="))
-							.collect(Collectors.toMap(l -> l[0], l -> Judge.isEmpty(l[1]) ? l[1] : l[1].substring(0, l[1].indexOf(";"))));
+					cookies.stream().map(l -> l.substring(0, l.indexOf(";")))
+							.collect(Collectors.toMap(l -> l.substring(0, l.indexOf("=")), l -> l.substring(l.indexOf("=") + 1), (e1, e2) -> e2));
 		}
 
 		@Contract(pure = true) public HttpResponse charset(@NotNull String charsetName) {

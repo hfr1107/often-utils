@@ -60,7 +60,7 @@ public class HttpClientUtil {
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public static Connection connect(@NotNull String url) {
-		return new HttpConnection().url(url).header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8").header("user-agent", UserAgent.chrome());
+		return new HttpConnection(url);
 	}
 
 	protected static class HttpConnection extends Connection {
@@ -75,17 +75,31 @@ public class HttpClientUtil {
 		protected boolean followRedirects = true; // 重定向
 		protected boolean isSocksProxy; // 是否Socks代理
 		protected HttpHost proxy;
-		protected Method method;
+		protected Method method = Method.GET;
 
 		protected Map<String, String> headers = new HashMap<>(); // 请求头
+		protected Map<String, String> cookies = new HashMap<>(); // 请求头
 		protected List<Integer> retryStatusCodes = new ArrayList<>();
 		protected List<NameValuePair> params = new ArrayList<>();
 		protected HttpClientContext context = HttpClientContext.create();
 		protected CloseableHttpClient httpclient;
 		protected HttpEntity entity;
 
+		protected HttpConnection(@NotNull String url) {
+			this.url = url;
+			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
+			header("user-agent", UserAgent.chrome()); // 设置随机请求头;
+		}
+
 		@Contract(pure = true) public Connection url(@NotNull String url) {
 			this.url = url;
+			return this;
+		}
+
+		@Contract(pure = true) public Connection newRequest() {
+			params = new ArrayList<>();
+			headers = new HashMap<>();
+			method = Method.GET;
 			return this;
 		}
 
@@ -126,13 +140,17 @@ public class HttpClientUtil {
 		}
 
 		@Contract(pure = true) public Connection cookie(@NotNull String name, @NotNull String value) {
-			String cookie = headers.get("cookie");
-			return header("cookie", Judge.isEmpty(cookie) ? name + "=" + value : cookie + "; " + name + "=" + value);
+			this.cookies.put(name, value);
+			return this;
 		}
 
 		@Contract(pure = true) public Connection cookies(@NotNull Map<String, String> cookies) {
-			String cookie = cookies.toString().replaceAll(",", ";");
-			return header("cookie", cookie.substring(1, cookie.length() - 1));
+			this.cookies = cookies;
+			return this;
+		}
+
+		@Contract(pure = true) public Map<String, String> cookieStore() {
+			return cookies;
 		}
 
 		@Contract(pure = true) public Connection data(@NotNull String key, @NotNull String value) {
@@ -292,6 +310,9 @@ public class HttpClientUtil {
 				request.setHeader(entry.getKey(), entry.getValue());
 			}
 
+			// 设置cookies
+			request.setHeader("cookie", cookies.entrySet().stream().map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.joining("; ")));
+
 			httpclient = Judge.isNull(httpclient) ? HttpClients.createDefault() : httpclient;
 
 			HttpResponse response = executeProgram(request);
@@ -314,7 +335,9 @@ public class HttpClientUtil {
 			} catch (IOException e) {
 				return null;
 			}
-			return new HttpResponse(request, response, context);
+			HttpResponse httpHesponse = new HttpResponse(request, response, context);
+			cookies.putAll(httpHesponse.cookies());
+			return httpHesponse;
 		}
 	}
 
@@ -413,8 +436,11 @@ public class HttpClientUtil {
 		}
 
 		@Contract(pure = true) public Map<String, String> cookies() {
-			return Arrays.stream(response.getHeaders("Set-Cookie")).map(l -> l.getValue().split("="))
-					.collect(Collectors.toMap(l -> l[0], l -> Judge.isEmpty(l[1]) ? l[1] : l[1].substring(0, l[1].indexOf(";"))));
+			Header[] cookies = response.getHeaders("Set-Cookie");
+			return Judge.isEmpty(cookies.length) ?
+					new HashMap<>() :
+					Arrays.stream(cookies).map(l -> l.getValue().substring(0, l.getValue().indexOf(";")))
+							.collect(Collectors.toMap(l -> l.substring(0, l.indexOf("=")), l -> l.substring(l.indexOf("=") + 1), (e1, e2) -> e2));
 		}
 
 		@Contract(pure = true) public String cookie(@NotNull String name) {

@@ -7,7 +7,6 @@ import org.jsoup.parser.Parser;
 
 import javax.net.ssl.SSLSocketFactory;
 import java.io.InputStream;
-import java.net.CookieStore;
 import java.net.Proxy;
 import java.net.URL;
 import java.util.List;
@@ -307,21 +306,12 @@ public abstract class Connection {
 	@Contract(pure = true) public abstract Connection sslSocketFactory(SSLSocketFactory sslSocketFactory);
 
 	/**
-	 * 连接cookieStore （ CookieStore  cookieStore）
-	 * 提供一个自定义或预填充的 CookieStore，用于此 Connection 发出的请求。
-	 *
-	 * @param cookieStore 用于后续请求的 cookie 存储
-	 * @return 此连接，用于链接
-	 */
-	@Contract(pure = true) public abstract Connection cookieStore(CookieStore cookieStore);
-
-	/**
 	 * CookieStore  cookieStore ()
 	 * 获取此 Connection 使用的 cookie 存储。
 	 *
 	 * @return cookieStore
 	 */
-	@Contract(pure = true) public abstract CookieStore cookieStore();
+	@Contract(pure = true) public abstract Map<String, String> cookieStore();
 
 	/**
 	 * 连接解析器（ Parser parser）
@@ -332,16 +322,6 @@ public abstract class Connection {
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public abstract Connection parser(Parser parser);
-
-	/**
-	 * 连接postDataCharset （ 字符串 字符集）
-	 * <p>
-	 * 为 x-www-form-urlencoded 发布数据设置默认发布数据字符集
-	 *
-	 * @param charset 用于编码帖子数据的字符集
-	 * @return 此连接，用于链接
-	 */
-	@Contract(pure = true) public abstract Connection postDataCharset(@NotNull String charset);
 
 	/**
 	 * 连接newRequest ()

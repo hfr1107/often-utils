@@ -16,7 +16,7 @@ import org.jsoup.parser.Parser;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.CookieStore;
+import java.net.HttpCookie;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URL;
@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Jsoup 工具类
@@ -42,8 +43,7 @@ public class JsoupUtil {
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public static Connection connect(@NotNull String url) {
-		return new HttpConnection2(url, Jsoup.connect(url).maxBodySize(0).timeout(0).ignoreContentType(true).ignoreHttpErrors(true)).header("accept-language",
-				"zh-CN,zh;q=0.9,en;q=0.8").header("user-agent", UserAgent.chrome());
+		return new HttpConnection2(url, Jsoup.connect(url).maxBodySize(0).timeout(0).ignoreContentType(true).ignoreHttpErrors(true));
 	}
 
 	protected static class HttpConnection2 extends Connection {
@@ -60,6 +60,8 @@ public class JsoupUtil {
 		protected HttpConnection2(String url, org.jsoup.Connection conn) {
 			this.url = url;
 			this.conn = conn;
+			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
+			header("user-agent", UserAgent.chrome());
 		}
 
 		@Contract(pure = true) public Connection url(URL url) {
@@ -132,6 +134,10 @@ public class JsoupUtil {
 			return this;
 		}
 
+		@Contract(pure = true) public Map<String, String> cookieStore() {
+			return conn.cookieStore().getCookies().stream().collect(Collectors.toMap(HttpCookie::getName, HttpCookie::getValue));
+		}
+
 		@Contract(pure = true) public Connection data(String... keyvals) {
 			conn.data(keyvals);
 			return this;
@@ -179,15 +185,6 @@ public class JsoupUtil {
 		@Contract(pure = true) public Connection proxy(@NotNull Proxy proxy) {
 			conn.proxy(proxy);
 			return this;
-		}
-
-		@Contract(pure = true) public Connection cookieStore(CookieStore cookieStore) {
-			conn.cookieStore(cookieStore);
-			return this;
-		}
-
-		@Contract(pure = true) public CookieStore cookieStore() {
-			return conn.cookieStore();
 		}
 
 		@Contract(pure = true) public Connection parser(Parser parser) {
