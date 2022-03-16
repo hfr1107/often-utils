@@ -31,6 +31,9 @@ import java.util.stream.Collectors;
  */
 public class JsoupUtil {
 
+	protected JsoupUtil() {
+	}
+
 	/**
 	 * 公共静态连接连接（ 字符串 网址）<br/>
 	 * 使用定义的请求 URL 创建一个新的Connection （会话），用于获取和解析 HTML 页面
