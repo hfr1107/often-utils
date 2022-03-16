@@ -1,4 +1,4 @@
-package org.haic.often.Network;
+package org.haic.often.Network.HttpClient;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -24,6 +24,9 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContexts;
 import org.haic.often.Judge;
 import org.haic.often.Multithread.MultiThreadUtils;
+import org.haic.often.Network.HttpStatus;
+import org.haic.often.Network.URIUtils;
+import org.haic.often.Network.UserAgent;
 import org.haic.often.StreamUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;

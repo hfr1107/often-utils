@@ -3,7 +3,7 @@ package org.haic.often.Netdisc;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.haic.often.Judge;
-import org.haic.often.Network.JsoupUtil;
+import org.haic.often.Network.Jsoup.JsoupUtil;
 import org.haic.often.StringUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;

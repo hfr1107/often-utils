@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.haic.often.Base64Utils;
 import org.haic.often.Multithread.MultiThreadUtils;
+import org.haic.often.Network.Jsoup.JsoupUtil;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.enums.ReadyState;
 import org.java_websocket.handshake.ServerHandshake;

@@ -5,11 +5,11 @@ import org.haic.often.FilesUtils;
 import org.haic.often.Judge;
 import org.haic.often.Multithread.MultiThreadUtils;
 import org.haic.often.Multithread.ParameterizedThread;
+import org.haic.often.Network.Jsoup.JsoupUtil;
 import org.haic.often.ReadWriteUtils;
 import org.haic.often.StringUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jsoup.Connection;
 import org.jsoup.Connection.Response;
 
 import java.io.*;
@@ -50,7 +50,7 @@ public class NetworkFileUtil {
 	protected List<Integer> retryStatusCodes = new ArrayList<>();
 
 	protected ExecutorService executorService; // 下载线程池
-	protected Method method = Method.MULTITHREAD;// 下载模式
+	protected Method method = NetworkFileUtil.Method.MULTITHREAD;// 下载模式
 
 	protected NetworkFileUtil() {
 	}
@@ -116,7 +116,7 @@ public class NetworkFileUtil {
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) protected NetworkFileUtil setConf(@NotNull File conf) {
-		this.method = Method.FILE;
+		this.method = NetworkFileUtil.Method.FILE;
 		this.conf = conf;
 		return this;
 	}
@@ -423,7 +423,7 @@ public class NetworkFileUtil {
 		Response response = null;
 		try (InputStream inputStream = new BufferedInputStream(new FileInputStream(file), bufferSize)) {
 			response = JsoupUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies).file(fileName, inputStream).retry(retry, MILLISECONDS_SLEEP)
-					.retry(unlimitedRetry).errorExit(errorExit).execute(Connection.Method.POST);
+					.retry(unlimitedRetry).errorExit(errorExit).method(org.haic.often.Network.Method.POST).execute();
 		} catch (IOException e) {
 			// e.printStackTrace();
 		}
@@ -471,7 +471,7 @@ public class NetworkFileUtil {
 				hash = fileInfo.getString("x-cos-meta-md5");
 				fileSize = fileInfo.getInteger("content-length");
 				MAX_THREADS = fileInfo.getInteger("threads");
-				method = Method.valueOf(fileInfo.getString("method"));
+				method = NetworkFileUtil.Method.valueOf(fileInfo.getString("method"));
 				headers = StringUtils.jsonToMap(fileInfo.getString("header"));
 				cookies = StringUtils.jsonToMap(fileInfo.getString("cookie"));
 				storage = new File(folder, fileName); // 获取其file对象
@@ -515,7 +515,7 @@ public class NetworkFileUtil {
 				return HttpStatus.SC_OK;
 			}
 			if (conf.isFile()) {
-				return method(Method.FILE).download(folder);
+				return method(NetworkFileUtil.Method.FILE).download(folder);
 			}
 
 			String contentLength = response.header("content-length"); // 获取文件大小
@@ -540,7 +540,7 @@ public class NetworkFileUtil {
 		}
 		}
 
-		method = Judge.isEmpty(fileSize) ? Method.FULL : method;// 如果文件大小获取失败或线程为1，使用全量下载模式
+		method = Judge.isEmpty(fileSize) ? NetworkFileUtil.Method.FULL : method;// 如果文件大小获取失败或线程为1，使用全量下载模式
 		FilesUtils.createFolder(folder); // 创建文件夹
 
 		int statusCode = 0;
@@ -568,7 +568,7 @@ public class NetworkFileUtil {
 				throw new RuntimeException("Configuration file reset information failed");
 			}
 			if (unlimitedRetry) {
-				return method(Method.FILE).download(folder);
+				return method(NetworkFileUtil.Method.FILE).download(folder);
 			}
 			if (errorExit) {
 				throw new RuntimeException("File verification is not accurate, URLFile md5:" + hash + " LocalFile md5: " + md5 + " URL: " + url);
