@@ -4,13 +4,13 @@ import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.codec.binary.Base64;
 import org.haic.often.Network.Jsoup.Connection;
 import org.haic.often.Network.Jsoup.JsoupUtil;
-import org.haic.often.Network.Method;
 import org.haic.often.StringUtils;
 import org.haic.often.Tuple.FourTuple;
 import org.haic.often.Tuple.ThreeTuple;
 import org.haic.often.Tuple.Tuple;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jsoup.Connection.Method;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 

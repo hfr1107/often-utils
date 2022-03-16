@@ -1,26 +1,25 @@
-package org.haic.often.Network.Jsoup;
+package org.haic.often.Network;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jsoup.Connection.Method;
 import org.jsoup.nodes.Document;
-import org.jsoup.parser.Parser;
 
-import javax.net.ssl.SSLSocketFactory;
 import java.io.InputStream;
-import java.net.CookieStore;
 import java.net.Proxy;
-import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
 /**
+ * Connection 接口是一个方便的 HTTP 客户端和会话对象，用于从 Web 获取内容，并将它们解析为 Documents。
+ * <p>
+ * 使用的“连接”并不意味着在连接对象的生命周期内与服务器保持长期连接。套接字连接仅在请求执行（ execute() 、 get()或post() ）时建立，并消耗服务器的响应。
+ *
  * @author haicdust
  * @version 1.0
- * @since 2022/3/16 14:46
+ * @since 2022/3/16 10:35
  */
 public abstract class Connection {
-
-	@Contract(pure = true) public abstract Connection url(URL url);
 
 	/**
 	 * 设置要获取的请求 URL，协议必须是 HTTP 或 HTTPS
@@ -28,7 +27,7 @@ public abstract class Connection {
 	 * @param url 要连接的 URL
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public abstract Connection url(String url);
+	@Contract(pure = true) public abstract Connection url(@NotNull String url);
 
 	/**
 	 * 连接用户代理（ 字符串 用户代理）<br/>
@@ -204,7 +203,7 @@ public abstract class Connection {
 	 * @param method HTTP 请求方法
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public abstract Connection method(@NotNull org.jsoup.Connection.Method method);
+	@Contract(pure = true) public abstract Connection method(@NotNull Method method);
 
 	/**
 	 * 在请求超时或者指定状态码发生时，进行重试，重试超过次数或者状态码正常返回
@@ -284,71 +283,6 @@ public abstract class Connection {
 	 *
 	 * @return Response
 	 */
-	@Contract(pure = true) public abstract org.jsoup.Connection.Response execute();
-
-	/**
-	 * 连接请求（ Connection.Request请求）
-	 * <p>
-	 * 设置连接请求
-	 *
-	 * @param request 新的请求对象
-	 * @return 此连接，用于链接
-	 */
-	@Contract(pure = true) public abstract Connection request(@NotNull org.jsoup.Connection.Request request);
-
-	/**
-	 * 连接sslSocketFactory （ SSLSocketFactory  sslSocketFactory）
-	 * <p>
-	 * 设置自定义 SSL 套接字工厂
-	 *
-	 * @param sslSocketFactory 自定义 SSL 套接字工厂
-	 * @return 此连接，用于链接
-	 */
-	@Contract(pure = true) public abstract Connection sslSocketFactory(SSLSocketFactory sslSocketFactory);
-
-	/**
-	 * 连接cookieStore （ CookieStore  cookieStore）
-	 * 提供一个自定义或预填充的 CookieStore，用于此 Connection 发出的请求。
-	 *
-	 * @param cookieStore 用于后续请求的 cookie 存储
-	 * @return 此连接，用于链接
-	 */
-	@Contract(pure = true) public abstract Connection cookieStore(CookieStore cookieStore);
-
-	/**
-	 * CookieStore  cookieStore ()
-	 * 获取此 Connection 使用的 cookie 存储。
-	 *
-	 * @return cookieStore
-	 */
-	@Contract(pure = true) public abstract CookieStore cookieStore();
-
-	/**
-	 * 连接解析器（ Parser parser）
-	 * <p>
-	 * 在解析对文档的响应时提供备用解析器。如果未设置，则默认使用 HTML 解析器，除非响应内容类型是 XML，在这种情况下使用 XML 解析器。
-	 *
-	 * @param parser 备用解析器
-	 * @return 此连接，用于链接
-	 */
-	@Contract(pure = true) public abstract Connection parser(Parser parser);
-
-	/**
-	 * 连接postDataCharset （ 字符串 字符集）
-	 * <p>
-	 * 为 x-www-form-urlencoded 发布数据设置默认发布数据字符集
-	 *
-	 * @param charset 用于编码帖子数据的字符集
-	 * @return 此连接，用于链接
-	 */
-	@Contract(pure = true) public abstract Connection postDataCharset(@NotNull String charset);
-
-	/**
-	 * 连接newRequest ()
-	 * 创建一个新请求，使用此 Connection 作为会话状态并初始化连接设置（然后可以独立于返回的 Connection.Request 对象）。
-	 *
-	 * @return 一个新的 Connection 对象，具有共享的 Cookie 存储和来自此 Connection 和 Request 的初始化设置
-	 */
-	@Contract(pure = true) public abstract Connection newRequest();
+	@Contract(pure = true) public abstract Response execute();
 
 }

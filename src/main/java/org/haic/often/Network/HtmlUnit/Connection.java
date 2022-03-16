@@ -1,34 +1,31 @@
-package org.haic.often.Network.Jsoup;
+package org.haic.often.Network.HtmlUnit;
 
+import org.haic.often.Network.Response;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.nodes.Document;
-import org.jsoup.parser.Parser;
 
-import javax.net.ssl.SSLSocketFactory;
-import java.io.InputStream;
-import java.net.CookieStore;
 import java.net.Proxy;
-import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
 /**
+ * Connection 接口是一个方便的 HTTP 客户端和会话对象，用于从 Web 获取内容，并将它们解析为 Documents。
+ * <p>
+ * 使用的“连接”并不意味着在连接对象的生命周期内与服务器保持长期连接。套接字连接仅在请求执行（ execute() 、 get()或post() ）时建立，并消耗服务器的响应。
+ *
  * @author haicdust
  * @version 1.0
- * @since 2022/3/16 14:46
+ * @since 2022/3/16 14:04
  */
 public abstract class Connection {
-
-	@Contract(pure = true) public abstract Connection url(URL url);
-
 	/**
 	 * 设置要获取的请求 URL，协议必须是 HTTP 或 HTTPS
 	 *
 	 * @param url 要连接的 URL
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public abstract Connection url(String url);
+	@Contract(pure = true) public abstract Connection url(@NotNull String url);
 
 	/**
 	 * 连接用户代理（ 字符串 用户代理）<br/>
@@ -139,25 +136,6 @@ public abstract class Connection {
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public abstract Connection data(@NotNull Map<String, String> params);
-
-	/**
-	 * 添加输入流作为请求数据参数，对于 GET 没有效果，但对于 POST 这将上传输入流
-	 *
-	 * @param key         数据键（表单项名称）
-	 * @param fileName    要呈现给删除服务器的文件的名称。通常只是名称，而不是路径，组件
-	 * @param inputStream 要上传的输入流，您可能从FileInputStream获得。您必须在finally块中关闭 InputStream
-	 * @return 此连接，用于链接
-	 */
-	@Contract(pure = true) public abstract Connection data(@NotNull String key, @NotNull String fileName, @NotNull InputStream inputStream);
-
-	/**
-	 * 设置 文件，GET方法无效，一般用于上传，因为正常情况下使用并不会多，而判断控制流关闭会消耗资源,所以交由外部处理
-	 *
-	 * @param fileName    文件名
-	 * @param inputStream 流
-	 * @return 此连接，用于链接
-	 */
-	@Contract(pure = true) public abstract Connection file(@NotNull String fileName, @NotNull InputStream inputStream);
 
 	/**
 	 * 设置 POST（或 PUT）请求正文<br/>
@@ -284,71 +262,21 @@ public abstract class Connection {
 	 *
 	 * @return Response
 	 */
-	@Contract(pure = true) public abstract org.jsoup.Connection.Response execute();
+	@Contract(pure = true) public abstract Response execute();
 
 	/**
-	 * 连接请求（ Connection.Request请求）
-	 * <p>
-	 * 设置连接请求
+	 * 启用/禁用 CSS 支持。默认情况下，禁用此属性。如果禁用 HtmlUnit 将不会下载链接的 css 文件，也不会触发相关的 onload/onerror 事件
 	 *
-	 * @param request 新的请求对象
-	 * @return 此连接，用于链接
+	 * @param enableCSS true启用 CSS 支持
+	 * @return this
 	 */
-	@Contract(pure = true) public abstract Connection request(@NotNull org.jsoup.Connection.Request request);
+	@Contract(pure = true) public abstract Connection enableCSS(boolean enableCSS);
 
 	/**
-	 * 连接sslSocketFactory （ SSLSocketFactory  sslSocketFactory）
-	 * <p>
-	 * 设置自定义 SSL 套接字工厂
+	 * 设置 JavaScript 最大运行时间,默认1000毫秒.值为0则不加载JS
 	 *
-	 * @param sslSocketFactory 自定义 SSL 套接字工厂
-	 * @return 此连接，用于链接
+	 * @param waitJSTime JS超时时间(毫秒)
+	 * @return this
 	 */
-	@Contract(pure = true) public abstract Connection sslSocketFactory(SSLSocketFactory sslSocketFactory);
-
-	/**
-	 * 连接cookieStore （ CookieStore  cookieStore）
-	 * 提供一个自定义或预填充的 CookieStore，用于此 Connection 发出的请求。
-	 *
-	 * @param cookieStore 用于后续请求的 cookie 存储
-	 * @return 此连接，用于链接
-	 */
-	@Contract(pure = true) public abstract Connection cookieStore(CookieStore cookieStore);
-
-	/**
-	 * CookieStore  cookieStore ()
-	 * 获取此 Connection 使用的 cookie 存储。
-	 *
-	 * @return cookieStore
-	 */
-	@Contract(pure = true) public abstract CookieStore cookieStore();
-
-	/**
-	 * 连接解析器（ Parser parser）
-	 * <p>
-	 * 在解析对文档的响应时提供备用解析器。如果未设置，则默认使用 HTML 解析器，除非响应内容类型是 XML，在这种情况下使用 XML 解析器。
-	 *
-	 * @param parser 备用解析器
-	 * @return 此连接，用于链接
-	 */
-	@Contract(pure = true) public abstract Connection parser(Parser parser);
-
-	/**
-	 * 连接postDataCharset （ 字符串 字符集）
-	 * <p>
-	 * 为 x-www-form-urlencoded 发布数据设置默认发布数据字符集
-	 *
-	 * @param charset 用于编码帖子数据的字符集
-	 * @return 此连接，用于链接
-	 */
-	@Contract(pure = true) public abstract Connection postDataCharset(@NotNull String charset);
-
-	/**
-	 * 连接newRequest ()
-	 * 创建一个新请求，使用此 Connection 作为会话状态并初始化连接设置（然后可以独立于返回的 Connection.Request 对象）。
-	 *
-	 * @return 一个新的 Connection 对象，具有共享的 Cookie 存储和来自此 Connection 和 Request 的初始化设置
-	 */
-	@Contract(pure = true) public abstract Connection newRequest();
-
+	@Contract(pure = true) public abstract Connection waitJSTime(int waitJSTime);
 }
