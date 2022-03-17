@@ -197,11 +197,11 @@ public class NetworkFileUtil {
 	 * 有些服务器不使用cookie验证身份,使用authorization进行验证<br/>
 	 * 一般信息在cookie或local Storage中存储
 	 *
-	 * @param authorization 授权码或身份识别标识
+	 * @param auth 授权码或身份识别标识
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public NetworkFileUtil authorization(@NotNull String authorization) {
-		return header("authorization", authorization.startsWith("Bearer ") ? authorization : "Bearer " + authorization);
+	@Contract(pure = true) public NetworkFileUtil authorization(@NotNull String auth) {
+		return header("authorization", auth.startsWith("Bearer ") ? auth : "Bearer " + auth);
 	}
 
 	/**

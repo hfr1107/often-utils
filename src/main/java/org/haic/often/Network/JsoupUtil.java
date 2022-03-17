@@ -60,7 +60,8 @@ public class JsoupUtil {
 		protected HttpConnection(String url, org.jsoup.Connection conn) {
 			this.url = url;
 			this.conn = conn.maxBodySize(0).timeout(0).ignoreContentType(true).ignoreHttpErrors(true);
-			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
+			header("accept", "text/html, application/xhtml+xml, application/json;q=0.9, */*;q=0.8");
+			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
 			header("user-agent", UserAgent.chrome());
 		}
 
@@ -101,8 +102,8 @@ public class JsoupUtil {
 			return header("referer", referrer);
 		}
 
-		@Contract(pure = true) public Connection authorization(@NotNull String authorization) {
-			return header("authorization", authorization.startsWith("Bearer ") ? authorization : "Bearer " + authorization);
+		@Contract(pure = true) public Connection authorization(@NotNull String auth) {
+			return header("authorization", auth.startsWith("Bearer ") ? auth : "Bearer " + auth);
 		}
 
 		@Contract(pure = true) public Connection timeout(int millis) {
@@ -175,6 +176,7 @@ public class JsoupUtil {
 
 		@Contract(pure = true) public Connection requestBody(@NotNull String body) {
 			conn.requestBody(body);
+			header("accept", "application/json;charset=UTF-8");
 			return URIUtils.isJson(body) ?
 					header("content-type", "application/json;charset=UTF-8") :
 					header("content-type", "application/x-www-form-urlencoded; charset=UTF-8");

@@ -94,7 +94,8 @@ public class HttpClientUtil {
 
 		protected HttpConnection(@NotNull String url) {
 			this.url = url;
-			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
+			header("accept", "text/html, application/xhtml+xml, application/json;q=0.9, */*;q=0.8");
+			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
 			header("user-agent", UserAgent.chrome()); // 设置随机请求头;
 		}
 
@@ -132,8 +133,8 @@ public class HttpClientUtil {
 			return header("referer", referrer);
 		}
 
-		@Contract(pure = true) public Connection authorization(@NotNull String authorization) {
-			return header("authorization", authorization.startsWith("Bearer ") ? authorization : "Bearer " + authorization);
+		@Contract(pure = true) public Connection authorization(@NotNull String auth) {
+			return header("authorization", auth.startsWith("Bearer ") ? auth : "Bearer " + auth);
 		}
 
 		@Contract(pure = true) public Connection timeout(int millis) {
@@ -190,13 +191,14 @@ public class HttpClientUtil {
 			return data("file", fileName, inputStream);
 		}
 
-		@Contract(pure = true) public Connection requestBody(@NotNull String requestBody) {
+		@Contract(pure = true) public Connection requestBody(@NotNull String body) {
 			try {
-				entity = new StringEntity(requestBody);
+				entity = new StringEntity(body);
 			} catch (UnsupportedEncodingException e) {
 				e.printStackTrace();
 			}
-			return URIUtils.isJson(requestBody) ?
+			header("accept", "application/json;charset=UTF-8");
+			return URIUtils.isJson(body) ?
 					header("content-type", "application/json;charset=UTF-8") :
 					header("content-type", "application/x-www-form-urlencoded; charset=UTF-8");
 		}

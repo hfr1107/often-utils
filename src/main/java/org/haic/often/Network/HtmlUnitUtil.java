@@ -85,7 +85,8 @@ public class HtmlUnitUtil {
 		protected HttpConnection(@NotNull WebClient webClient, @NotNull String url) {
 			this.webClient = webClient;
 			request = new WebRequest(URIUtils.getURL(this.url = url));
-			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
+			header("accept", "text/html, application/xhtml+xml, application/json;q=0.9, */*;q=0.8");
+			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
 			header("user-agent", UserAgent.chrome()); // 设置随机请求头
 		}
 
@@ -111,8 +112,8 @@ public class HtmlUnitUtil {
 			return header("referer", referrer);
 		}
 
-		@Contract(pure = true) public Connection authorization(@NotNull String authorization) {
-			return header("authorization", authorization.startsWith("Bearer ") ? authorization : "Bearer " + authorization);
+		@Contract(pure = true) public Connection authorization(@NotNull String auth) {
+			return header("authorization", auth.startsWith("Bearer ") ? auth : "Bearer " + auth);
 		}
 
 		@Contract(pure = true) public Connection timeout(int millis) {
@@ -152,9 +153,10 @@ public class HtmlUnitUtil {
 			return this;
 		}
 
-		@Contract(pure = true) public Connection requestBody(@NotNull String requestBody) {
-			request.setRequestBody(requestBody);
-			return URIUtils.isJson(requestBody) ?
+		@Contract(pure = true) public Connection requestBody(@NotNull String body) {
+			request.setRequestBody(body);
+			header("accept", "application/json;charset=UTF-8");
+			return URIUtils.isJson(body) ?
 					header("content-type", "application/json;charset=UTF-8") :
 					header("content-type", "application/x-www-form-urlencoded; charset=UTF-8");
 		}
@@ -469,10 +471,10 @@ public class HtmlUnitUtil {
 		 * 有些服务器不使用cookie验证身份,使用authorization进行验证<br/>
 		 * 一般信息在cookie或local Storage中存储
 		 *
-		 * @param authorization 授权码或身份识别标识
+		 * @param auth 授权码或身份识别标识
 		 * @return 此连接，用于链接
 		 */
-		@Contract(pure = true) public abstract Connection authorization(@NotNull String authorization);
+		@Contract(pure = true) public abstract Connection authorization(@NotNull String auth);
 
 		/**
 		 * 设置总请求超时时间，连接超时（ int millis）<br/>
@@ -544,10 +546,10 @@ public class HtmlUnitUtil {
 		 * 当服务器需要一个普通的请求正文，而不是一组 URL 编码形式的键/值对时很有用<br/>
 		 * 一般为JSON格式,若不是则作为普通数据发送
 		 *
-		 * @param requestBody 请求正文
+		 * @param body 请求正文
 		 * @return 此连接，用于链接
 		 */
-		@Contract(pure = true) public abstract Connection requestBody(@NotNull String requestBody);
+		@Contract(pure = true) public abstract Connection requestBody(@NotNull String body);
 
 		/**
 		 * 设置用于此请求的 SOCKS 代理

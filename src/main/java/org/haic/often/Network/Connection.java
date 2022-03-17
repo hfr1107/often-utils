@@ -89,10 +89,10 @@ public abstract class Connection {
 	 * 有些服务器不使用cookie验证身份,使用authorization进行验证<br/>
 	 * 一般信息在cookie或local Storage中存储
 	 *
-	 * @param authorization 授权码或身份识别标识
+	 * @param auth 授权码或身份识别标识
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public abstract Connection authorization(@NotNull String authorization);
+	@Contract(pure = true) public abstract Connection authorization(@NotNull String auth);
 
 	/**
 	 * 设置总请求超时时间，连接超时（ int millis）<br/>
@@ -202,10 +202,10 @@ public abstract class Connection {
 	 * 当服务器需要一个普通的请求正文，而不是一组 URL 编码形式的键/值对时很有用<br/>
 	 * 一般为JSON格式,若不是则作为普通数据发送
 	 *
-	 * @param requestBody 请求正文
+	 * @param body 请求正文
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public abstract Connection requestBody(@NotNull String requestBody);
+	@Contract(pure = true) public abstract Connection requestBody(@NotNull String body);
 
 	/**
 	 * 设置用于此请求的 SOCKS 代理
