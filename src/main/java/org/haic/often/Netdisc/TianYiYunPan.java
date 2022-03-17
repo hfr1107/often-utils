@@ -1,11 +1,12 @@
 package org.haic.often.Netdisc;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.codec.binary.Base64;
 import org.haic.often.Network.Connection;
 import org.haic.often.Network.JsoupUtil;
+import org.haic.often.Network.Response;
 import org.haic.often.StringUtils;
-import org.haic.often.Tuple.FourTuple;
 import org.haic.often.Tuple.ThreeTuple;
 import org.haic.often.Tuple.Tuple;
 import org.jetbrains.annotations.Contract;
@@ -20,6 +21,7 @@ import java.security.KeyFactory;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 天翼云盘API,获取直链需要登陆
@@ -30,32 +32,52 @@ import java.util.*;
  */
 public class TianYiYunPan {
 
-	public static final String dataApi = "https://cloud.189.cn/api/open/share/getShareInfoByCode.action";
-	public static final String listApi = "https://cloud.189.cn/api/open/share/listShareDir.action";
-	public static final String downApi = "https://cloud.189.cn/api/open/file/getFileDownloadUrl.action";
+	public static final String listShareDirUrl = "https://cloud.189.cn/api/open/share/listShareDir.action";
+	public static final String shareInfoByCodeUrl = "https://cloud.189.cn/api/open/share/getShareInfoByCode.action";
+
+	public static final Map<String, String> headers = new HashMap<>();
 
 	protected TianYiYunPan() {
+		headers.put("accept", "application/json;charset=UTF-8");
 	}
 
 	/**
-	 * 登陆账户
+	 * 登陆账户,进行需要是否验证的API操作
 	 *
 	 * @param userName 用户名 (不含@189.cn后缀)
 	 * @param password 密码
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public static TianYiYunPanAPI login(@NotNull String userName, @NotNull String password) {
-		return cookies(TianYiYunPanLogin.login(userName, password));
+		return login(TianYiYunPanLogin.login(userName, password));
 	}
 
 	/**
-	 * 登陆账户
+	 * 登陆账户,,\进行需要是否验证的API操作
 	 *
 	 * @param cookies cookies
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public static TianYiYunPanAPI cookies(@NotNull Map<String, String> cookies) {
+	@Contract(pure = true) public static TianYiYunPanAPI login(@NotNull Map<String, String> cookies) {
 		return new TianYiYunPanAPI(cookies);
+	}
+
+	/**
+	 * 获取分享URL的ID等信息
+	 *
+	 * @param shareUrl 天翼URL
+	 * @return fileId, shareId, isFolder, shareMode
+	 */
+	@Contract(pure = true) public static Map<String, String> getshareUrlInfo(@NotNull String shareUrl) {
+		String code = shareUrl.contains("code") ? StringUtils.extractRegex(shareUrl, "code=.*").substring(5) : shareUrl.substring(shareUrl.lastIndexOf("/"));
+		Document docData = JsoupUtil.connect(shareInfoByCodeUrl).data("shareCode", code).headers(headers).get();
+		JSONObject creator = JSONObject.parseObject(docData.text()).getJSONObject("creator");
+		Map<String, String> info = new HashMap<>();
+		info.put("fileId", creator.getString("fileId"));
+		info.put("shareId", creator.getString("shareId"));
+		info.put("isFolder", creator.getString("isFolder"));
+		info.put("shareMode", creator.getString("shareMode"));
+		return info;
 	}
 
 	/**
@@ -65,46 +87,131 @@ public class TianYiYunPan {
 	 * @param accessCode 提取码
 	 * @return List - fileName, fileId, shareId
 	 */
-	@NotNull @Contract(pure = true) private static List<ThreeTuple<String, String, String>> getFilesInfo(@NotNull String url, @NotNull String accessCode) {
-		FourTuple<String, String, String, String> urlInfo = getUrlInfo(url);
-
-		Map<String, String> listData = new HashMap<>();
-		listData.put("fileId", urlInfo.first);
-		listData.put("shareId", urlInfo.second);
-		listData.put("isFolder", urlInfo.third);
-		listData.put("shareMode", urlInfo.fourth);
-		listData.put("accessCode", accessCode);
-
+	@Contract(pure = true) public static List<ThreeTuple<String, String, String>> getFilesInfoAsPage(@NotNull String url, @NotNull String accessCode) {
+		Map<String, String> info = getshareUrlInfo(url);
+		info.put("accessCode", accessCode);
 		List<ThreeTuple<String, String, String>> fileInfos = new ArrayList<>();
-		for (Element element : JsoupUtil.connect(listApi).data(listData).get().select("file")) {
+		for (Element element : JsoupUtil.connect(listShareDirUrl).data(info).get().select("file")) {
 			String fileName = Objects.requireNonNull(element.selectFirst("name")).text();
 			String id = Objects.requireNonNull(element.selectFirst("id")).text();
-			fileInfos.add(Tuple.of(fileName, id, urlInfo.second));
+			fileInfos.add(Tuple.of(fileName, id, info.get("shareId")));
 		}
 		return fileInfos;
 	}
 
 	/**
-	 * 获取URL的ID等信息
-	 *
-	 * @param url 天翼URL
-	 * @return fileId, shareId, isFolder, shareMode
+	 * 天翼云盘的API操作
 	 */
-	@Contract(pure = true) private static FourTuple<String, String, String, String> getUrlInfo(@NotNull String url) {
-		String code = url.contains("code") ? StringUtils.extractRegex(url, "code=.*").substring(5) : url.substring(url.lastIndexOf("/"));
-		Document docData = JsoupUtil.connect(dataApi).data("shareCode", code).retry(true).get();
-		String fileId = Objects.requireNonNull(docData.selectFirst("fileId")).text();
-		String shareId = Objects.requireNonNull(docData.selectFirst("shareId")).text();
-		String isFolder = Objects.requireNonNull(docData.selectFirst("isFolder")).text();
-		String shareMode = Objects.requireNonNull(docData.selectFirst("shareMode")).text();
-		return Tuple.of(fileId, shareId, isFolder, shareMode);
-	}
-
 	public static class TianYiYunPanAPI {
+
+		public static final String fileDownloadUrl = "https://cloud.189.cn/api/open/file/getFileDownloadUrl.action";
+		public static final String listFilesUrl = "https://cloud.189.cn/api/open/file/listFiles.action";
+
 		public Map<String, String> cookies;
 
-		protected TianYiYunPanAPI(Map<String, String> cookies) {
+		protected TianYiYunPanAPI(@NotNull Map<String, String> cookies) {
 			this.cookies = cookies;
+			headers.put("accept", "application/json;charset=UTF-8");
+		}
+
+		/**
+		 * 通过文件ID获取文件的直链,不能用于分享页面获取
+		 *
+		 * @param fileId 文件ID
+		 * @return 用于下载的直链
+		 */
+		@Contract(pure = true) public String getStraight(@NotNull String fileId) {
+			return JSONObject.parseObject(JsoupUtil.connect(fileDownloadUrl).data("fileId", fileId).headers(headers).cookies(cookies).get().text())
+					.getString("fileDownloadUrl");
+		}
+
+		/**
+		 * 通过文件夹ID获取当前页面所有文件和文件夹信息
+		 *
+		 * @param folderId 文件夹ID
+		 * @return Map < 名称 , Map < String, String > >
+		 */
+		@Contract(pure = true) public Map<String, Map<String, String>> getInfoAsHomeOfFolderId(@NotNull String folderId) {
+			Map<String, String> data = new HashMap<>();
+			data.put("pageSize", "1");
+			data.put("folderId", folderId);
+			Connection conn = JsoupUtil.connect(listFilesUrl);
+			String urlInfo = conn.headers(headers).data(data).cookies(cookies).get().text();
+			data.put("pageSize", JSONObject.parseObject(urlInfo).getJSONObject("fileListAO").getString("count"));
+			urlInfo = conn.url(listFilesUrl).data(data).cookies(cookies).get().text();
+			JSONObject fileListAO = JSONObject.parseObject(urlInfo).getJSONObject("fileListAO");
+			JSONArray fileList = fileListAO.getJSONArray("fileList");
+			Map<String, Map<String, String>> filesInfo = new HashMap<>();
+			for (int i = 0; i < fileList.size(); i++) {
+				JSONObject info = fileList.getJSONObject(i);
+				Map<String, String> filInfo = new HashMap<>();
+				filInfo.put("id", info.getString("id"));
+				filInfo.put("md5", info.getString("md5"));
+				filInfo.put("size", info.getString("size"));
+				filInfo.put("isFile", "true");
+				filesInfo.put(info.getString("name"), filInfo);
+			}
+			JSONArray folderList = fileListAO.getJSONArray("folderList");
+			for (int i = 0; i < folderList.size(); i++) {
+				JSONObject info = folderList.getJSONObject(i);
+				Map<String, String> filInfo = new HashMap<>();
+				filInfo.put("id", info.getString("id"));
+				filInfo.put("parentId", info.getString("parentId"));
+				filInfo.put("isFile", "false");
+				filesInfo.put(info.getString("name"), filInfo);
+			}
+			return filesInfo;
+		}
+
+		/**
+		 * 通过文件夹ID获取当前页面所有文件信息
+		 *
+		 * @param folderId 文件夹ID
+		 * @return Map < 名称 , Map < String, String > >
+		 */
+		@Contract(pure = true) public Map<String, Map<String, String>> getFilesInfoAsHomeOfFolderId(@NotNull String folderId) {
+			return getInfoAsHomeOfFolderId("-11").entrySet().stream().filter(l -> l.getValue().get("isFile").equals("true"))
+					.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+		}
+
+		/**
+		 * 通过文件夹ID获取当前页面所有文件夹信息
+		 *
+		 * @param folderId 文件夹ID
+		 * @return Map < 名称 , Map < String, String > >
+		 */
+		@Contract(pure = true) public Map<String, Map<String, String>> getFoldersInfoAsHomeOfFolderId(@NotNull String folderId) {
+			return getInfoAsHomeOfFolderId("-11").entrySet().stream().filter(l -> l.getValue().get("isFile").equals("false"))
+					.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+		}
+
+		/**
+		 * 获取主页面所有文件和文件夹信息
+		 *
+		 * @return Map < 名称 , Map < String, String > >
+		 */
+		@Contract(pure = true) public Map<String, Map<String, String>> getFilesInfoAsHome() {
+			return getInfoAsHomeOfFolderId("-11"); // -11 主页
+		}
+
+		/**
+		 * 获取个人所有文件信息
+		 *
+		 * @param folderId 文件夹ID
+		 * @return Map < 名称 , Map < String, String > >
+		 */
+		@Contract(pure = true) public Map<String, Map<String, String>> getFoldersInfoAsHomeOfAll(@NotNull String folderId) {
+			Map<String, Map<String, String>> filesInfo = getFilesInfoAsHome();
+			for (Map.Entry<String, Map<String, String>> fileInfo : filesInfo.entrySet()) {
+				String name = fileInfo.getKey();
+				Map<String, String> params = fileInfo.getValue();
+				if (params.get("isFile").equals("true")) {
+					filesInfo.put(name, params);
+				} else {
+					filesInfo.putAll(getFilesInfoAsHomeOfFolderId(params.get("id")));
+				}
+			}
+			return filesInfo;
 		}
 
 		/**
@@ -115,8 +222,8 @@ public class TianYiYunPan {
 		 * @return 文件直链
 		 */
 		@Contract(pure = true) public String getStraightAsNotCode(@NotNull String url) {
-			FourTuple<String, String, String, String> urlInfo = getUrlInfo(url);
-			return JsoupUtil.connect(downApi + "?dt=1&fileId=" + urlInfo.first + "&shareId=" + urlInfo.second).cookies(cookies).retry(true).get().text();
+			Map<String, String> info = getshareUrlInfo(url);
+			return JsoupUtil.connect(fileDownloadUrl + "?dt=1&fileId=" + info.get("fileId") + "&shareId=" + info.get("shareId")).cookies(cookies).get().text();
 		}
 
 		/**
@@ -138,34 +245,36 @@ public class TianYiYunPan {
 		 */
 		@Contract(pure = true) public Map<String, String> getStraightsAsPage(@NotNull String url, @NotNull String accessCode) {
 			Map<String, String> fileUrls = new HashMap<>();
-			for (ThreeTuple<String, String, String> fileInfo : getFilesInfo(url, accessCode)) {
+			for (ThreeTuple<String, String, String> fileInfo : getFilesInfoAsPage(url, accessCode)) {
 				Map<String, String> params = new HashMap<>();
 				params.put("dt", "1");
 				params.put("fileId", fileInfo.second);
 				params.put("shareId", fileInfo.third);
-				fileUrls.put(fileInfo.first, JsoupUtil.connect(downApi).data(params).cookies(cookies).retry(true).get().text());
+				fileUrls.put(fileInfo.first, JsoupUtil.connect(fileDownloadUrl).data(params).cookies(cookies).get().text());
 			}
 			return fileUrls;
 		}
 
 	}
 
+	/**
+	 * 天翼云盘的登陆操作
+	 */
 	public static class TianYiYunPanLogin {
-		public static final String loginUrl = "https://cloud.189.cn/api/portal/loginUrl.action";
-		public static final String encryptConfUrl = "https://open.e.189.cn/api/logbox/config/encryptConf.do";
-		public static final String loginSubmitUrl = "https://open.e.189.cn/api/logbox/oauth2/loginSubmit.do";
 
-		public static Map<String, String> login(@NotNull String userName, @NotNull String password) {
+		public static final String loginUrl = "https://cloud.189.cn/api/portal/loginUrl.action";
+		public static final String loginSubmitUrl = "https://open.e.189.cn/api/logbox/oauth2/loginSubmit.do";
+		public static final String encryptConfUrl = "https://open.e.189.cn/api/logbox/config/encryptConf.do";
+
+		@Contract(pure = true) public static Map<String, String> login(@NotNull String userName, @NotNull String password) {
 			Connection conn = JsoupUtil.connect(encryptConfUrl);
 			JSONObject encryptConfData = JSONObject.parseObject(JSONObject.parseObject(conn.get().text()).getString("data"));
 			String pre = encryptConfData.getString("pre");
 			String pubKey = encryptConfData.getString("pubKey");
 			userName = pre + encrypt(userName, pubKey);
 			password = pre + encrypt(password, pubKey);
-
 			Document doc = conn.url(loginUrl).get();
 			String loginUrlText = doc.select("script[type='text/javascript']").toString();
-
 			String captcha_token = doc.select("input[name='captchaToken']").attr("value");
 			String appKey = StringUtils.extractRegex(loginUrlText, "appKey =.*,");
 			appKey = appKey.substring(appKey.indexOf("'") + 1, appKey.lastIndexOf("'"));
@@ -183,7 +292,7 @@ public class TianYiYunPan {
 			lt = lt.substring(lt.indexOf("\"") + 1, lt.lastIndexOf("\""));
 			String reqId = StringUtils.extractRegex(loginUrlText, "reqId =.*;");
 			reqId = reqId.substring(reqId.indexOf("\"") + 1, reqId.lastIndexOf("\""));
-			String paramId = StringUtils.extractRegex(loginUrlText, "paramId.*;");
+			String paramId = StringUtils.extractRegex(loginUrlText, "paramId =.*;");
 			paramId = paramId.substring(paramId.indexOf("\"") + 1, paramId.lastIndexOf("\""));
 
 			Map<String, String> data = new HashMap<>();
@@ -198,13 +307,16 @@ public class TianYiYunPan {
 			data.put("clientType", clientType);
 			data.put("isOauth2", isOauth2);
 			data.put("paramId", paramId);
-
-			return conn.url(loginSubmitUrl).header("lt", lt).header("reqid", reqId).header("referer", encryptConfUrl).data(data).method(Method.POST).execute()
-					.cookies();
-
+			Response res = conn.url(loginSubmitUrl).header("lt", lt).header("reqid", reqId).header("referer", encryptConfUrl).data(data).method(Method.POST)
+					.execute();
+			JSONObject info = JSONObject.parseObject(res.body());
+			if (info.getString("result").equals("0")) {
+				return JsoupUtil.connect(info.getString("toUrl")).execute().cookies();
+			}
+			return new HashMap<>();
 		}
 
-		public static String encrypt(String data, String pubKey) {
+		protected static String encrypt(String data, String pubKey) {
 			try {
 				return b64tohex(publicKeyEncrypt(data, pubKey));
 			} catch (Exception e) {
@@ -212,7 +324,7 @@ public class TianYiYunPan {
 			}
 		}
 
-		public static String publicKeyEncrypt(String str, String publicKey) throws Exception {
+		protected static String publicKeyEncrypt(String str, String publicKey) throws Exception {
 			byte[] decoded = org.apache.commons.codec.binary.Base64.decodeBase64(publicKey); //base64编码的公钥
 			RSAPublicKey pubKey = (RSAPublicKey) KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(decoded));
 			Cipher cipher = Cipher.getInstance("RSA"); //RSA加密
@@ -220,7 +332,7 @@ public class TianYiYunPan {
 			return Base64.encodeBase64String(cipher.doFinal(str.getBytes(StandardCharsets.UTF_8)));
 		}
 
-		public static String b64tohex(String data) {
+		protected static String b64tohex(String data) {
 			char[] a = data.toCharArray();
 			String b64map = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 			StringBuilder d = new StringBuilder();
@@ -252,7 +364,7 @@ public class TianYiYunPan {
 			return e == 1 ? String.valueOf(d) + int2char(c << 2) : d.toString();
 		}
 
-		public static char int2char(int index) {
+		protected static char int2char(int index) {
 			return "0123456789abcdefghijklmnopqrstuvwxyz".toCharArray()[index];
 		}
 	}

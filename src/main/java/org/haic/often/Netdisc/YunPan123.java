@@ -5,13 +5,14 @@ import com.alibaba.fastjson.JSONObject;
 import org.haic.often.Judge;
 import org.haic.often.Network.HttpsUtil;
 import org.haic.often.Network.JsoupUtil;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 123云盘API
+ * 123云盘API,获取直链需要登陆
  *
  * @author haicdust
  * @version 1.0
@@ -19,24 +20,31 @@ import java.util.Map;
  */
 public class YunPan123 {
 
-	protected static final String loginApi = "https://www.123pan.com/a/api/user/sign_in";
-	protected static final String getApi = "https://www.123pan.com/a/api/share/get";
+	protected static final String signinUrl = "https://www.123pan.com/a/api/user/sign_in";
+	protected static final String shareGetUrl = "https://www.123pan.com/a/api/share/get";
 
 	protected YunPan123() {
 	}
 
 	/**
-	 * 登陆并获得用户身份识别标识,可在请求头中使用
+	 * 通过账号密码登陆账号,进行需要是否验证的API操作
 	 *
 	 * @param username 用户名
 	 * @param password 密码
-	 * @return authorization 身份识别标识
+	 * @return 此链接, 用于API操作
 	 */
-	public static YunPan123API login(String username, String password) {
-		return new YunPan123API(JSONObject.parseObject(JsoupUtil.connect(loginApi).requestBody(new JSONObject() {{
-			put("passport", username);
-			put("password", password);
-		}}.toJSONString()).post().text()).getJSONObject("data").getString("token"));
+	@Contract(pure = true) public static YunPan123API login(@NotNull String username, @NotNull String password) {
+		return new YunPan123API(YunPan123Login.login(username, password));
+	}
+
+	/**
+	 * 通过身份识别标识登陆账号,进行需要是否验证的API操作
+	 *
+	 * @param authorization 身份识别标识
+	 * @return 此链接, 用于API操作
+	 */
+	@Contract(pure = true) public static YunPan123API login(@NotNull String authorization) {
+		return new YunPan123API(authorization);
 	}
 
 	/**
@@ -47,7 +55,7 @@ public class YunPan123 {
 	 * @param shareUrl 分享URL
 	 * @return Map - 文件名, 文件直链
 	 */
-	public static Map<String, String> getInfosAsPage(String shareUrl) {
+	public static Map<String, String> getInfosAsPage(@NotNull String shareUrl) {
 		return getInfosAsPage(shareUrl, "");
 	}
 
@@ -60,11 +68,11 @@ public class YunPan123 {
 	 * @param sharePwd 提取码
 	 * @return Map - 文件名, 文件直链
 	 */
-	public static Map<String, String> getInfosAsPage(String shareUrl, String sharePwd) {
+	@Contract(pure = true) public static Map<String, String> getInfosAsPage(@NotNull String shareUrl, @NotNull String sharePwd) {
 		return getInfosAsPage(shareUrl.substring(shareUrl.lastIndexOf("/") + 1), sharePwd, "0", 1);
 	}
 
-	protected static Map<String, String> getInfosAsPage(String key, String sharePwd, String parentFileId, int page) {
+	@Contract(pure = true) protected static Map<String, String> getInfosAsPage(String key, String sharePwd, String parentFileId, int page) {
 		Map<String, String> data = new HashMap<>();
 		data.put("limit", "100");
 		data.put("next", "1");
@@ -75,7 +83,7 @@ public class YunPan123 {
 		data.put("ParentFileId", parentFileId);
 		data.put("Page", String.valueOf(page));
 
-		JSONObject pageInfo = JSONObject.parseObject(HttpsUtil.connect(getApi).data(data).get().text()).getJSONObject("data");
+		JSONObject pageInfo = JSONObject.parseObject(HttpsUtil.connect(shareGetUrl).data(data).get().text()).getJSONObject("data");
 		JSONArray files = pageInfo.getJSONArray("InfoList");
 		Map<String, String> filesInfo = new HashMap<>();
 		for (int i = 0; i < files.size(); i++) {
@@ -96,11 +104,14 @@ public class YunPan123 {
 		return filesInfo;
 	}
 
+	/**
+	 * 123云盘的API操作
+	 */
 	public static class YunPan123API {
 
-		protected final String userApi = "https://www.123pan.com/a/api/user/info";
-		protected final String listApi = "https://www.123pan.com/a/api/file/list/new";
-		protected final String downApi = "https://www.123pan.com/a/api/file/download_info";
+		protected static final String userInfoUrl = "https://www.123pan.com/a/api/user/info";
+		protected static final String filelistUrl = "https://www.123pan.com/a/api/file/list/new";
+		protected static final String fileDownloadInfoUrl = "https://www.123pan.com/a/api/file/download_info";
 
 		protected String authorization;
 
@@ -113,7 +124,7 @@ public class YunPan123 {
 		 *
 		 * @return Map - 文件名, Map ( 文件信息)
 		 */
-		public Map<String, Map<String, String>> getInfosAsHome() {
+		@Contract(pure = true) public Map<String, Map<String, String>> getInfosAsHome() {
 			return getInfosAsHome("");
 		}
 
@@ -123,7 +134,7 @@ public class YunPan123 {
 		 * @param searchData 待搜索数据
 		 * @return Map - 文件名, Map ( 文件信息)
 		 */
-		public Map<String, Map<String, String>> getInfosAsHome(@NotNull String searchData) {
+		@Contract(pure = true) public Map<String, Map<String, String>> getInfosAsHome(@NotNull String searchData) {
 			Map<String, String> data = new HashMap<>();
 			data.put("driveId", "0");
 			data.put("limit", "100");
@@ -135,13 +146,13 @@ public class YunPan123 {
 			data.put("SearchData", searchData);
 			Map<String, Map<String, String>> filesInfo = new HashMap<>();
 
-			int fileCount = JSONObject.parseObject(JsoupUtil.connect(userApi).authorization(authorization).get().text()).getJSONObject("data")
+			int fileCount = JSONObject.parseObject(JsoupUtil.connect(userInfoUrl).authorization(authorization).get().text()).getJSONObject("data")
 					.getInteger("FileCount");
 			int pageCount = (int) Math.ceil((double) fileCount / (double) 100);
 			for (int i = 1; i <= pageCount; i++) {
 				JSONArray infoList = JSONObject.parseObject(
-								JsoupUtil.connect(listApi).data(data).data("Page", String.valueOf(i)).authorization(authorization).get().text()).getJSONObject("data")
-						.getJSONArray("InfoList");
+								JsoupUtil.connect(filelistUrl).data(data).data("Page", String.valueOf(i)).authorization(authorization).get().text())
+						.getJSONObject("data").getJSONArray("InfoList");
 				for (int j = 0; j < infoList.size(); j++) {
 					JSONObject jsonObject = infoList.getJSONObject(j);
 					Map<String, String> fileInfo = new HashMap<>();
@@ -162,7 +173,7 @@ public class YunPan123 {
 		 * @param fileInfo 文件信息
 		 * @return 文件直链
 		 */
-		public String getStraight(@NotNull String fileName, @NotNull Map<String, String> fileInfo) {
+		@Contract(pure = true) public String getStraight(@NotNull String fileName, @NotNull Map<String, String> fileInfo) {
 			JSONObject dataObject = new JSONObject();
 			dataObject.put("driveId", "0");
 			dataObject.put("type", "0");
@@ -171,10 +182,28 @@ public class YunPan123 {
 			dataObject.put("size", fileInfo.get("size"));
 			dataObject.put("etag", fileInfo.get("etag"));
 			dataObject.put("s3KeyFlag", fileInfo.get("s3KeyFlag"));
-			return JSONObject.parseObject(JsoupUtil.connect(downApi).requestBody(dataObject.toJSONString()).authorization(authorization).post().text())
+			return JSONObject.parseObject(
+							JsoupUtil.connect(fileDownloadInfoUrl).requestBody(dataObject.toJSONString()).authorization(authorization).post().text())
 					.getJSONObject("data").getString("DownloadUrl");
 		}
 
+	}
+
+	public static class YunPan123Login {
+
+		/**
+		 * 通过账号密码登录获得用户身份识别标识,可在请求头中使用
+		 *
+		 * @param username 用户名
+		 * @param password 密码
+		 * @return 此链接, 用于API操作
+		 */
+		@Contract(pure = true) public static String login(@NotNull String username, @NotNull String password) {
+			return JSONObject.parseObject(JsoupUtil.connect(signinUrl).requestBody(new JSONObject() {{
+				put("passport", username);
+				put("password", password);
+			}}.toJSONString()).post().text()).getJSONObject("data").getString("token");
+		}
 	}
 
 }
