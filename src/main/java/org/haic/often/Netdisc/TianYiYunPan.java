@@ -35,10 +35,11 @@ public class TianYiYunPan {
 	public static final String listShareDirUrl = "https://cloud.189.cn/api/open/share/listShareDir.action";
 	public static final String shareInfoByCodeUrl = "https://cloud.189.cn/api/open/share/getShareInfoByCode.action";
 
-	public static final Map<String, String> headers = new HashMap<>();
+	public static final Map<String, String> headers = new HashMap<>() {{
+		put("accept", "application/json;charset=UTF-8");
+	}};
 
 	protected TianYiYunPan() {
-		headers.put("accept", "application/json;charset=UTF-8");
 	}
 
 	/**
@@ -53,7 +54,7 @@ public class TianYiYunPan {
 	}
 
 	/**
-	 * 登陆账户,,\进行需要是否验证的API操作
+	 * 登陆账户,进行需要是否验证的API操作
 	 *
 	 * @param cookies cookies
 	 * @return 此连接，用于链接
@@ -106,12 +107,134 @@ public class TianYiYunPan {
 
 		public static final String fileDownloadUrl = "https://cloud.189.cn/api/open/file/getFileDownloadUrl.action";
 		public static final String listFilesUrl = "https://cloud.189.cn/api/open/file/listFiles.action";
+		public static final String createBatchTaskUrl = "https://cloud.189.cn/api/open/batch/createBatchTask.action";
+		public static final String createShareLinkUrl = "https://cloud.189.cn/api/open/share/createShareLink.action?noCache=0.009576706659646606&fileId=5130319904099345&expireTime=1&shareType=3";
 
 		public Map<String, String> cookies;
 
 		protected TianYiYunPanAPI(@NotNull Map<String, String> cookies) {
 			this.cookies = cookies;
-			headers.put("accept", "application/json;charset=UTF-8");
+		}
+
+		/**
+		 * 根据配置删除多个文件或文件夹到指定文件夹
+		 *
+		 * @param filesInfo 指定的多个文件或文件夹,Map ( 文件名 ( 文件信息 )) 确保文件信息里存在fileId选项
+		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 */
+		@Contract(pure = true) public int delete(@NotNull Map<String, Map<String, String>> filesInfo) {
+			return batchTask("DELETE", filesInfo, "");
+		}
+
+		/**
+		 * 删除单个个文件或文件夹到指定文件夹
+		 *
+		 * @param fileName 文件名
+		 * @param fileId   文件ID
+		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 */
+		@Contract(pure = true) public int delete(@NotNull String fileName, @NotNull String fileId) {
+			return batchTask("DELETE", fileName, fileId, "");
+		}
+
+		/**
+		 * 根据配置复制多个文件或文件夹到指定文件夹
+		 *
+		 * @param filesInfo 指定的多个文件或文件夹,Map ( 文件名 ( 文件信息 )) 确保文件信息里存在fileId选项
+		 * @param folderId  目标文件夹ID
+		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 */
+		@Contract(pure = true) public int copy(@NotNull Map<String, Map<String, String>> filesInfo, @NotNull String folderId) {
+			return batchTask("COPY", filesInfo, folderId);
+		}
+
+		/**
+		 * 复制单个文件或文件夹到指定文件夹
+		 *
+		 * @param fileName 文件名
+		 * @param fileId   文件ID
+		 * @param folderId 目标文件夹ID
+		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 */
+		@Contract(pure = true) public int copy(@NotNull String fileName, @NotNull String fileId, @NotNull String folderId) {
+			return batchTask("COPY", fileName, fileId, folderId);
+		}
+
+		/**
+		 * 根据配置移动多个文件或文件夹到指定文件夹
+		 *
+		 * @param filesInfo 指定的多个文件或文件夹,Map ( 文件名 ( 文件信息 )) 确保文件信息里存在fileId选项
+		 * @param folderId  目标文件夹ID
+		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 */
+		@Contract(pure = true) public int move(@NotNull Map<String, Map<String, String>> filesInfo, @NotNull String folderId) {
+			return batchTask("MOVE", filesInfo, folderId);
+		}
+
+		/**
+		 * 移动单个文件或文件夹到指定文件夹
+		 *
+		 * @param fileName 文件名
+		 * @param fileId   文件ID
+		 * @param folderId 目标文件夹ID
+		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 */
+		@Contract(pure = true) public int move(@NotNull String fileName, @NotNull String fileId, @NotNull String folderId) {
+			return batchTask("MOVE", fileName, fileId, folderId);
+		}
+
+		/**
+		 * 对多个文件或文件夹执行批处理脚本操作,用于文件移动,删除,复制等
+		 *
+		 * @param type      操作类型
+		 * @param filesInfo 指定的多个文件或文件夹,Map ( 文件名 ( 文件信息 )) 确保文件信息里存在fileId选项
+		 * @param folderId  目标文件夹ID,注意如果当前操作(如删除)没有关联文件夹,指定空字符串
+		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 */
+		@Contract(pure = true) public int batchTask(@NotNull String type, @NotNull Map<String, Map<String, String>> filesInfo, @NotNull String folderId) {
+			JSONArray taskInfos = new JSONArray();
+			for (Map.Entry<String, Map<String, String>> info : filesInfo.entrySet()) {
+				JSONObject taskInfo = new JSONObject();
+				taskInfo.put("fileName", info.getKey());
+				taskInfo.put("fileId", info.getValue().get("fileId"));
+				taskInfos.add(taskInfo);
+			}
+			return batchTask(type, taskInfos.toJSONString(), folderId);
+		}
+
+		/**
+		 * 对单个文件或文件夹执行脚本操作,用于文件移动,删除,复制等
+		 *
+		 * @param type     操作类型
+		 * @param fileName 文件名
+		 * @param fileId   文件ID
+		 * @param folderId 目标文件夹ID,注意如果当前操作(如删除)没有关联文件夹,指定空字符串
+		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 */
+		@Contract(pure = true) public int batchTask(@NotNull String type, @NotNull String fileName, @NotNull String fileId, @NotNull String folderId) {
+			JSONObject taskInfo = new JSONObject();
+			taskInfo.put("fileName", fileName);
+			taskInfo.put("fileId", fileId);
+			JSONArray taskInfos = new JSONArray();
+			taskInfos.add(taskInfo);
+			return batchTask(type, taskInfos.toJSONString(), folderId);
+		}
+
+		/**
+		 * 执行脚本操作,用于文件移动,删除,复制等
+		 *
+		 * @param type      操作类型
+		 * @param taskInfos 自定义待执行的Json数据(json数组,每个元素应包含fileName和fileId选项)
+		 * @param folderId  目标文件夹ID,注意如果当前操作(如删除)没有关联文件夹,指定空字符串
+		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 */
+		@Contract(pure = true) public int batchTask(@NotNull String type, @NotNull String taskInfos, @NotNull String folderId) {
+			Map<String, String> data = new HashMap<>();
+			data.put("type", type);
+			data.put("taskInfos", taskInfos);
+			data.put("targetFolderId", folderId);
+			return JSONObject.parseObject(JsoupUtil.connect(createBatchTaskUrl).headers(headers).data(data).cookies(cookies).execute().body())
+					.getInteger("res_code");
 		}
 
 		/**
@@ -148,7 +271,7 @@ public class TianYiYunPan {
 				filInfo.put("id", info.getString("id"));
 				filInfo.put("md5", info.getString("md5"));
 				filInfo.put("size", info.getString("size"));
-				filInfo.put("isFile", "true");
+				filInfo.put("isFolder", "0");
 				filesInfo.put(info.getString("name"), filInfo);
 			}
 			JSONArray folderList = fileListAO.getJSONArray("folderList");
@@ -157,7 +280,7 @@ public class TianYiYunPan {
 				Map<String, String> filInfo = new HashMap<>();
 				filInfo.put("id", info.getString("id"));
 				filInfo.put("parentId", info.getString("parentId"));
-				filInfo.put("isFile", "false");
+				filInfo.put("isFolder", "1");
 				filesInfo.put(info.getString("name"), filInfo);
 			}
 			return filesInfo;
@@ -170,7 +293,7 @@ public class TianYiYunPan {
 		 * @return Map < 名称 , Map < String, String > >
 		 */
 		@Contract(pure = true) public Map<String, Map<String, String>> getFilesInfoAsHomeOfFolderId(@NotNull String folderId) {
-			return getInfoAsHomeOfFolderId("-11").entrySet().stream().filter(l -> l.getValue().get("isFile").equals("true"))
+			return getInfoAsHomeOfFolderId("-11").entrySet().stream().filter(l -> l.getValue().get("isFolder").equals("0"))
 					.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 		}
 
@@ -181,7 +304,7 @@ public class TianYiYunPan {
 		 * @return Map < 名称 , Map < String, String > >
 		 */
 		@Contract(pure = true) public Map<String, Map<String, String>> getFoldersInfoAsHomeOfFolderId(@NotNull String folderId) {
-			return getInfoAsHomeOfFolderId("-11").entrySet().stream().filter(l -> l.getValue().get("isFile").equals("false"))
+			return getInfoAsHomeOfFolderId("-11").entrySet().stream().filter(l -> l.getValue().get("isFolder").equals("1"))
 					.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 		}
 
@@ -195,7 +318,7 @@ public class TianYiYunPan {
 		}
 
 		/**
-		 * 获取个人所有文件信息
+		 * 获取指定文件夹下所有文件信息,[-11]为根目录,获取全部文件信息
 		 *
 		 * @param folderId 文件夹ID
 		 * @return Map < 名称 , Map < String, String > >
