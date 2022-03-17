@@ -141,7 +141,7 @@ public class JsoupUtil {
 		}
 
 		@Contract(pure = true) public Map<String, String> cookieStore() {
-			return conn.cookieStore().getCookies().stream().collect(Collectors.toMap(HttpCookie::getName, HttpCookie::getValue));
+			return conn.cookieStore().getCookies().stream().collect(Collectors.toMap(HttpCookie::getName, HttpCookie::getValue, (e1, e2) -> e2));
 		}
 
 		@Contract(pure = true) public Connection data(String... keyvals) {
