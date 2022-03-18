@@ -7,7 +7,6 @@ import org.haic.often.Tuple.ThreeTuple;
 import org.haic.often.Tuple.Tuple;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jsoup.Connection.Method;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.parser.Parser;
@@ -180,7 +179,7 @@ public class HttpsUtil {
 			params = body;
 			return URIUtils.isJson(body) ?
 					header("content-type", "application/json;charset=UTF-8") :
-					header("content-type", "application/x-www-form-urlencoded; charset=UTF-8");
+					header("content-type", "application/x-www-form-urlencoded;charset=UTF-8");
 		}
 
 		@Contract(pure = true) public Connection socks(@NotNull String proxyHost, int proxyPort) {
@@ -295,10 +294,8 @@ public class HttpsUtil {
 					}
 				}
 				}
-
-				// 维护cookies
 				Response response = new HttpResponse(conn);
-				cookies.putAll(response.cookies());
+				cookies.putAll(response.cookies()); // 维护cookies
 
 				String redirectUrl; // 修复重定向
 				if (followRedirects && URIUtils.statusIsRedirect(response.statusCode()) && !Judge.isEmpty(redirectUrl = conn.getHeaderField("location"))) {

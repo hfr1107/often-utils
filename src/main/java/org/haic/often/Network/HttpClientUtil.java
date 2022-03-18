@@ -28,7 +28,6 @@ import org.haic.often.Multithread.MultiThreadUtils;
 import org.haic.often.StreamUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jsoup.Connection.Method;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.parser.Parser;
@@ -200,7 +199,7 @@ public class HttpClientUtil {
 			header("accept", "application/json;charset=UTF-8");
 			return URIUtils.isJson(body) ?
 					header("content-type", "application/json;charset=UTF-8") :
-					header("content-type", "application/x-www-form-urlencoded; charset=UTF-8");
+					header("content-type", "application/x-www-form-urlencoded;charset=UTF-8");
 		}
 
 		@Contract(pure = true) public Connection socks(@NotNull String proxyHost, int proxyPort) {

@@ -9,7 +9,6 @@ import org.haic.often.Multithread.MultiThreadUtils;
 import org.haic.often.StreamUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jsoup.Connection.Method;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
@@ -75,7 +74,6 @@ public class HtmlUnitUtil {
 		protected int retry; // 请求异常重试次数
 		protected int MILLISECONDS_SLEEP; // 重试等待时间
 
-		protected List<NameValuePair> params = new ArrayList<>(); // params
 		protected Map<String, String> cookies = new HashMap<>(); // cookes
 		protected List<Integer> retryStatusCodes = new ArrayList<>();
 
@@ -144,21 +142,20 @@ public class HtmlUnitUtil {
 		}
 
 		@Contract(pure = true) public Connection data(@NotNull String key, @NotNull String value) {
-			params.add(new NameValuePair(key, value));
+			request.getRequestParameters().add(new NameValuePair(key, value));
 			return this;
 		}
 
 		@Contract(pure = true) public Connection data(@NotNull Map<String, String> params) {
-			this.params = params.entrySet().stream().map(l -> new NameValuePair(l.getKey(), l.getValue())).collect(Collectors.toList());
+			request.setRequestParameters(params.entrySet().stream().map(l -> new NameValuePair(l.getKey(), l.getValue())).collect(Collectors.toList()));
 			return this;
 		}
 
 		@Contract(pure = true) public Connection requestBody(@NotNull String body) {
 			request.setRequestBody(body);
-			header("accept", "application/json;charset=UTF-8");
 			return URIUtils.isJson(body) ?
 					header("content-type", "application/json;charset=UTF-8") :
-					header("content-type", "application/x-www-form-urlencoded; charset=UTF-8");
+					header("content-type", "application/x-www-form-urlencoded;charset=UTF-8");
 		}
 
 		@Contract(pure = true) public Connection socks(@NotNull String proxyHost, int proxyPort) {
@@ -286,8 +283,6 @@ public class HtmlUnitUtil {
 		}
 
 		@Contract(pure = true) public Response execute() {
-			request.setRequestParameters(params);
-
 			Response response = executeProgram(request);
 			int statusCode = Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.statusCode();
 			for (int i = 0; (URIUtils.statusIsTimeout(statusCode) || retryStatusCodes.contains(statusCode)) && (i < retry || unlimitedRetry); i++) {
@@ -387,7 +382,6 @@ public class HtmlUnitUtil {
 		}
 
 		@Contract(pure = true) public String body() {
-			//return isHtmlPage() ? ((HtmlPage) page).asXml() : page.getWebResponse().getContentAsString();
 			String result;
 			try (InputStream inputStream = bodyStream()) {
 				result = StreamUtils.stream(inputStream).charset(charset).getString();
@@ -611,7 +605,7 @@ public class HtmlUnitUtil {
 		 * @param method HTTP 请求方法
 		 * @return 此连接，用于链接
 		 */
-		@Contract(pure = true) public abstract Connection method(@NotNull org.jsoup.Connection.Method method);
+		@Contract(pure = true) public abstract Connection method(@NotNull Method method);
 
 		/**
 		 * 在请求超时或者指定状态码发生时，进行重试，重试超过次数或者状态码正常返回

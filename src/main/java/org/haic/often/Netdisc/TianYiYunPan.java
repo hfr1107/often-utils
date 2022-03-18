@@ -4,14 +4,10 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.codec.binary.Base64;
 import org.haic.often.Judge;
-import org.haic.often.Network.Connection;
-import org.haic.often.Network.HttpsUtil;
-import org.haic.often.Network.JsoupUtil;
-import org.haic.often.Network.Response;
+import org.haic.often.Network.*;
 import org.haic.often.StringUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jsoup.Connection.Method;
 import org.jsoup.nodes.Document;
 
 import javax.crypto.Cipher;

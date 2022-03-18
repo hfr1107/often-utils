@@ -9,7 +9,6 @@ import org.haic.often.ReadWriteUtils;
 import org.haic.often.StringUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jsoup.Connection;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -422,7 +421,7 @@ public class NetworkFileUtil {
 		Response response = null;
 		try (InputStream inputStream = new BufferedInputStream(new FileInputStream(file), bufferSize)) {
 			response = JsoupUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies).file(fileName, inputStream).retry(retry, MILLISECONDS_SLEEP)
-					.retry(unlimitedRetry).errorExit(errorExit).method(Connection.Method.POST).execute();
+					.retry(unlimitedRetry).errorExit(errorExit).method(org.haic.often.Network.Method.POST).execute();
 		} catch (IOException e) {
 			// e.printStackTrace();
 		}

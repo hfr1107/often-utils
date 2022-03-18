@@ -2,7 +2,6 @@ package org.haic.often.Network;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jsoup.Connection.Method;
 import org.jsoup.nodes.Document;
 import org.jsoup.parser.Parser;
 

@@ -4,7 +4,6 @@ import org.haic.often.Judge;
 import org.haic.often.Multithread.MultiThreadUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jsoup.Connection.Method;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.parser.Parser;
@@ -176,10 +175,9 @@ public class JsoupUtil {
 
 		@Contract(pure = true) public Connection requestBody(@NotNull String body) {
 			conn.requestBody(body);
-			header("accept", "application/json;charset=UTF-8");
 			return URIUtils.isJson(body) ?
 					header("content-type", "application/json;charset=UTF-8") :
-					header("content-type", "application/x-www-form-urlencoded; charset=UTF-8");
+					header("content-type", "application/x-www-form-urlencoded;charset=UTF-8");
 		}
 
 		@Contract(pure = true) public Connection socks(@NotNull String proxyHost, int proxyPort) {
@@ -196,7 +194,7 @@ public class JsoupUtil {
 		}
 
 		@Contract(pure = true) public Connection method(@NotNull Method method) {
-			conn.method(method);
+			conn.method(org.jsoup.Connection.Method.valueOf(method.name()));
 			return this;
 		}
 
