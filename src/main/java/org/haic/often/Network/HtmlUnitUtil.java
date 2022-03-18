@@ -4,6 +4,7 @@ import com.gargoylesoftware.htmlunit.*;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import org.apache.commons.logging.LogFactory;
+import org.brotli.dec.BrotliInputStream;
 import org.haic.often.Judge;
 import org.haic.often.Multithread.MultiThreadUtils;
 import org.haic.often.StreamUtils;
@@ -21,6 +22,9 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.Inflater;
+import java.util.zip.InflaterInputStream;
 
 /**
  * HtmlUnit 工具类
@@ -88,6 +92,7 @@ public class HtmlUnitUtil {
 			request = new WebRequest(URIUtils.getURL(this.url = url));
 			header("accept", "text/html, application/xhtml+xml, application/json;q=0.9, */*;q=0.8");
 			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
+			header("accept-encoding", "gzip, deflate, br"); // 允许压缩gzip,br-Brotli
 			header("user-agent", UserAgent.chrome()); // 设置随机请求头
 		}
 
@@ -361,6 +366,9 @@ public class HtmlUnitUtil {
 
 		@Contract(pure = true) public String header(@NotNull String name) {
 			String header = headers().get(name);
+			if (Judge.isEmpty(header)) {
+				return null;
+			}
 			header = header.startsWith("[") ? header.substring(1) : header;
 			return header.endsWith("]") ? header.substring(0, header.length() - 1) : header;
 		}
@@ -391,8 +399,16 @@ public class HtmlUnitUtil {
 
 		@Contract(pure = true) public String body() {
 			String result;
-			try (InputStream inputStream = bodyStream()) {
-				result = StreamUtils.stream(inputStream).charset(charset).getString();
+			String encoding = header("content-encoding");
+			try (InputStream in = bodyStream();
+					InputStream body = Judge.isEmpty(encoding) ?
+							in :
+							encoding.equals("gzip") ?
+									new GZIPInputStream(in) :
+									encoding.equals("deflate") ?
+											new InflaterInputStream(in, new Inflater(true)) :
+											encoding.equals("br") ? new BrotliInputStream(in) : in) {
+				result = StreamUtils.stream(body).charset(charset).getString();
 			} catch (IOException e) {
 				return null;
 			}

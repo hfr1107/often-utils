@@ -1,5 +1,6 @@
 package org.haic.often.Network;
 
+import org.brotli.dec.BrotliInputStream;
 import org.haic.often.Judge;
 import org.haic.often.Multithread.MultiThreadUtils;
 import org.haic.often.StreamUtils;
@@ -24,6 +25,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.Inflater;
+import java.util.zip.InflaterInputStream;
 
 /**
  * Https 工具类
@@ -74,7 +78,6 @@ public class HttpsUtil {
 			header("accept", "text/html, application/xhtml+xml, application/json;q=0.9, */*;q=0.8");
 			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
 			header("user-agent", UserAgent.chrome()); // 设置随机请求头;
-
 		}
 
 		/**
@@ -372,6 +375,9 @@ public class HttpsUtil {
 
 		@Contract(pure = true) public String header(@NotNull String name) {
 			String header = headers().get(name);
+			if (Judge.isEmpty(header)) {
+				return null;
+			}
 			header = header.startsWith("[") ? header.substring(1) : header;
 			return header.endsWith("]") ? header.substring(0, header.length() - 1) : header;
 		}
@@ -406,8 +412,16 @@ public class HttpsUtil {
 
 		@Contract(pure = true) public String body() {
 			String result;
-			try (InputStream inputStream = bodyStream()) {
-				result = StreamUtils.stream(inputStream).charset(charset).getString();
+			String encoding = header("content-encoding");
+			try (InputStream in = bodyStream();
+					InputStream body = Judge.isEmpty(encoding) ?
+							in :
+							encoding.equals("gzip") ?
+									new GZIPInputStream(in) :
+									encoding.equals("deflate") ?
+											new InflaterInputStream(in, new Inflater(true)) :
+											encoding.equals("br") ? new BrotliInputStream(in) : in) {
+				result = StreamUtils.stream(body).charset(charset).getString();
 			} catch (IOException e) {
 				return null;
 			}

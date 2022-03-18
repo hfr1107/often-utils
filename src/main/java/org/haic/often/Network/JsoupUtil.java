@@ -1,7 +1,9 @@
 package org.haic.often.Network;
 
+import org.brotli.dec.BrotliInputStream;
 import org.haic.often.Judge;
 import org.haic.often.Multithread.MultiThreadUtils;
+import org.haic.often.StreamUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Jsoup;
@@ -15,11 +17,15 @@ import java.net.HttpCookie;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.Inflater;
+import java.util.zip.InflaterInputStream;
 
 /**
  * Jsoup 工具类
@@ -61,6 +67,7 @@ public class JsoupUtil {
 			this.conn = conn.maxBodySize(0).timeout(0).ignoreContentType(true).ignoreHttpErrors(true);
 			header("accept", "text/html, application/xhtml+xml, application/json;q=0.9, */*;q=0.8");
 			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
+			header("accept-encoding", "gzip, deflate, br"); // 允许压缩gzip,br-Brotli
 			header("user-agent", UserAgent.chrome());
 		}
 
@@ -279,6 +286,7 @@ public class JsoupUtil {
 	 */
 	protected static class HttpResponse extends Response {
 		protected org.jsoup.Connection.Response response;
+		protected Charset charset = StandardCharsets.UTF_8;
 
 		protected HttpResponse(org.jsoup.Connection.Response response) {
 			this.response = response;
@@ -309,16 +317,30 @@ public class JsoupUtil {
 		}
 
 		@Contract(pure = true) public Response charset(@NotNull String charsetName) {
-			response.charset(charsetName);
-			return this;
+			return charset(Charset.forName(charsetName));
 		}
 
 		@Contract(pure = true) public Response charset(@NotNull Charset charset) {
+			this.charset = charset;
 			return charset(charset.name());
 		}
 
 		@Contract(pure = true) public String body() {
-			return response.body();
+			String result;
+			String encoding = header("content-encoding");
+			try (InputStream in = bodyStream();
+					InputStream body = Judge.isEmpty(encoding) ?
+							in :
+							encoding.equals("gzip") ?
+									new GZIPInputStream(in) :
+									encoding.equals("deflate") ?
+											new InflaterInputStream(in, new Inflater(true)) :
+											encoding.equals("br") ? new BrotliInputStream(in) : in) {
+				result = StreamUtils.stream(body).charset(charset).getString();
+			} catch (IOException e) {
+				return null;
+			}
+			return result;
 		}
 
 		@Contract(pure = true) public InputStream bodyStream() {
