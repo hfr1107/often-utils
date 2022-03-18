@@ -3,17 +3,16 @@ package org.haic.often.Netdisc;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.codec.binary.Base64;
+import org.haic.often.Judge;
 import org.haic.often.Network.Connection;
+import org.haic.often.Network.HttpsUtil;
 import org.haic.often.Network.JsoupUtil;
 import org.haic.often.Network.Response;
 import org.haic.often.StringUtils;
-import org.haic.often.Tuple.ThreeTuple;
-import org.haic.often.Tuple.Tuple;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection.Method;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 
 import javax.crypto.Cipher;
 import java.nio.charset.StandardCharsets;
@@ -67,37 +66,61 @@ public class TianYiYunPan {
 	 * 获取分享URL的ID等信息
 	 *
 	 * @param shareUrl 天翼URL
-	 * @return fileId, shareId, isFolder, shareMode
+	 * @return JSON数据类型
 	 */
-	@Contract(pure = true) public static Map<String, String> getshareUrlInfo(@NotNull String shareUrl) {
+	@Contract(pure = true) public static JSONObject getshareUrlInfo(@NotNull String shareUrl) {
 		String code = shareUrl.contains("code") ? StringUtils.extractRegex(shareUrl, "code=.*").substring(5) : shareUrl.substring(shareUrl.lastIndexOf("/"));
-		Document docData = JsoupUtil.connect(shareInfoByCodeUrl).data("shareCode", code).headers(headers).get();
-		JSONObject creator = JSONObject.parseObject(docData.text()).getJSONObject("creator");
-		Map<String, String> info = new HashMap<>();
-		info.put("fileId", creator.getString("fileId"));
-		info.put("shareId", creator.getString("shareId"));
-		info.put("isFolder", creator.getString("isFolder"));
-		info.put("shareMode", creator.getString("shareMode"));
-		return info;
+		return JSONObject.parseObject(JsoupUtil.connect(shareInfoByCodeUrl).data("shareCode", code).headers(headers).get().text());
 	}
 
 	/**
 	 * 获得分享页面所有文件的信息
 	 *
-	 * @param url        天翼URL
-	 * @param accessCode 提取码
-	 * @return List - fileName, fileId, shareId
+	 * @param url       天翼URL
+	 * @param shareCode 提取码
+	 * @return List - JSON数据类型,包含文件所有信息
 	 */
-	@Contract(pure = true) public static List<ThreeTuple<String, String, String>> getFilesInfoAsPage(@NotNull String url, @NotNull String accessCode) {
-		Map<String, String> info = getshareUrlInfo(url);
-		info.put("accessCode", accessCode);
-		List<ThreeTuple<String, String, String>> fileInfos = new ArrayList<>();
-		for (Element element : JsoupUtil.connect(listShareDirUrl).data(info).get().select("file")) {
-			String fileName = Objects.requireNonNull(element.selectFirst("name")).text();
-			String id = Objects.requireNonNull(element.selectFirst("id")).text();
-			fileInfos.add(Tuple.of(fileName, id, info.get("shareId")));
+	@Contract(pure = true) public static List<JSONObject> getFilesInfoAsPage(@NotNull String url, @NotNull String shareCode) {
+		JSONObject info = getshareUrlInfo(url);
+		Map<String, String> data = new HashMap<>();
+		data.put("fileId", info.getString("fileId"));
+		data.put("shareId", info.getString("shareId"));
+		data.put("isFolder", info.getString("isFolder"));
+		data.put("shareMode", info.getString("shareMode"));
+		data.put("accessCode", shareCode);
+		return getFilesInfoAsPage(data);
+	}
+
+	/**
+	 * 通过配置获得分享页面所有文件的信息,如果文件非常多的话,可能要花较长时间
+	 *
+	 * @param data 配置信息,必须包含key
+	 *             <p>
+	 *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"fileId"
+	 *             <p>
+	 *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"shareId"
+	 *             <p>
+	 *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"isFolder"
+	 *             <p>
+	 *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"shareMode"
+	 *             <p>
+	 *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "accessCode"
+	 * @return List - JSON数据类型,包含文件所有信息
+	 */
+	@Contract(pure = true) public static List<JSONObject> getFilesInfoAsPage(@NotNull Map<String, String> data) {
+		Connection conn = JsoupUtil.connect(listShareDirUrl).headers(headers);
+		JSONObject infos = JSONObject.parseObject(conn.data(data).execute().body()).getJSONObject("fileListAO");
+		if (Judge.isEmpty(infos.getInteger("count"))) {
+			return new ArrayList<>();
 		}
-		return fileInfos;
+		List<JSONObject> filesInfo = new ArrayList<>(JSONObject.parseArray(infos.getJSONArray("fileList").toJSONString(), JSONObject.class));
+		Map<String, String> thisData = new HashMap<>(data);
+		for (JSONObject folderInfo : JSONObject.parseArray(infos.getJSONArray("folderList").toJSONString(), JSONObject.class)) {
+			thisData.put("fileId", folderInfo.getString("id"));
+			filesInfo.addAll(getFilesInfoAsPage(thisData));
+		}
+		return filesInfo;
+
 	}
 
 	/**
@@ -108,95 +131,144 @@ public class TianYiYunPan {
 		public static final String fileDownloadUrl = "https://cloud.189.cn/api/open/file/getFileDownloadUrl.action";
 		public static final String listFilesUrl = "https://cloud.189.cn/api/open/file/listFiles.action";
 		public static final String createBatchTaskUrl = "https://cloud.189.cn/api/open/batch/createBatchTask.action";
-		public static final String createShareLinkUrl = "https://cloud.189.cn/api/open/share/createShareLink.action?noCache=0.009576706659646606&fileId=5130319904099345&expireTime=1&shareType=3";
+		public static final String createShareLinkUrl = "https://cloud.189.cn/api/open/share/createShareLink.action";
+		public static final String cancelShareUrl = "https://cloud.189.cn/api/portal/cancelShare.action";
+		public static final String listSharesUrl = "https://cloud.189.cn/api/portal/listShares.action?";
 
+		public Connection conn;
 		public Map<String, String> cookies;
 
 		protected TianYiYunPanAPI(@NotNull Map<String, String> cookies) {
 			this.cookies = cookies;
+			conn = HttpsUtil.connect(listSharesUrl).headers(headers).cookies(cookies);
+		}
+
+		/**
+		 * 获取分享页面所有文件信息
+		 *
+		 * @return List - JSON类型数据,包含了文件的所有信息
+		 */
+		@Contract(pure = true) public List<JSONObject> listShares() {
+			Map<String, String> data = new HashMap<>();
+			data.put("pageNum", "1");
+			data.put("pageSize", "1");
+			data.put("shareType", "1");
+			data.put("pageSize", JSONObject.parseObject(conn.url(listSharesUrl).data(data).execute().body()).getString("recordCount"));
+			return JSONObject.parseArray(
+					JSONObject.parseObject(HttpsUtil.connect(listSharesUrl).data(data).execute().body()).getJSONArray("data").toJSONString(), JSONObject.class);
+		}
+
+		/**
+		 * 取消分享文件
+		 *
+		 * @param shareId 分享ID,可指定多个
+		 * @return 返回的响应结果状态码
+		 */
+		@Contract(pure = true) public int cancelShare(@NotNull String... shareId) {
+			return cancelShare(Arrays.asList(shareId));
+		}
+
+		/**
+		 * 取消分享文件
+		 *
+		 * @param shareIdList 分享ID列表
+		 * @return 返回的响应结果状态码
+		 */
+		@Contract(pure = true) public int cancelShare(@NotNull List<String> shareIdList) {
+			return JSONObject.parseObject(
+							conn.url(cancelShareUrl).requestBody("shareIdList=" + String.join(",", shareIdList) + "cancelType=" + 1).execute().body())
+					.getInteger("res_code");
+		}
+
+		/**
+		 * 自定义分享文件
+		 *
+		 * @param fileId 待分享的文件ID
+		 * @param time   分享的时间(例: 1为1天), 永久为2099
+		 * @param type   分享类型: 2-公开,3 - 私密,other - 社交
+		 * @return 响应结果
+		 */
+		@Contract(pure = true) public String createShareLink(@NotNull String fileId, int time, int type) {
+			return conn.url(createShareLinkUrl).requestBody("fileId=" + fileId + "expireTime=" + type + "&shareType=" + type).execute().body();
 		}
 
 		/**
 		 * 根据配置删除多个文件或文件夹到指定文件夹
 		 *
-		 * @param filesInfo 指定的多个文件或文件夹,Map ( 文件名 ( 文件信息 )) 确保文件信息里存在fileId选项
+		 * @param filesInfo 指定的多个文件或文件夹,JSON类型数据,需包含"name"和"id"选项
 		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
 		 */
-		@Contract(pure = true) public int delete(@NotNull Map<String, Map<String, String>> filesInfo) {
+		@Contract(pure = true) public int delete(@NotNull List<JSONObject> filesInfo) {
 			return batchTask("DELETE", filesInfo, "");
 		}
 
 		/**
 		 * 删除单个个文件或文件夹到指定文件夹
 		 *
-		 * @param fileName 文件名
-		 * @param fileId   文件ID
+		 * @param fileInfo 文指定的文件或文件夹,JSON类型数据,需包含"name"和"id"选项
 		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
 		 */
-		@Contract(pure = true) public int delete(@NotNull String fileName, @NotNull String fileId) {
-			return batchTask("DELETE", fileName, fileId, "");
+		@Contract(pure = true) public int delete(@NotNull JSONObject fileInfo) {
+			return batchTask("DELETE", fileInfo, "");
 		}
 
 		/**
 		 * 根据配置复制多个文件或文件夹到指定文件夹
 		 *
-		 * @param filesInfo 指定的多个文件或文件夹,Map ( 文件名 ( 文件信息 )) 确保文件信息里存在fileId选项
+		 * @param filesInfo 指定的多个文件或文件夹,JSON类型数据,需包含"name"和"id"选项
 		 * @param folderId  目标文件夹ID
 		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
 		 */
-		@Contract(pure = true) public int copy(@NotNull Map<String, Map<String, String>> filesInfo, @NotNull String folderId) {
+		@Contract(pure = true) public int copy(@NotNull List<JSONObject> filesInfo, @NotNull String folderId) {
 			return batchTask("COPY", filesInfo, folderId);
 		}
 
 		/**
 		 * 复制单个文件或文件夹到指定文件夹
 		 *
-		 * @param fileName 文件名
-		 * @param fileId   文件ID
+		 * @param fileInfo 指定的文件或文件夹,JSON类型数据,需包含"name"和"id"选项
 		 * @param folderId 目标文件夹ID
 		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
 		 */
-		@Contract(pure = true) public int copy(@NotNull String fileName, @NotNull String fileId, @NotNull String folderId) {
-			return batchTask("COPY", fileName, fileId, folderId);
+		@Contract(pure = true) public int copy(@NotNull JSONObject fileInfo, @NotNull String folderId) {
+			return batchTask("COPY", fileInfo, folderId);
 		}
 
 		/**
 		 * 根据配置移动多个文件或文件夹到指定文件夹
 		 *
-		 * @param filesInfo 指定的多个文件或文件夹,Map ( 文件名 ( 文件信息 )) 确保文件信息里存在fileId选项
+		 * @param filesInfo 指定的多个文件或文件夹,JSON类型数据,需包含"name"和"id"选项
 		 * @param folderId  目标文件夹ID
 		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
 		 */
-		@Contract(pure = true) public int move(@NotNull Map<String, Map<String, String>> filesInfo, @NotNull String folderId) {
+		@Contract(pure = true) public int move(@NotNull List<JSONObject> filesInfo, @NotNull String folderId) {
 			return batchTask("MOVE", filesInfo, folderId);
 		}
 
 		/**
 		 * 移动单个文件或文件夹到指定文件夹
 		 *
-		 * @param fileName 文件名
-		 * @param fileId   文件ID
+		 * @param fileInfo 指定的文件或文件夹,JSON类型数据,需包含"name"和"id"选项
 		 * @param folderId 目标文件夹ID
 		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
 		 */
-		@Contract(pure = true) public int move(@NotNull String fileName, @NotNull String fileId, @NotNull String folderId) {
-			return batchTask("MOVE", fileName, fileId, folderId);
+		@Contract(pure = true) public int move(@NotNull JSONObject fileInfo, @NotNull String folderId) {
+			return batchTask("MOVE", fileInfo, folderId);
 		}
 
 		/**
 		 * 对多个文件或文件夹执行批处理脚本操作,用于文件移动,删除,复制等
 		 *
 		 * @param type      操作类型
-		 * @param filesInfo 指定的多个文件或文件夹,Map ( 文件名 ( 文件信息 )) 确保文件信息里存在fileId选项
-		 * @param folderId  目标文件夹ID,注意如果当前操作(如删除)没有关联文件夹,指定空字符串
+		 * @param filesInfo 指定的多个文件或文件夹,JSON类型数据,需包含"name"和"id"选项
 		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
 		 */
-		@Contract(pure = true) public int batchTask(@NotNull String type, @NotNull Map<String, Map<String, String>> filesInfo, @NotNull String folderId) {
+		@Contract(pure = true) public int batchTask(@NotNull String type, @NotNull List<JSONObject> filesInfo, @NotNull String folderId) {
 			JSONArray taskInfos = new JSONArray();
-			for (Map.Entry<String, Map<String, String>> info : filesInfo.entrySet()) {
+			for (JSONObject fileInfo : filesInfo) {
 				JSONObject taskInfo = new JSONObject();
-				taskInfo.put("fileName", info.getKey());
-				taskInfo.put("fileId", info.getValue().get("fileId"));
+				taskInfo.put("fileName", fileInfo.getString("name"));
+				taskInfo.put("fileId", fileInfo.getString("id"));
 				taskInfos.add(taskInfo);
 			}
 			return batchTask(type, taskInfos.toJSONString(), folderId);
@@ -206,15 +278,14 @@ public class TianYiYunPan {
 		 * 对单个文件或文件夹执行脚本操作,用于文件移动,删除,复制等
 		 *
 		 * @param type     操作类型
-		 * @param fileName 文件名
-		 * @param fileId   文件ID
+		 * @param fileInfo 指定的文件或文件夹,JSON类型数据,需包含"name"和"id"选项
 		 * @param folderId 目标文件夹ID,注意如果当前操作(如删除)没有关联文件夹,指定空字符串
 		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
 		 */
-		@Contract(pure = true) public int batchTask(@NotNull String type, @NotNull String fileName, @NotNull String fileId, @NotNull String folderId) {
+		@Contract(pure = true) public int batchTask(@NotNull String type, @NotNull JSONObject fileInfo, @NotNull String folderId) {
 			JSONObject taskInfo = new JSONObject();
-			taskInfo.put("fileName", fileName);
-			taskInfo.put("fileId", fileId);
+			taskInfo.put("fileName", fileInfo.getString("name"));
+			taskInfo.put("fileId", fileInfo.getString("id"));
 			JSONArray taskInfos = new JSONArray();
 			taskInfos.add(taskInfo);
 			return batchTask(type, taskInfos.toJSONString(), folderId);
@@ -233,8 +304,7 @@ public class TianYiYunPan {
 			data.put("type", type);
 			data.put("taskInfos", taskInfos);
 			data.put("targetFolderId", folderId);
-			return JSONObject.parseObject(JsoupUtil.connect(createBatchTaskUrl).headers(headers).data(data).cookies(cookies).execute().body())
-					.getInteger("res_code");
+			return JSONObject.parseObject(conn.url(createBatchTaskUrl).data(data).execute().body()).getInteger("res_code");
 		}
 
 		/**
@@ -244,76 +314,55 @@ public class TianYiYunPan {
 		 * @return 用于下载的直链
 		 */
 		@Contract(pure = true) public String getStraight(@NotNull String fileId) {
-			return JSONObject.parseObject(JsoupUtil.connect(fileDownloadUrl).data("fileId", fileId).headers(headers).cookies(cookies).get().text())
-					.getString("fileDownloadUrl");
+			return JSONObject.parseObject(conn.url(fileDownloadUrl).data("fileId", fileId).get().text()).getString("fileDownloadUrl");
 		}
 
 		/**
 		 * 通过文件夹ID获取当前页面所有文件和文件夹信息
 		 *
 		 * @param folderId 文件夹ID
-		 * @return Map < 名称 , Map < String, String > >
+		 * @return List - JSON类型数据,包含了文件的所有信息
 		 */
-		@Contract(pure = true) public Map<String, Map<String, String>> getInfoAsHomeOfFolderId(@NotNull String folderId) {
+		@Contract(pure = true) public List<JSONObject> getInfoAsHomeOfFolderId(@NotNull String folderId) {
 			Map<String, String> data = new HashMap<>();
 			data.put("pageSize", "1");
 			data.put("folderId", folderId);
-			Connection conn = JsoupUtil.connect(listFilesUrl);
-			String urlInfo = conn.headers(headers).data(data).cookies(cookies).get().text();
+			String urlInfo = conn.url(listFilesUrl).data(data).get().text();
 			data.put("pageSize", JSONObject.parseObject(urlInfo).getJSONObject("fileListAO").getString("count"));
-			urlInfo = conn.url(listFilesUrl).data(data).cookies(cookies).get().text();
+			urlInfo = conn.url(listFilesUrl).data(data).get().text();
 			JSONObject fileListAO = JSONObject.parseObject(urlInfo).getJSONObject("fileListAO");
-			JSONArray fileList = fileListAO.getJSONArray("fileList");
-			Map<String, Map<String, String>> filesInfo = new HashMap<>();
-			for (int i = 0; i < fileList.size(); i++) {
-				JSONObject info = fileList.getJSONObject(i);
-				Map<String, String> filInfo = new HashMap<>();
-				filInfo.put("id", info.getString("id"));
-				filInfo.put("md5", info.getString("md5"));
-				filInfo.put("size", info.getString("size"));
-				filInfo.put("isFolder", "0");
-				filesInfo.put(info.getString("name"), filInfo);
-			}
-			JSONArray folderList = fileListAO.getJSONArray("folderList");
-			for (int i = 0; i < folderList.size(); i++) {
-				JSONObject info = folderList.getJSONObject(i);
-				Map<String, String> filInfo = new HashMap<>();
-				filInfo.put("id", info.getString("id"));
-				filInfo.put("parentId", info.getString("parentId"));
-				filInfo.put("isFolder", "1");
-				filesInfo.put(info.getString("name"), filInfo);
-			}
-			return filesInfo;
+			JSONArray filesList = new JSONArray();
+			filesList.addAll(fileListAO.getJSONArray("fileList"));
+			filesList.addAll(fileListAO.getJSONArray("folderList"));
+			return JSONObject.parseArray(filesList.toJSONString(), JSONObject.class);
 		}
 
 		/**
 		 * 通过文件夹ID获取当前页面所有文件信息
 		 *
 		 * @param folderId 文件夹ID
-		 * @return Map < 名称 , Map < String, String > >
+		 * @return List - JSON类型数据,包含了文件的所有信息
 		 */
-		@Contract(pure = true) public Map<String, Map<String, String>> getFilesInfoAsHomeOfFolderId(@NotNull String folderId) {
-			return getInfoAsHomeOfFolderId("-11").entrySet().stream().filter(l -> l.getValue().get("isFolder").equals("0"))
-					.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+		@Contract(pure = true) public List<JSONObject> getFilesInfoAsHomeOfFolderId(@NotNull String folderId) {
+			return getInfoAsHomeOfFolderId("-11").stream().filter(l -> !l.containsKey("fileCount")).collect(Collectors.toList());
 		}
 
 		/**
 		 * 通过文件夹ID获取当前页面所有文件夹信息
 		 *
 		 * @param folderId 文件夹ID
-		 * @return Map < 名称 , Map < String, String > >
+		 * @return List - JSON类型数据,包含了文件的所有信息
 		 */
-		@Contract(pure = true) public Map<String, Map<String, String>> getFoldersInfoAsHomeOfFolderId(@NotNull String folderId) {
-			return getInfoAsHomeOfFolderId("-11").entrySet().stream().filter(l -> l.getValue().get("isFolder").equals("1"))
-					.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+		@Contract(pure = true) public List<JSONObject> getFoldersInfoAsHomeOfFolderId(@NotNull String folderId) {
+			return getInfoAsHomeOfFolderId("-11").stream().filter(l -> l.containsKey("fileCount")).collect(Collectors.toList());
 		}
 
 		/**
 		 * 获取主页面所有文件和文件夹信息
 		 *
-		 * @return Map < 名称 , Map < String, String > >
+		 * @return List - JSON类型数据,包含了文件的所有信息
 		 */
-		@Contract(pure = true) public Map<String, Map<String, String>> getFilesInfoAsHome() {
+		@Contract(pure = true) public List<JSONObject> getFilesInfoAsHome() {
 			return getInfoAsHomeOfFolderId("-11"); // -11 主页
 		}
 
@@ -321,17 +370,15 @@ public class TianYiYunPan {
 		 * 获取指定文件夹下所有文件信息,[-11]为根目录,获取全部文件信息
 		 *
 		 * @param folderId 文件夹ID
-		 * @return Map < 名称 , Map < String, String > >
+		 * @return List - JSON类型数据,包含了文件的所有信息
 		 */
-		@Contract(pure = true) public Map<String, Map<String, String>> getFoldersInfoAsHomeOfAll(@NotNull String folderId) {
-			Map<String, Map<String, String>> filesInfo = getFilesInfoAsHome();
-			for (Map.Entry<String, Map<String, String>> fileInfo : filesInfo.entrySet()) {
-				String name = fileInfo.getKey();
-				Map<String, String> params = fileInfo.getValue();
-				if (params.get("isFile").equals("true")) {
-					filesInfo.put(name, params);
+		@Contract(pure = true) public List<JSONObject> getFilesInfoAsHomeOfAll(@NotNull String folderId) {
+			List<JSONObject> filesInfo = new ArrayList<>();
+			for (JSONObject fileInfo : getInfoAsHomeOfFolderId(folderId)) {
+				if (fileInfo.containsKey("fileCount")) {
+					filesInfo.addAll(Judge.isEmpty(fileInfo.getInteger("fileCount")) ? new ArrayList<>() : getInfoAsHomeOfFolderId(fileInfo.getString("id")));
 				} else {
-					filesInfo.putAll(getFilesInfoAsHomeOfFolderId(params.get("id")));
+					filesInfo.add(fileInfo);
 				}
 			}
 			return filesInfo;
@@ -345,8 +392,8 @@ public class TianYiYunPan {
 		 * @return 文件直链
 		 */
 		@Contract(pure = true) public String getStraightAsNotCode(@NotNull String url) {
-			Map<String, String> info = getshareUrlInfo(url);
-			return JsoupUtil.connect(fileDownloadUrl + "?dt=1&fileId=" + info.get("fileId") + "&shareId=" + info.get("shareId")).cookies(cookies).get().text();
+			JSONObject info = getshareUrlInfo(url);
+			return conn.url(fileDownloadUrl + "?dt=1&fileId=" + info.getString("fileId") + "&shareId=" + info.getString("shareId")).get().text();
 		}
 
 		/**
@@ -368,12 +415,12 @@ public class TianYiYunPan {
 		 */
 		@Contract(pure = true) public Map<String, String> getStraightsAsPage(@NotNull String url, @NotNull String accessCode) {
 			Map<String, String> fileUrls = new HashMap<>();
-			for (ThreeTuple<String, String, String> fileInfo : getFilesInfoAsPage(url, accessCode)) {
+			for (JSONObject fileInfo : getFilesInfoAsPage(url, accessCode)) {
 				Map<String, String> params = new HashMap<>();
 				params.put("dt", "1");
-				params.put("fileId", fileInfo.second);
-				params.put("shareId", fileInfo.third);
-				fileUrls.put(fileInfo.first, JsoupUtil.connect(fileDownloadUrl).data(params).cookies(cookies).get().text());
+				params.put("fileId", fileInfo.getString("fileId"));
+				params.put("shareId", fileInfo.getString("shareId"));
+				fileUrls.put(fileInfo.getString("fileName"), conn.url(fileDownloadUrl).data(params).get().text());
 			}
 			return fileUrls;
 		}
