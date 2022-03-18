@@ -35,8 +35,11 @@ public class HtmlUnitUtil {
 	}
 
 	/**
-	 * 公共静态连接连接（ 字符串 网址）<br/>
+	 * 公共静态连接连接（ 字符串 网址）
+	 * <p>
 	 * 使用定义的请求 URL 创建一个新的Connection （会话），用于获取和解析 HTML 页面
+	 * <p>
+	 * 需要注意方法会构造一个新的WebClient,用于链接,由于启动缓慢,不会再执行后关闭,在所有请求完成后使用close()关闭WebClient
 	 *
 	 * @param url 要连接的 URL
 	 * @return 此连接，用于链接
@@ -247,7 +250,7 @@ public class HtmlUnitUtil {
 		 * 启用/禁用 CSS 支持。默认情况下，禁用此属性。如果禁用 HtmlUnit 将不会下载链接的 css 文件，也不会触发相关的 onload/onerror 事件
 		 *
 		 * @param enableCSS true启用 CSS 支持
-		 * @return this
+		 * @return 此链接, 用于链接
 		 */
 		@Contract(pure = true) public Connection enableCSS(boolean enableCSS) {
 			webClient.getOptions().setCssEnabled(enableCSS);
@@ -257,6 +260,11 @@ public class HtmlUnitUtil {
 		@Contract(pure = true) public Connection waitJSTime(int millis) {
 			webClient.getOptions().setJavaScriptEnabled(!Judge.isEmpty(millis)); // 是否启用JS
 			waitJSTime = millis;
+			return this;
+		}
+
+		@Contract(pure = true) public Connection close() {
+			webClient.close(); // 设置连接超时时间
 			return this;
 		}
 
@@ -620,7 +628,7 @@ public class HtmlUnitUtil {
 		 *
 		 * @param retry  重试次数
 		 * @param millis 重试等待时间(毫秒)
-		 * @return this
+		 * @return 此链接, 用于链接
 		 */
 		@Contract(pure = true) public abstract Connection retry(int retry, int millis);
 
@@ -670,7 +678,7 @@ public class HtmlUnitUtil {
 		 * 启用/禁用 CSS 支持。默认情况下，禁用此属性。如果禁用 HtmlUnit 将不会下载链接的 css 文件，也不会触发相关的 onload/onerror 事件
 		 *
 		 * @param enableCSS true启用 CSS 支持
-		 * @return this
+		 * @return 此链接, 用于链接
 		 */
 		@Contract(pure = true) public abstract Connection enableCSS(boolean enableCSS);
 
@@ -678,9 +686,17 @@ public class HtmlUnitUtil {
 		 * 设置 JavaScript 最大运行时间,默认1000毫秒.值为0则不加载JS
 		 *
 		 * @param millis JS超时时间(毫秒)
-		 * @return this
+		 * @return 此链接, 用于链接
 		 */
 		@Contract(pure = true) public abstract Connection waitJSTime(int millis);
+
+		/**
+		 * 关闭WebClient客户端
+		 *
+		 * @return 此链接, 用于链接
+		 */
+
+		@Contract(pure = true) public abstract Connection close();
 
 		/**
 		 * 将请求作为 GET 执行，并解析结果
