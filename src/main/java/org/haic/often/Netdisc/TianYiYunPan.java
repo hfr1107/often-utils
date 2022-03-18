@@ -120,7 +120,6 @@ public class TianYiYunPan {
 			filesInfo.addAll(getFilesInfoAsPage(thisData));
 		}
 		return filesInfo;
-
 	}
 
 	/**
@@ -541,6 +540,15 @@ public class TianYiYunPan {
 		public static final String loginSubmitUrl = "https://open.e.189.cn/api/logbox/oauth2/loginSubmit.do";
 		public static final String encryptConfUrl = "https://open.e.189.cn/api/logbox/config/encryptConf.do";
 
+		/**
+		 * 通过账号密码登录获得用户cookies
+		 * <p>
+		 * js逆向方法,直接通过api获取登陆cookie
+		 *
+		 * @param userName 用户名
+		 * @param password 密码
+		 * @return 此链接, 用于API操作
+		 */
 		@Contract(pure = true) public static Map<String, String> login(@NotNull String userName, @NotNull String password) {
 			Connection conn = JsoupUtil.connect(encryptConfUrl);
 			JSONObject encryptConfData = JSONObject.parseObject(JSONObject.parseObject(conn.get().text()).getString("data"));
