@@ -104,7 +104,7 @@ public class TianYiYunPan {
 	 *             <p>
 	 *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"shareMode"
 	 *             <p>
-	 *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "accessCode"
+	 *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"accessCode"
 	 * @return List - JSON数据类型,包含文件所有信息
 	 */
 	@Contract(pure = true) public static List<JSONObject> getFilesInfoAsPage(@NotNull Map<String, String> data) {
@@ -134,6 +134,10 @@ public class TianYiYunPan {
 		public static final String createShareLinkUrl = "https://cloud.189.cn/api/open/share/createShareLink.action";
 		public static final String cancelShareUrl = "https://cloud.189.cn/api/portal/cancelShare.action";
 		public static final String listSharesUrl = "https://cloud.189.cn/api/portal/listShares.action?";
+		public static final String renameFileUrl = "https://cloud.189.cn/api/open/file/renameFile.action";
+		public static final String renameFolderUrl = "https://cloud.189.cn/api/open/file/renameFolder.action";
+		public static final String createFolderUrl = "https://cloud.189.cn/api/open/file/createFolder.action";
+		public static final String listRecycleBinFilesUrl = "https://cloud.189.cn/api/open/file/listRecycleBinFiles.action";
 
 		public Connection conn;
 		public Map<String, String> cookies;
@@ -154,8 +158,8 @@ public class TianYiYunPan {
 			data.put("pageSize", "1");
 			data.put("shareType", "1");
 			data.put("pageSize", JSONObject.parseObject(conn.url(listSharesUrl).data(data).execute().body()).getString("recordCount"));
-			return JSONObject.parseArray(
-					JSONObject.parseObject(HttpsUtil.connect(listSharesUrl).data(data).execute().body()).getJSONArray("data").toJSONString(), JSONObject.class);
+			return JSONObject.parseArray(JSONObject.parseObject(conn.url(listSharesUrl).data(data).execute().body()).getJSONArray("data").toJSONString(),
+					JSONObject.class);
 		}
 
 		/**
@@ -176,7 +180,7 @@ public class TianYiYunPan {
 		 */
 		@Contract(pure = true) public int cancelShare(@NotNull List<String> shareIdList) {
 			return JSONObject.parseObject(
-							conn.url(cancelShareUrl).requestBody("shareIdList=" + String.join(",", shareIdList) + "cancelType=" + 1).execute().body())
+							conn.url(cancelShareUrl).requestBody("shareIdList=" + String.join(",", shareIdList) + "&cancelType=" + 1).execute().body())
 					.getInteger("res_code");
 		}
 
@@ -189,14 +193,115 @@ public class TianYiYunPan {
 		 * @return 响应结果
 		 */
 		@Contract(pure = true) public String createShareLink(@NotNull String fileId, int time, int type) {
-			return conn.url(createShareLinkUrl).requestBody("fileId=" + fileId + "expireTime=" + type + "&shareType=" + type).execute().body();
+			return conn.url(createShareLinkUrl).requestBody("fileId=" + fileId + "&expireTime=" + type + "&shareType=" + type).execute().body();
+		}
+
+		/**
+		 * 获取回收站的文件列表
+		 *
+		 * @return List - JSON类型数据,包含了文件的所有信息
+		 */
+		@Contract(pure = true) public List<JSONObject> listRecycleBinFiles() {
+			Map<String, String> data = new HashMap<>();
+			data.put("pageNum", "1");
+			data.put("pageSize", "1");
+			data.put("iconOption", "1");
+			data.put("family", "false");
+			data.put("pageSize", JSONObject.parseObject(conn.url(listSharesUrl).data(data).execute().body()).getString("recordCount"));
+			return JSONObject.parseArray(JSONObject.parseObject(conn.url(listSharesUrl).data(data).execute().body()).getJSONArray("data").toJSONString(),
+					JSONObject.class);
+		}
+
+		/**
+		 * 还原多个回收站的文件或文件夹
+		 *
+		 * @param fileInfo 指定的文件或文件夹,JSON类型数据,需包含"name"和"id"选项
+		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 */
+		@Contract(pure = true) public int restore(@NotNull JSONObject fileInfo) {
+			return batchTask("RESTORE", fileInfo, "");
+		}
+
+		/**
+		 * 还原回收站的文件或文件夹
+		 *
+		 * @param filesInfo 指定的多个文件或文件夹,JSON类型数据,需包含"name"和"id"选项
+		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 */
+		@Contract(pure = true) public int restore(@NotNull List<JSONObject> filesInfo) {
+			return batchTask("RESTORE", filesInfo, "");
+		}
+
+		/**
+		 * 清空回收站
+		 *
+		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
+		 */
+		@Contract(pure = true) public int emptyRecycle() {
+			return batchTask("EMPTY_RECYCLE", "[]", "");
+		}
+
+		/**
+		 * 删除多个回收站的文件或文件夹
+		 *
+		 * @param fileInfo 指定的文件或文件夹,JSON类型数据,需包含"name"和"id"选项
+		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
+		 */
+		@Contract(pure = true) public int clearRecycle(@NotNull JSONObject fileInfo) {
+			return batchTask("CLEAR_RECYCLE", fileInfo, "");
+		}
+
+		/**
+		 * 删除回收站的文件或文件夹
+		 *
+		 * @param filesInfo 指定的多个文件或文件夹,JSON类型数据,需包含"name"和"id"选项
+		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
+		 */
+		@Contract(pure = true) public int clearRecycle(@NotNull List<JSONObject> filesInfo) {
+			return batchTask("CLEAR_RECYCLE", filesInfo, "");
+		}
+
+		/**
+		 * 重命名文件夹名称
+		 *
+		 * @param folderId   文件夹ID
+		 * @param folderName 重命名后的文件夹名称
+		 * @return 返回的响应结果状态码
+		 */
+		@Contract(pure = true) public int renameFolder(@NotNull String folderId, String folderName) {
+			return JSONObject.parseObject(conn.url(renameFileUrl).requestBody("folderId=" + folderId + "&destFolderName=" + folderName).execute().body())
+					.getInteger("res_code");
+		}
+
+		/**
+		 * 重命名文件名称
+		 *
+		 * @param fileId   文件ID
+		 * @param fileName 重命名后的文件名称
+		 * @return 返回的响应结果状态码
+		 */
+		@Contract(pure = true) public int renameFile(@NotNull String fileId, String fileName) {
+			return JSONObject.parseObject(conn.url(renameFileUrl).requestBody("fileId=" + fileId + "&destFileName=" + fileName).execute().body())
+					.getInteger("res_code");
+		}
+
+		/**
+		 * 创建文件夹
+		 *
+		 * @param folderId   文件夹ID
+		 * @param folderName 文件夹名称
+		 * @return 返回的响应结果状态码
+		 */
+		@Contract(pure = true) public int createFolder(@NotNull String folderId, String folderName) {
+			return JSONObject.parseObject(conn.url(renameFileUrl).requestBody("parentFolderId=" + folderId + "&folderName=" + folderName).execute().body())
+					.getInteger("res_code");
 		}
 
 		/**
 		 * 根据配置删除多个文件或文件夹到指定文件夹
 		 *
 		 * @param filesInfo 指定的多个文件或文件夹,JSON类型数据,需包含"name"和"id"选项
-		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
 		 */
 		@Contract(pure = true) public int delete(@NotNull List<JSONObject> filesInfo) {
 			return batchTask("DELETE", filesInfo, "");
@@ -206,7 +311,7 @@ public class TianYiYunPan {
 		 * 删除单个个文件或文件夹到指定文件夹
 		 *
 		 * @param fileInfo 文指定的文件或文件夹,JSON类型数据,需包含"name"和"id"选项
-		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
 		 */
 		@Contract(pure = true) public int delete(@NotNull JSONObject fileInfo) {
 			return batchTask("DELETE", fileInfo, "");
@@ -217,7 +322,7 @@ public class TianYiYunPan {
 		 *
 		 * @param filesInfo 指定的多个文件或文件夹,JSON类型数据,需包含"name"和"id"选项
 		 * @param folderId  目标文件夹ID
-		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
 		 */
 		@Contract(pure = true) public int copy(@NotNull List<JSONObject> filesInfo, @NotNull String folderId) {
 			return batchTask("COPY", filesInfo, folderId);
@@ -228,7 +333,7 @@ public class TianYiYunPan {
 		 *
 		 * @param fileInfo 指定的文件或文件夹,JSON类型数据,需包含"name"和"id"选项
 		 * @param folderId 目标文件夹ID
-		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
 		 */
 		@Contract(pure = true) public int copy(@NotNull JSONObject fileInfo, @NotNull String folderId) {
 			return batchTask("COPY", fileInfo, folderId);
@@ -239,7 +344,7 @@ public class TianYiYunPan {
 		 *
 		 * @param filesInfo 指定的多个文件或文件夹,JSON类型数据,需包含"name"和"id"选项
 		 * @param folderId  目标文件夹ID
-		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
 		 */
 		@Contract(pure = true) public int move(@NotNull List<JSONObject> filesInfo, @NotNull String folderId) {
 			return batchTask("MOVE", filesInfo, folderId);
@@ -250,7 +355,7 @@ public class TianYiYunPan {
 		 *
 		 * @param fileInfo 指定的文件或文件夹,JSON类型数据,需包含"name"和"id"选项
 		 * @param folderId 目标文件夹ID
-		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
 		 */
 		@Contract(pure = true) public int move(@NotNull JSONObject fileInfo, @NotNull String folderId) {
 			return batchTask("MOVE", fileInfo, folderId);
@@ -261,7 +366,7 @@ public class TianYiYunPan {
 		 *
 		 * @param type      操作类型
 		 * @param filesInfo 指定的多个文件或文件夹,JSON类型数据,需包含"name"和"id"选项
-		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
 		 */
 		@Contract(pure = true) public int batchTask(@NotNull String type, @NotNull List<JSONObject> filesInfo, @NotNull String folderId) {
 			JSONArray taskInfos = new JSONArray();
@@ -280,7 +385,7 @@ public class TianYiYunPan {
 		 * @param type     操作类型
 		 * @param fileInfo 指定的文件或文件夹,JSON类型数据,需包含"name"和"id"选项
 		 * @param folderId 目标文件夹ID,注意如果当前操作(如删除)没有关联文件夹,指定空字符串
-		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
 		 */
 		@Contract(pure = true) public int batchTask(@NotNull String type, @NotNull JSONObject fileInfo, @NotNull String folderId) {
 			JSONObject taskInfo = new JSONObject();
@@ -297,7 +402,7 @@ public class TianYiYunPan {
 		 * @param type      操作类型
 		 * @param taskInfos 自定义待执行的Json数据(json数组,每个元素应包含fileName和fileId选项)
 		 * @param folderId  目标文件夹ID,注意如果当前操作(如删除)没有关联文件夹,指定空字符串
-		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
 		 */
 		@Contract(pure = true) public int batchTask(@NotNull String type, @NotNull String taskInfos, @NotNull String folderId) {
 			Map<String, String> data = new HashMap<>();
@@ -510,23 +615,28 @@ public class TianYiYunPan {
 			for (char value : a) {
 				if (value != '=') {
 					int v = b64map.indexOf(value);
-					if (e == 0) {
+					switch (e) {
+					case 0 -> {
 						e = 1;
 						d.append(int2char(v >> 2));
 						c = 3 & v;
-					} else if (e == 1) {
+					}
+					case 1 -> {
 						e = 2;
 						d.append(int2char(c << 2 | v >> 4));
 						c = 15 & v;
-					} else if (e == 2) {
+					}
+					case 2 -> {
 						e = 3;
 						d.append(int2char(c));
 						d.append(int2char(v >> 2));
 						c = 3 & v;
-					} else {
+					}
+					default -> {
 						e = 0;
 						d.append(int2char(c << 2 | v >> 4));
 						d.append(int2char(15 & v));
+					}
 					}
 				}
 			}
