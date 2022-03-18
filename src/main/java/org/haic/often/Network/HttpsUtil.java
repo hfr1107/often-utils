@@ -68,6 +68,7 @@ public class HttpsUtil {
 		protected SSLSocketFactory sslSocketFactory;
 
 		protected HttpConnection(@NotNull String url) {
+			System.setProperty("http.keepAlive", "false"); // 关闭长连接复用,防止流阻塞
 			this.url = url;
 			sslSocketFactory = IgnoreSSLSocket.MyX509TrustManager().getSocketFactory();
 			header("accept", "text/html, application/xhtml+xml, application/json;q=0.9, */*;q=0.8");
@@ -268,8 +269,8 @@ public class HttpsUtil {
 		 * @return this
 		 */
 		@Contract(pure = true) protected Response executeProgram(@NotNull String url) {
+			HttpURLConnection conn = null;
 			try {
-				HttpURLConnection conn = null;
 				switch (method) {
 				case GET -> conn = connection(Judge.isEmpty(params) ? url : url + (url.contains("?") ? "&" : "?") + params);
 				case OPTIONS, DELETE, HEAD, TRACE -> conn = connection(url);
@@ -290,10 +291,12 @@ public class HttpsUtil {
 						}
 						output.flush(); // flush输出流的缓冲
 					} catch (IOException e) {
+						conn.disconnect();
 						return null;
 					}
 				}
 				}
+				conn.disconnect();
 				Response response = new HttpResponse(conn);
 				cookies.putAll(response.cookies()); // 维护cookies
 
@@ -316,6 +319,7 @@ public class HttpsUtil {
 		 */
 		protected HttpURLConnection connection(@NotNull String url) throws IOException {
 			HttpURLConnection conn = (HttpURLConnection) URIUtils.getURL(url).openConnection(proxy);
+			conn.setRequestProperty("connection", "close");
 			conn.setRequestMethod(method.name()); // 请求方法
 			conn.setReadTimeout(timeout); // 设置超时
 			conn.setInstanceFollowRedirects(followRedirects); // 重定向,http和https之间无法遵守重定向
@@ -336,6 +340,7 @@ public class HttpsUtil {
 
 			return conn;
 		}
+
 	}
 
 	/**
