@@ -260,6 +260,7 @@ public class HtmlUnitUtil {
 
 		@Contract(pure = true) public Connection waitJSTime(int millis) {
 			webClient.getOptions().setJavaScriptEnabled(!Judge.isEmpty(millis)); // 是否启用JS
+			webClient.setJavaScriptTimeout(waitJSTime);
 			waitJSTime = millis;
 			return this;
 		}
@@ -311,14 +312,14 @@ public class HtmlUnitUtil {
 
 		@Contract(pure = true) protected Response executeProgram(@NotNull WebRequest request) {
 			Response response;
-
 			try { // 获得页面
 				response = new HttpResponse(webClient.getPage(request));
 			} catch (IOException e) {
 				return null;
 			}
-			webClient.waitForBackgroundJavaScriptStartingBefore(waitJSTime); // 设置JS超时时间
-			cookies.putAll(response.cookies());
+			webClient.waitForBackgroundJavaScript(waitJSTime); // 阻塞并执行JS
+			cookies.putAll(response.cookies()); // 维护cookies
+
 			return response;
 		}
 	}
@@ -395,13 +396,7 @@ public class HtmlUnitUtil {
 		}
 
 		@Contract(pure = true) public String body() {
-			String result;
-			try (InputStream in = bodyStream()) {
-				result = StreamUtils.stream(in).charset(charset).getString();
-			} catch (IOException e) {
-				return null;
-			}
-			return result;
+			return isHtmlPage() ? ((HtmlPage) page).asXml() : page.getWebResponse().getContentAsString(charset);
 		}
 
 		@Contract(pure = true) public InputStream bodyStream() throws IOException {
