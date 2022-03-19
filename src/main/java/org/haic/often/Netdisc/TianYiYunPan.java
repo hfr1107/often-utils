@@ -16,6 +16,7 @@ import java.security.KeyFactory;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -613,6 +614,7 @@ public class TianYiYunPan {
 
 		protected static String b64tohex(String data) {
 			char[] a = data.toCharArray();
+			Function<Integer, Character> intTochar = i -> "0123456789abcdefghijklmnopqrstuvwxyz".toCharArray()[i];
 			String b64map = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 			StringBuilder d = new StringBuilder();
 			int e = 0, c = 0;
@@ -622,35 +624,31 @@ public class TianYiYunPan {
 					switch (e) {
 					case 0 -> {
 						e = 1;
-						d.append(int2char(v >> 2));
+						d.append(intTochar.apply(v >> 2));
 						c = 3 & v;
 					}
 					case 1 -> {
 						e = 2;
-						d.append(int2char(c << 2 | v >> 4));
+						d.append(intTochar.apply(c << 2 | v >> 4));
 						c = 15 & v;
 					}
 					case 2 -> {
 						e = 3;
-						d.append(int2char(c));
-						d.append(int2char(v >> 2));
+						d.append(intTochar.apply(c));
+						d.append(intTochar.apply(v >> 2));
 						c = 3 & v;
 					}
 					default -> {
 						e = 0;
-						d.append(int2char(c << 2 | v >> 4));
-						d.append(int2char(15 & v));
+						d.append(intTochar.apply(c << 2 | v >> 4));
+						d.append(intTochar.apply(15 & v));
 					}
 					}
 				}
 			}
-
-			return e == 1 ? String.valueOf(d) + int2char(c << 2) : d.toString();
+			return e == 1 ? String.valueOf(d) + intTochar.apply(c << 2) : String.valueOf(d);
 		}
 
-		protected static char int2char(int index) {
-			return "0123456789abcdefghijklmnopqrstuvwxyz".toCharArray()[index];
-		}
 	}
 
 }

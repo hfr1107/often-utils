@@ -568,14 +568,11 @@ public class NetworkFileUtil {
 			if (unlimitedRetry) {
 				return method(NetworkFileUtil.Method.FILE).download(folder);
 			}
+			String errorText = "File verification is not accurate, URLFile md5:" + hash + " LocalFile md5: " + md5 + " URL: " + url;
 			if (errorExit) {
-				throw new RuntimeException("File verification is not accurate, URLFile md5:" + hash + " LocalFile md5: " + md5 + " URL: " + url);
+				throw new RuntimeException(errorText);
 			} else {
-				try {
-					throw new RuntimeException("File verification is not accurate, URLFile md5:" + hash + " LocalFile md5: " + md5 + " URL: " + url);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+				System.err.println(errorText);
 			}
 			return HttpStatus.SC_REQUEST_TIMEOUT;
 		}
