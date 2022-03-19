@@ -240,13 +240,11 @@ public class JsoupUtil {
 		}
 
 		@Contract(pure = true) public Document get() {
-			Response response = method(Method.GET).execute();
-			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body(), parser) : null;
+			return method(Method.GET).execute().parse();
 		}
 
 		@Contract(pure = true) public Document post() {
-			Response response = method(Method.POST).execute();
-			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body(), parser) : null;
+			return method(Method.POST).execute().parse();
 		}
 
 		@Contract(pure = true) public Response execute() {
@@ -270,7 +268,7 @@ public class JsoupUtil {
 			} catch (IOException e) {
 				return null;
 			}
-			return new HttpResponse(response);
+			return new HttpResponse(this, response);
 		}
 	}
 
@@ -282,10 +280,13 @@ public class JsoupUtil {
 	 * @since 2022/3/16 10:28
 	 */
 	protected static class HttpResponse extends Response {
+
+		protected HttpConnection conn;
 		protected org.jsoup.Connection.Response response;
 		protected Charset charset = StandardCharsets.UTF_8;
 
-		protected HttpResponse(org.jsoup.Connection.Response response) {
+		protected HttpResponse(HttpConnection conn, org.jsoup.Connection.Response response) {
+			this.conn = conn;
 			this.response = response;
 		}
 
@@ -297,12 +298,26 @@ public class JsoupUtil {
 			return Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.statusCode();
 		}
 
+		@Contract(pure = true) public String statusMessage() {
+			return response.statusMessage();
+		}
+
 		@Contract(pure = true) public String header(@NotNull String name) {
 			return response.header(name);
 		}
 
 		@Contract(pure = true) public Map<String, String> headers() {
 			return response.headers().entrySet().stream().collect(Collectors.toMap(l -> l.getKey().toLowerCase(), Map.Entry::getValue));
+		}
+
+		@Contract(pure = true) public Response header(@NotNull String key, @NotNull String value) {
+			response.header(key, value);
+			return this;
+		}
+
+		@Contract(pure = true) public Response removeHeader(@NotNull String key) {
+			response.removeHeader(key);
+			return this;
 		}
 
 		@Contract(pure = true) public String cookie(@NotNull String name) {
@@ -313,6 +328,16 @@ public class JsoupUtil {
 			return response.cookies();
 		}
 
+		@Contract(pure = true) public Response cookie(@NotNull String name, @NotNull String value) {
+			response.cookie(name, value);
+			return this;
+		}
+
+		@Contract(pure = true) public Response removeCookie(@NotNull String name) {
+			response.removeCookie(name);
+			return this;
+		}
+
 		@Contract(pure = true) public Response charset(@NotNull String charsetName) {
 			return charset(Charset.forName(charsetName));
 		}
@@ -320,6 +345,14 @@ public class JsoupUtil {
 		@Contract(pure = true) public Response charset(@NotNull Charset charset) {
 			this.charset = charset;
 			return charset(charset.name());
+		}
+
+		@Contract(pure = true) public String contentType() {
+			return response.contentType();
+		}
+
+		@Contract(pure = true) public Document parse() {
+			return URIUtils.statusIsNormal(statusCode()) ? Jsoup.parse(body(), conn.parser) : null;
 		}
 
 		@Contract(pure = true) public String body() {
@@ -339,6 +372,11 @@ public class JsoupUtil {
 
 		@Contract(pure = true) public byte[] bodyAsBytes() {
 			return response.bodyAsBytes();
+		}
+
+		@Contract(pure = true) public Response method(@NotNull Method method) {
+			conn.method(method);
+			return this;
 		}
 
 	}

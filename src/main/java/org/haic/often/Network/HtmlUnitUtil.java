@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.parser.Parser;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -77,6 +78,7 @@ public class HtmlUnitUtil {
 		protected int retry; // 请求异常重试次数
 		protected int MILLISECONDS_SLEEP; // 重试等待时间
 
+		protected Parser parser = Parser.htmlParser();
 		protected Map<String, String> cookies = new HashMap<>(); // cookes
 		protected List<Integer> retryStatusCodes = new ArrayList<>();
 
@@ -120,6 +122,11 @@ public class HtmlUnitUtil {
 
 		@Contract(pure = true) public Connection timeout(int millis) {
 			webClient.getOptions().setTimeout(millis); // 设置连接超时时间
+			return this;
+		}
+
+		@Contract(pure = true) public Connection parser(@NotNull Parser parser) {
+			this.parser = parser;
 			return this;
 		}
 
@@ -271,25 +278,21 @@ public class HtmlUnitUtil {
 		}
 
 		/**
-		 * 将请求作为 POST 执行，并解析结果
-		 *
-		 * @return HTML文档
-		 */
-		@Contract(pure = true) public Document post() {
-			method(Method.POST);
-			Response response = execute();
-			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body()) : null;
-		}
-
-		/**
 		 * 将请求作为 GET 执行，并解析结果
 		 *
 		 * @return HTML文档
 		 */
 		@Contract(pure = true) public Document get() {
-			method(Method.GET);
-			Response response = execute();
-			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body()) : null;
+			return method(Method.GET).execute().parse();
+		}
+
+		/**
+		 * 将请求作为 POST 执行，并解析结果
+		 *
+		 * @return HTML文档
+		 */
+		@Contract(pure = true) public Document post() {
+			return method(Method.POST).execute().parse();
 		}
 
 		@Contract(pure = true) public Response execute() {
@@ -313,7 +316,7 @@ public class HtmlUnitUtil {
 		@Contract(pure = true) protected Response executeProgram(@NotNull WebRequest request) {
 			Response response;
 			try { // 获得页面
-				response = new HttpResponse(webClient.getPage(request));
+				response = new HttpResponse(this, webClient.getPage(request));
 			} catch (IOException e) {
 				return null;
 			}
@@ -325,10 +328,13 @@ public class HtmlUnitUtil {
 	}
 
 	protected static class HttpResponse extends Response {
+
+		protected HttpConnection conn;
 		protected Page page; // Page对象
 		protected Charset charset = StandardCharsets.UTF_8;
 
-		protected HttpResponse(Page page) {
+		protected HttpResponse(HttpConnection conn, Page page) {
+			this.conn = conn;
 			this.page = page;
 		}
 
@@ -344,22 +350,16 @@ public class HtmlUnitUtil {
 			return Judge.isNull(page) ? HttpStatus.SC_REQUEST_TIMEOUT : page.getWebResponse().getStatusCode();
 		}
 
+		@Contract(pure = true) public String statusMessage() {
+			return page.getWebResponse().getStatusMessage();
+		}
+
 		@Contract(pure = true) public boolean isHtmlPage() {
 			return page.isHtmlPage();
 		}
 
 		@Contract(pure = true) public HtmlPage getHtmlPage() {
 			return isHtmlPage() ? (HtmlPage) page : null;
-		}
-
-		@Contract(pure = true) public String cookie(@NotNull String name) {
-			return cookies().get(name);
-		}
-
-		@Contract(pure = true) public Map<String, String> cookies() {
-			return page.getWebResponse().getResponseHeaders().stream().filter(l -> l.getName().equalsIgnoreCase("set-cookie"))
-					.map(l -> l.getValue().substring(0, l.getValue().indexOf(";")))
-					.collect(Collectors.toMap(l -> l.substring(0, l.indexOf("=")), l -> l.substring(l.indexOf("=") + 1), (e1, e2) -> e2));
 		}
 
 		@Contract(pure = true) public String header(@NotNull String name) {
@@ -386,6 +386,36 @@ public class HtmlUnitUtil {
 			return headers;
 		}
 
+		@Contract(pure = true) public Response header(@NotNull String key, @NotNull String value) {
+			conn.header(key, value);
+			return this;
+		}
+
+		@Contract(pure = true) public Response removeHeader(@NotNull String key) {
+			conn.request.removeAdditionalHeader(key);
+			return this;
+		}
+
+		@Contract(pure = true) public String cookie(@NotNull String name) {
+			return cookies().get(name);
+		}
+
+		@Contract(pure = true) public Map<String, String> cookies() {
+			return page.getWebResponse().getResponseHeaders().stream().filter(l -> l.getName().equalsIgnoreCase("set-cookie"))
+					.map(l -> l.getValue().substring(0, l.getValue().indexOf(";")))
+					.collect(Collectors.toMap(l -> l.substring(0, l.indexOf("=")), l -> l.substring(l.indexOf("=") + 1), (e1, e2) -> e2));
+		}
+
+		@Contract(pure = true) public Response cookie(@NotNull String name, @NotNull String value) {
+			conn.cookie(name, value);
+			return this;
+		}
+
+		@Contract(pure = true) public Response removeCookie(@NotNull String name) {
+			conn.cookies.remove(name);
+			return this;
+		}
+
 		@Contract(pure = true) public Response charset(@NotNull String charsetName) {
 			return charset(Charset.forName(charsetName));
 		}
@@ -393,6 +423,14 @@ public class HtmlUnitUtil {
 		@Contract(pure = true) public Response charset(@NotNull Charset charset) {
 			this.charset = charset;
 			return this;
+		}
+
+		@Contract(pure = true) public String contentType() {
+			return page.getWebResponse().getStatusMessage();
+		}
+
+		@Contract(pure = true) public Document parse() {
+			return URIUtils.statusIsNormal(statusCode()) ? Jsoup.parse(body(), conn.parser) : null;
 		}
 
 		@Contract(pure = true) public String body() {
@@ -411,6 +449,11 @@ public class HtmlUnitUtil {
 				return null;
 			}
 			return result;
+		}
+
+		@Contract(pure = true) public Response method(@NotNull Method method) {
+			conn.method(method);
+			return this;
 		}
 
 	}
@@ -487,6 +530,16 @@ public class HtmlUnitUtil {
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection timeout(int millis);
+
+		/**
+		 * 连接解析器（ Parser parser）
+		 * 在解析对文档的响应时提供备用解析器。如果未设置，则默认使用 HTML 解析器，除非响应内容类型是 XML，在这种情况下使用 XML 解析器。
+		 * 参数：
+		 * parser - 备用解析器
+		 * 回报：
+		 * 此连接，用于链接
+		 */
+		@Contract(pure = true) public abstract Connection parser(@NotNull Parser parser);
 
 		/**
 		 * 连接头（ 字符串 名称， 字符串 值）<br/>
@@ -745,6 +798,19 @@ public class HtmlUnitUtil {
 		@Contract(pure = true) public abstract int statusCode();
 
 		/**
+		 * 获取与响应代码一起从服务器返回的 HTTP 响应消息（如果有）。来自以下回复：
+		 * <p>
+		 * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HTTP/1.0 200 OK
+		 * <p>
+		 * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HTTP/1.0 404 Not Found
+		 * <p>
+		 * 分别提取字符串“OK”和“Not Found”。如果无法从响应中辨别出任何内容（结果不是有效的 HTTP），则返回 null。
+		 *
+		 * @return 状态消息
+		 */
+		@Contract(pure = true) public abstract String statusMessage();
+
+		/**
 		 * 如果此页面是 HtmlPage，则返回 true。
 		 *
 		 * @return true or false
@@ -773,6 +839,23 @@ public class HtmlUnitUtil {
 		@Contract(pure = true) public abstract Map<String, String> headers();
 
 		/**
+		 * 在此请求/响应中设置 header。
+		 *
+		 * @param key   header的键
+		 * @param value header的值
+		 * @return 此连接，用于链接
+		 */
+		@Contract(pure = true) public abstract Response header(@NotNull String key, @NotNull String value);
+
+		/**
+		 * 删除在此请求/响应中设置 header。
+		 *
+		 * @param key header的键
+		 * @return 此连接，用于链接
+		 */
+		@Contract(pure = true) public abstract Response removeHeader(@NotNull String key);
+
+		/**
 		 * 获取 cookie
 		 *
 		 * @param name cookie name
@@ -786,6 +869,21 @@ public class HtmlUnitUtil {
 		 * @return cookies
 		 */
 		@Contract(pure = true) public abstract Map<String, String> cookies();
+
+		/**
+		 * @param name  cookie的名称
+		 * @param value cookie的值
+		 * @return 此连接，用于链接
+		 */
+		@Contract(pure = true) public abstract Response cookie(@NotNull String name, @NotNull String value);
+
+		/**
+		 * 删除在此请求/响应中设置 cookie。
+		 *
+		 * @param name cookie的名称
+		 * @return 此连接，用于链接
+		 */
+		@Contract(pure = true) public abstract Response removeCookie(@NotNull String name);
 
 		/**
 		 * Response字符集（ 字符串 字符集）<br/>
@@ -805,6 +903,20 @@ public class HtmlUnitUtil {
 		 */
 
 		@Contract(pure = true) public abstract Response charset(@NotNull Charset charset);
+
+		/**
+		 * 获取响应内容类型（例如“text/html”）
+		 *
+		 * @return 响应内容类型，如果未设置则为null
+		 */
+		@Contract(pure = true) public abstract String contentType();
+
+		/**
+		 * 读取响应的正文并将其解析为文档,如果连接超时或IO异常会返回null
+		 *
+		 * @return 已解析的文档
+		 */
+		@Contract(pure = true) public abstract Document parse();
 
 		/**
 		 * Get the body of the response as a plain string.
@@ -828,6 +940,15 @@ public class HtmlUnitUtil {
 		 * @return body bytes
 		 */
 		@Contract(pure = true) public abstract byte[] bodyAsBytes();
+
+		/**
+		 * 设置请求方式
+		 * <p>
+		 * method - 新方法
+		 *
+		 * @return 此连接，用于链接
+		 */
+		@Contract(pure = true) public abstract Response method(@NotNull Method method);
 
 	}
 

@@ -271,15 +271,11 @@ public class HttpClientUtil {
 		}
 
 		@Contract(pure = true) public Document get() {
-			method(Method.GET);
-			Response response = execute();
-			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body(), parser) : null;
+			return method(Method.GET).execute().parse();
 		}
 
 		@Contract(pure = true) public Document post() {
-			method(Method.POST);
-			Response response = execute();
-			return URIUtils.statusIsNormal(response.statusCode()) ? Jsoup.parse(response.body(), parser) : null;
+			return method(Method.POST).execute().parse();
 		}
 
 		@Contract(pure = true) public Response execute() {
@@ -352,7 +348,7 @@ public class HttpClientUtil {
 			} catch (IOException e) {
 				return null;
 			}
-			Response httpHesponse = new HttpResponse(request, response, context);
+			Response httpHesponse = new HttpResponse(this, request, response);
 			cookies.putAll(httpHesponse.cookies());
 			return httpHesponse;
 		}
@@ -407,31 +403,28 @@ public class HttpClientUtil {
 	 * @since 2022/3/16 10:33
 	 */
 	protected static class HttpResponse extends Response {
+		protected HttpConnection conn;
 		protected CloseableHttpResponse response;
 		protected HttpUriRequest request;
-		protected HttpClientContext context;
 		protected Charset charset = StandardCharsets.UTF_8;
 
-		/**
-		 * Constructor for the HttpsClientResult.
-		 *
-		 * @param request  HttpUriRequest
-		 * @param response CloseableHttpResponse
-		 * @param context  HttpClientContext
-		 */
-		protected HttpResponse(HttpUriRequest request, CloseableHttpResponse response, HttpClientContext context) {
+		protected HttpResponse(HttpConnection conn, HttpUriRequest request, CloseableHttpResponse response) {
+			this.conn = conn;
 			this.request = request;
 			this.response = response;
-			this.context = context;
 		}
 
 		@Contract(pure = true) public String url() {
-			List<URI> reLocs = context.getRedirectLocations();
+			List<URI> reLocs = conn.context.getRedirectLocations();
 			return Judge.isNull(reLocs) ? request.getURI().toString() : reLocs.get(reLocs.size() - 1).toString();
 		}
 
 		@Contract(pure = true) public int statusCode() {
 			return Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.getStatusLine().getStatusCode();
+		}
+
+		@Contract(pure = true) public String statusMessage() {
+			return response.getStatusLine().getReasonPhrase();
 		}
 
 		@Contract(pure = true) public String header(@NotNull String name) {
@@ -458,6 +451,16 @@ public class HttpClientUtil {
 			return headers;
 		}
 
+		@Contract(pure = true) public Response header(@NotNull String key, @NotNull String value) {
+			conn.header(key, value);
+			return this;
+		}
+
+		@Contract(pure = true) public Response removeHeader(@NotNull String key) {
+			conn.headers.remove(key);
+			return this;
+		}
+
 		@Contract(pure = true) public String cookie(@NotNull String name) {
 			return cookies().get(name);
 		}
@@ -470,6 +473,16 @@ public class HttpClientUtil {
 							.collect(Collectors.toMap(l -> l.substring(0, l.indexOf("=")), l -> l.substring(l.indexOf("=") + 1), (e1, e2) -> e2));
 		}
 
+		@Contract(pure = true) public Response cookie(@NotNull String name, @NotNull String value) {
+			conn.cookie(name, value);
+			return this;
+		}
+
+		@Contract(pure = true) public Response removeCookie(@NotNull String name) {
+			conn.cookies.remove(name);
+			return this;
+		}
+
 		@Contract(pure = true) public Response charset(@NotNull String charsetName) {
 			return charset(Charset.forName(charsetName));
 		}
@@ -477,6 +490,14 @@ public class HttpClientUtil {
 		@Contract(pure = true) public Response charset(@NotNull Charset charset) {
 			this.charset = charset;
 			return this;
+		}
+
+		@Contract(pure = true) public String contentType() {
+			return response.getEntity().getContentType().getValue();
+		}
+
+		@Contract(pure = true) public Document parse() {
+			return URIUtils.statusIsNormal(statusCode()) ? Jsoup.parse(body(), conn.parser) : null;
 		}
 
 		@Contract(pure = true) public String body() {
@@ -502,6 +523,11 @@ public class HttpClientUtil {
 				return null;
 			}
 			return result;
+		}
+
+		@Contract(pure = true) public Response method(@NotNull Method method) {
+			conn.method(method);
+			return this;
 		}
 
 	}
