@@ -45,9 +45,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.Inflater;
-import java.util.zip.InflaterInputStream;
 
 /**
  * HttpClient工具类
@@ -439,7 +436,7 @@ public class HttpClientUtil {
 
 		@Contract(pure = true) public String header(@NotNull String name) {
 			String header = headers().get(name);
-			if (Judge.isEmpty(header)) {
+			if (Judge.isNull(header)) {
 				return null;
 			}
 			header = header.startsWith("[") ? header.substring(1) : header;
@@ -485,14 +482,7 @@ public class HttpClientUtil {
 		@Contract(pure = true) public String body() {
 			String result;
 			String encoding = header("content-encoding");
-			try (InputStream in = bodyStream();
-					InputStream body = Judge.isEmpty(encoding) ?
-							in :
-							encoding.equals("gzip") ?
-									new GZIPInputStream(in) :
-									encoding.equals("deflate") ?
-											new InflaterInputStream(in, new Inflater(true)) :
-											encoding.equals("br") ? new BrotliInputStream(in) : in) {
+			try (InputStream in = bodyStream(); InputStream body = "br".equals(encoding) ? new BrotliInputStream(in) : in) {
 				result = StreamUtils.stream(body).charset(charset).getString();
 			} catch (IOException e) {
 				return null;

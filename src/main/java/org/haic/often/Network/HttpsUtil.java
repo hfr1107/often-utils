@@ -77,6 +77,7 @@ public class HttpsUtil {
 			sslSocketFactory = IgnoreSSLSocket.MyX509TrustManager().getSocketFactory();
 			header("accept", "text/html, application/xhtml+xml, application/json;q=0.9, */*;q=0.8");
 			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
+			header("accept-encoding", "gzip, deflate, br"); // 允许压缩gzip,br-Brotli
 			header("user-agent", UserAgent.chrome()); // 设置随机请求头;
 		}
 
@@ -275,8 +276,14 @@ public class HttpsUtil {
 			HttpURLConnection conn = null;
 			try {
 				switch (method) {
-				case GET -> conn = connection(Judge.isEmpty(params) ? url : url + (url.contains("?") ? "&" : "?") + params);
-				case OPTIONS, DELETE, HEAD, TRACE -> conn = connection(url);
+				case GET -> {
+					conn = connection(Judge.isEmpty(params) ? url : url + (url.contains("?") ? "&" : "?") + params);
+					conn.connect();
+				}
+				case OPTIONS, DELETE, HEAD, TRACE -> {
+					conn = connection(url);
+					conn.connect();
+				}
 				case POST, PUT, PATCH -> {
 					conn = connection(url);
 					// 发送POST请求必须设置如下
@@ -375,7 +382,7 @@ public class HttpsUtil {
 
 		@Contract(pure = true) public String header(@NotNull String name) {
 			String header = headers().get(name);
-			if (Judge.isEmpty(header)) {
+			if (Judge.isNull(header)) {
 				return null;
 			}
 			header = header.startsWith("[") ? header.substring(1) : header;
@@ -414,7 +421,7 @@ public class HttpsUtil {
 			String result;
 			String encoding = header("content-encoding");
 			try (InputStream in = bodyStream();
-					InputStream body = Judge.isEmpty(encoding) ?
+					InputStream body = Judge.isNull(encoding) ?
 							in :
 							encoding.equals("gzip") ?
 									new GZIPInputStream(in) :

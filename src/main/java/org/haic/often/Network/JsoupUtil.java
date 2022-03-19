@@ -23,9 +23,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.Inflater;
-import java.util.zip.InflaterInputStream;
 
 /**
  * Jsoup 工具类
@@ -305,7 +302,7 @@ public class JsoupUtil {
 		}
 
 		@Contract(pure = true) public Map<String, String> headers() {
-			return response.headers();
+			return response.headers().entrySet().stream().collect(Collectors.toMap(l -> l.getKey().toLowerCase(), Map.Entry::getValue));
 		}
 
 		@Contract(pure = true) public String cookie(@NotNull String name) {
@@ -328,14 +325,7 @@ public class JsoupUtil {
 		@Contract(pure = true) public String body() {
 			String result;
 			String encoding = header("content-encoding");
-			try (InputStream in = bodyStream();
-					InputStream body = Judge.isEmpty(encoding) ?
-							in :
-							encoding.equals("gzip") ?
-									new GZIPInputStream(in) :
-									encoding.equals("deflate") ?
-											new InflaterInputStream(in, new Inflater(true)) :
-											encoding.equals("br") ? new BrotliInputStream(in) : in) {
+			try (InputStream in = bodyStream(); InputStream body = "br".equals(encoding) ? new BrotliInputStream(in) : in) {
 				result = StreamUtils.stream(body).charset(charset).getString();
 			} catch (IOException e) {
 				return null;

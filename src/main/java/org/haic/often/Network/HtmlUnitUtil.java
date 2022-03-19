@@ -4,7 +4,6 @@ import com.gargoylesoftware.htmlunit.*;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import org.apache.commons.logging.LogFactory;
-import org.brotli.dec.BrotliInputStream;
 import org.haic.often.Judge;
 import org.haic.often.Multithread.MultiThreadUtils;
 import org.haic.often.StreamUtils;
@@ -22,9 +21,6 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.Inflater;
-import java.util.zip.InflaterInputStream;
 
 /**
  * HtmlUnit 工具类
@@ -315,6 +311,7 @@ public class HtmlUnitUtil {
 
 		@Contract(pure = true) protected Response executeProgram(@NotNull WebRequest request) {
 			Response response;
+
 			try { // 获得页面
 				response = new HttpResponse(webClient.getPage(request));
 			} catch (IOException e) {
@@ -366,7 +363,7 @@ public class HtmlUnitUtil {
 
 		@Contract(pure = true) public String header(@NotNull String name) {
 			String header = headers().get(name);
-			if (Judge.isEmpty(header)) {
+			if (Judge.isNull(header)) {
 				return null;
 			}
 			header = header.startsWith("[") ? header.substring(1) : header;
@@ -399,16 +396,8 @@ public class HtmlUnitUtil {
 
 		@Contract(pure = true) public String body() {
 			String result;
-			String encoding = header("content-encoding");
-			try (InputStream in = bodyStream();
-					InputStream body = Judge.isEmpty(encoding) ?
-							in :
-							encoding.equals("gzip") ?
-									new GZIPInputStream(in) :
-									encoding.equals("deflate") ?
-											new InflaterInputStream(in, new Inflater(true)) :
-											encoding.equals("br") ? new BrotliInputStream(in) : in) {
-				result = StreamUtils.stream(body).charset(charset).getString();
+			try (InputStream in = bodyStream()) {
+				result = StreamUtils.stream(in).charset(charset).getString();
 			} catch (IOException e) {
 				return null;
 			}
