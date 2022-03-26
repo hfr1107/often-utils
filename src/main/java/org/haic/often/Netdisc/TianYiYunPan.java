@@ -497,7 +497,9 @@ public class TianYiYunPan {
 		 */
 		@Contract(pure = true) public String getStraightAsNotCode(@NotNull String url) {
 			JSONObject info = getshareUrlInfo(url);
-			return conn.url(fileDownloadUrl + "?dt=1&fileId=" + info.getString("fileId") + "&shareId=" + info.getString("shareId")).get().text();
+			return JSONObject.parseObject(
+							conn.url(fileDownloadUrl + "?dt=1&fileId=" + info.getString("fileId") + "&shareId=" + info.getString("shareId")).get().text())
+					.getString("fileDownloadUrl");
 		}
 
 		/**
@@ -524,7 +526,8 @@ public class TianYiYunPan {
 				params.put("dt", "1");
 				params.put("fileId", fileInfo.getString("id"));
 				params.put("shareId", fileInfo.getString("shareId"));
-				fileUrls.put(fileInfo.getString("name"), conn.url(fileDownloadUrl).data(params).get().text());
+				fileUrls.put(fileInfo.getString("name"),
+						JSONObject.parseObject(conn.url(fileDownloadUrl).data(params).get().text()).getString("fileDownloadUrl"));
 			}
 			return fileUrls;
 		}
