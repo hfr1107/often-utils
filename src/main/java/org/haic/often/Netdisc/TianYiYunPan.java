@@ -110,7 +110,7 @@ public class TianYiYunPan {
 	@Contract(pure = true) public static List<JSONObject> getFilesInfoAsPage(@NotNull Map<String, String> data) {
 		Connection conn = JsoupUtil.connect(listShareDirUrl).headers(headers);
 		JSONObject infos = JSONObject.parseObject(conn.data(data).execute().body()).getJSONObject("fileListAO");
-		if (Judge.isEmpty(infos.getInteger("count"))) {
+		if (Judge.isNull(infos) || Judge.isEmpty(infos.getInteger("count"))) {
 			return new ArrayList<>();
 		}
 		List<JSONObject> filesInfo = new ArrayList<>(JSONObject.parseArray(infos.getJSONArray("fileList").toJSONString(), JSONObject.class));
@@ -497,9 +497,10 @@ public class TianYiYunPan {
 		 */
 		@Contract(pure = true) public String getStraightAsNotCode(@NotNull String url) {
 			JSONObject info = getshareUrlInfo(url);
-			return JSONObject.parseObject(
+			String straight = JSONObject.parseObject(
 							conn.url(fileDownloadUrl + "?dt=1&fileId=" + info.getString("fileId") + "&shareId=" + info.getString("shareId")).get().text())
 					.getString("fileDownloadUrl");
+			return Judge.isNull(straight) ? "" : straight;
 		}
 
 		/**
@@ -526,8 +527,8 @@ public class TianYiYunPan {
 				params.put("dt", "1");
 				params.put("fileId", fileInfo.getString("id"));
 				params.put("shareId", fileInfo.getString("shareId"));
-				fileUrls.put(fileInfo.getString("name"),
-						JSONObject.parseObject(conn.url(fileDownloadUrl).data(params).get().text()).getString("fileDownloadUrl"));
+				String straight = JSONObject.parseObject(conn.url(fileDownloadUrl).data(params).get().text()).getString("fileDownloadUrl");
+				fileUrls.put(fileInfo.getString("name"), Judge.isNull(straight) ? "" : straight);
 			}
 			return fileUrls;
 		}
