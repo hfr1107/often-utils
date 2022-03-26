@@ -79,13 +79,16 @@ public class TianYiYunPan {
 	 */
 	@Contract(pure = true) public static List<JSONObject> getFilesInfoAsPage(@NotNull String url, @NotNull String shareCode) {
 		JSONObject info = getshareUrlInfo(url);
+		String shareId = info.getString("shareId");
 		Map<String, String> data = new HashMap<>();
 		data.put("fileId", info.getString("fileId"));
-		data.put("shareId", info.getString("shareId"));
+		data.put("shareId", shareId);
 		data.put("isFolder", info.getString("isFolder"));
 		data.put("shareMode", info.getString("shareMode"));
 		data.put("accessCode", shareCode);
-		return getFilesInfoAsPage(data);
+		List<JSONObject> result = getFilesInfoAsPage(data);
+		result.forEach(l -> l.put("shareId", shareId));
+		return result;
 	}
 
 	/**
@@ -519,9 +522,9 @@ public class TianYiYunPan {
 			for (JSONObject fileInfo : getFilesInfoAsPage(url, accessCode)) {
 				Map<String, String> params = new HashMap<>();
 				params.put("dt", "1");
-				params.put("fileId", fileInfo.getString("fileId"));
+				params.put("fileId", fileInfo.getString("id"));
 				params.put("shareId", fileInfo.getString("shareId"));
-				fileUrls.put(fileInfo.getString("fileName"), conn.url(fileDownloadUrl).data(params).get().text());
+				fileUrls.put(fileInfo.getString("name"), conn.url(fileDownloadUrl).data(params).get().text());
 			}
 			return fileUrls;
 		}
