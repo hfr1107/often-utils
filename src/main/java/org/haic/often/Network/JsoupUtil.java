@@ -47,6 +47,17 @@ public class JsoupUtil {
 		return new HttpConnection(url, Jsoup.connect(url));
 	}
 
+	/**
+	 * 公共静态连接newSession ()
+	 * <p>
+	 * 创建一个新Connection以用作会话。将为会话维护连接设置（用户代理、超时、URL 等）和 cookie
+	 *
+	 * @return 此连接，用于链接
+	 */
+	@Contract(pure = true) public static Connection newSession() {
+		return new HttpConnection("", Jsoup.newSession());
+	}
+
 	protected static class HttpConnection extends Connection {
 		protected String url; // 请求URL
 		protected int retry; // 请求异常重试次数

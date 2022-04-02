@@ -46,6 +46,21 @@ public class HtmlUnitUtil {
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public static Connection connect(@NotNull String url) {
+		return new HttpConnection().url(url);
+	}
+
+	/**
+	 * 公共静态连接newSession ()
+	 * <p>
+	 * 创建一个新Connection以用作会话。将为会话维护连接设置（用户代理、超时、URL 等）和 cookie
+	 *
+	 * @return 此连接，用于链接
+	 */
+	@Contract(pure = true) public static Connection newSession() {
+		return new HttpConnection();
+	}
+
+	@Contract(pure = true) protected static WebClient createClient() {
 		// 屏蔽HtmlUnit等系统 log
 		LogFactory.getFactory().setAttribute("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
 		Logger.getLogger("com.gargoylesoftware").setLevel(Level.OFF);
@@ -65,8 +80,7 @@ public class HtmlUnitUtil {
 		webClient.getOptions().isUseInsecureSSL(); // 允许不安全SSL
 		webClient.setAjaxController(new NicelyResynchronizingAjaxController());// 设置支持AJAX
 		webClient.getOptions().setTimeout(0); // 设置连接超时时间
-
-		return new HttpConnection(webClient, url);
+		return webClient;
 	}
 
 	protected static class HttpConnection extends Connection {
@@ -82,12 +96,10 @@ public class HtmlUnitUtil {
 		protected Map<String, String> cookies = new HashMap<>(); // cookes
 		protected List<Integer> retryStatusCodes = new ArrayList<>();
 
-		protected WebClient webClient;
-		protected WebRequest request; // 会话
+		protected WebClient webClient = createClient();
+		protected WebRequest request = new WebRequest(null); // 会话
 
-		protected HttpConnection(@NotNull WebClient webClient, @NotNull String url) {
-			this.webClient = webClient;
-			request = new WebRequest(URIUtils.getURL(this.url = url));
+		protected HttpConnection() {
 			header("accept", "text/html, application/xhtml+xml, application/json;q=0.9, */*;q=0.8");
 			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
 			header("accept-encoding", "gzip, deflate, br"); // 允许压缩gzip,br-Brotli

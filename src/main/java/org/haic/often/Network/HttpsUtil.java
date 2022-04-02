@@ -52,6 +52,17 @@ public class HttpsUtil {
 		return new HttpConnection(url);
 	}
 
+	/**
+	 * 公共静态连接newSession ()
+	 * <p>
+	 * 创建一个新Connection以用作会话。将为会话维护连接设置（用户代理、超时、URL 等）和 cookie
+	 *
+	 * @return 此连接，用于链接
+	 */
+	@Contract(pure = true) public static Connection newSession() {
+		return new HttpConnection("");
+	}
+
 	protected static class HttpConnection extends Connection {
 
 		protected String url; // URL
@@ -69,12 +80,11 @@ public class HttpsUtil {
 		protected Map<String, String> cookies = new HashMap<>(); // cookies
 		protected List<Integer> retryStatusCodes = new ArrayList<>();
 		protected ThreeTuple<String, InputStream, String> file;
-		protected SSLSocketFactory sslSocketFactory;
+		protected SSLSocketFactory sslSocketFactory = IgnoreSSLSocket.MyX509TrustManager().getSocketFactory();
 
 		protected HttpConnection(@NotNull String url) {
 			System.setProperty("http.keepAlive", "false"); // 关闭长连接复用,防止流阻塞
 			this.url = url;
-			sslSocketFactory = IgnoreSSLSocket.MyX509TrustManager().getSocketFactory();
 			header("accept", "text/html, application/xhtml+xml, application/json;q=0.9, */*;q=0.8");
 			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
 			header("accept-encoding", "gzip, deflate, br"); // 允许压缩gzip,br-Brotli
@@ -398,7 +408,7 @@ public class HttpsUtil {
 
 		@Contract(pure = true) public Map<String, String> headers() {
 			Map<String, String> headers = conn.getHeaderFields().entrySet().stream()
-					.collect(Collectors.toMap(l -> String.valueOf(l.getKey()).toLowerCase(), l -> l.getValue().toString()));
+					.collect(Collectors.toMap(l -> String.valueOf(l.getKey()).toLowerCase(), l -> l.getValue().toString(), (e1, e2) -> e2));
 			headers.remove("null");
 			return headers;
 		}
