@@ -158,9 +158,7 @@ public class YunPan123 {
 			JSONObject data = new JSONObject();
 			data.put("driveId", "0");
 			data.put("operation", "false");
-			data.put("fileTrashInfoList", fileIdList.stream().map(l -> new JSONObject() {{
-				put("fileId", l);
-			}}).toList());
+			data.put("fileTrashInfoList", fileIdList.stream().map(l -> new JSONObject().fluentPut("fileId", l)).toList());
 			return JSONObject.parseObject(conn.url(fileTrashUrl).requestBody(data.toJSONString()).post().text()).getInteger("code");
 		}
 
@@ -190,11 +188,9 @@ public class YunPan123 {
 		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
 		 */
 		@Contract(pure = true) public int clearRecycle(@NotNull List<String> fileIdList) {
-			return JSONObject.parseObject(conn.url(fileDeleteUrl).requestBody(new JSONObject() {{
-				put("fileIdList", fileIdList.stream().map(l -> new JSONObject() {{
-					put("fileId", l);
-				}}).toList());
-			}}.toJSONString()).post().text()).getInteger("code");
+			return JSONObject.parseObject(conn.url(fileDeleteUrl).requestBody(
+							new JSONObject().fluentPut("fileIdList", fileIdList.stream().map(l -> new JSONObject().fluentPut("fileId", l)).toList()).toJSONString())
+					.post().text()).getInteger("code");
 		}
 
 		/**
@@ -216,9 +212,7 @@ public class YunPan123 {
 		@Contract(pure = true) public int cancelShare(@NotNull List<String> shareIdList) {
 			JSONObject data = new JSONObject();
 			data.put("driveId", "0");
-			data.put("shareInfoList", shareIdList.stream().map(l -> new JSONObject() {{
-				put("shareId", l);
-			}}).toList());
+			data.put("shareInfoList", shareIdList.stream().map(l -> new JSONObject().fluentPut("shareId", l)).toList());
 			return JSONObject.parseObject(conn.url(shareDeleteUrl).requestBody(data.toJSONString()).post().text()).getInteger("code");
 		}
 
@@ -355,11 +349,7 @@ public class YunPan123 {
 			JSONObject data = new JSONObject();
 			data.put("driveId", "0");
 			data.put("operation", "true");
-			data.put("fileTrashInfoList", new JSONArray() {{
-				addAll(fileIdList.stream().map(l -> new JSONObject() {{
-					put("fileId", l);
-				}}).toList());
-			}});
+			data.put("fileTrashInfoList", new JSONArray().fluentAddAll(fileIdList.stream().map(l -> new JSONObject().put("fileId", l)).toList()));
 			return JSONObject.parseObject(conn.url(trashUrl).requestBody(data.toJSONString()).post().text()).getInteger("code");
 		}
 
@@ -384,11 +374,7 @@ public class YunPan123 {
 		@Contract(pure = true) public int move(@NotNull String parentFileId, @NotNull List<String> fileIdList) {
 			JSONObject data = new JSONObject();
 			data.put("parentFileId", parentFileId);
-			data.put("fileIdList", new JSONArray() {{
-				addAll(fileIdList.stream().map(l -> new JSONObject() {{
-					put("fileId", l);
-				}}).toList());
-			}});
+			data.put("fileIdList", new JSONArray().fluentAddAll(fileIdList.stream().map(l -> new JSONObject().fluentPut("fileId", l)).toList()));
 			return JSONObject.parseObject(conn.url(modPidUrl).requestBody(data.toJSONString()).post().text()).getInteger("code");
 		}
 
@@ -495,10 +481,9 @@ public class YunPan123 {
 		 * @return 此链接, 用于API操作
 		 */
 		@Contract(pure = true) public static String login(@NotNull String username, @NotNull String password) {
-			return JSONObject.parseObject(HttpsUtil.connect(signinUrl).requestBody(new JSONObject() {{
-				put("passport", username);
-				put("password", password);
-			}}.toJSONString()).post().text()).getJSONObject("data").getString("token");
+			return JSONObject.parseObject(
+					HttpsUtil.connect(signinUrl).requestBody(new JSONObject().fluentPut("passport", username).fluentPut("password", password).toJSONString())
+							.post().text()).getJSONObject("data").getString("token");
 		}
 	}
 

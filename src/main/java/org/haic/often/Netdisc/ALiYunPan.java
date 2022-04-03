@@ -38,9 +38,7 @@ public class ALiYunPan {
 	 * @return Map - 文件名,文件ID
 	 */
 	public static Map<String, String> getInfosAsPage(String shareId) {
-		Document doc = JsoupUtil.connect(shareByAnonymousUrl).requestBody(new JSONObject() {{
-			put("share_id", shareId);
-		}}.toJSONString()).post();
+		Document doc = JsoupUtil.connect(shareByAnonymousUrl).requestBody(new JSONObject().fluentPut("share_id", shareId).toJSONString()).post();
 		JSONArray fileInfoArray = JSONObject.parseObject(doc.text()).getJSONArray("file_infos");
 		Map<String, String> filesInfo = new HashMap<>();
 		for (int i = 0; i < fileInfoArray.size(); i++) {

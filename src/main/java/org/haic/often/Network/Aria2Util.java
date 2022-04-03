@@ -209,14 +209,11 @@ public class Aria2Util {
 		} else {
 			method = Aria2Method.ADDURI;
 		}
-		sessionsJson.add(getSessionJson(method).fluentPut("params", new JSONArray() {{
-			add("token:" + token);
-			add(List.of(url));
-			add(new HashMap<>() {{
-				putAll(mixinParams);
-				putAll(params);
-			}});
-		}}));
+		sessionsJson.add(
+				getSessionJson(method).fluentPut("params", new JSONArray().fluentAdd("token:" + token).fluentAdd(List.of(url)).fluentAdd(new HashMap<>() {{
+					putAll(mixinParams);
+					putAll(params);
+				}})));
 		return this;
 	}
 
@@ -239,9 +236,7 @@ public class Aria2Util {
 	 * @return this
 	 */
 	@Contract(pure = true) public Aria2Util session(@NotNull Aria2Method method) {
-		return session(method, new JSONArray() {{
-			add("token:" + token);
-		}});
+		return session(method, new JSONArray().fluentAdd("token:" + token));
 	}
 
 	/**
@@ -252,10 +247,7 @@ public class Aria2Util {
 	 * @return this
 	 */
 	@Contract(pure = true) public Aria2Util session(@NotNull Aria2Method method, @NotNull String gid) {
-		return session(method, new JSONArray() {{
-			add("token:" + token);
-			add(List.of(gid));
-		}});
+		return session(method, new JSONArray().fluentAdd("token:" + token).fluentAdd(List.of(gid)));
 	}
 
 	/**
@@ -323,11 +315,8 @@ public class Aria2Util {
 	 * @return this
 	 */
 	@Contract(pure = true) public Aria2Util changeOption(@NotNull String gid, @NotNull Map<String, String> option) {
-		sessionsJson.add(getSessionJson(Aria2Method.CHANGEOPTION).fluentPut("params", new JSONArray() {{
-			add("token:" + token);
-			add(gid);
-			add(option);
-		}}));
+		sessionsJson.add(
+				getSessionJson(Aria2Method.CHANGEOPTION).fluentPut("params", new JSONArray().fluentAdd("token:" + token).fluentAdd(gid).fluentAdd(option)));
 		return session(Aria2Method.PAUSE, gid);
 	}
 
