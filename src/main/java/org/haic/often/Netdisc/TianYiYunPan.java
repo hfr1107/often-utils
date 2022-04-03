@@ -143,7 +143,7 @@ public class TianYiYunPan {
 
 		protected TianYiYunPanAPI(@NotNull Map<String, String> cookies) {
 			this.cookies = cookies;
-			conn = HttpsUtil.connect(listSharesUrl).headers(headers).cookies(cookies);
+			conn = HttpsUtil.newSession().headers(headers).cookies(cookies);
 		}
 
 		/**
@@ -191,8 +191,9 @@ public class TianYiYunPan {
 		 * @param type   分享类型: 2-公开,3 - 私密,other - 社交
 		 * @return 响应结果
 		 */
-		@Contract(pure = true) public String createShareLink(@NotNull String fileId, int time, int type) {
-			return conn.url(createShareLinkUrl).requestBody("fileId=" + fileId + "&expireTime=" + type + "&shareType=" + type).execute().body();
+		@Contract(pure = true) public JSONObject createShareLink(@NotNull String fileId, int time, int type) {
+			return JSONObject.parseObject(
+					conn.url(createShareLinkUrl).requestBody("fileId=" + fileId + "&expireTime=" + type + "&shareType=" + type).execute().body());
 		}
 
 		/**
@@ -215,7 +216,7 @@ public class TianYiYunPan {
 		 * 还原多个回收站的文件或文件夹
 		 *
 		 * @param fileInfo 指定的文件或文件夹,JSON类型数据,需包含"name"和"id"选项
-		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 * @return 操作返回的结果状态码, 一般情况下, 0为成功
 		 */
 		@Contract(pure = true) public int restore(@NotNull JSONObject fileInfo) {
 			return batchTask("RESTORE", fileInfo, "");
@@ -225,7 +226,7 @@ public class TianYiYunPan {
 		 * 还原回收站的文件或文件夹
 		 *
 		 * @param filesInfo 指定的多个文件或文件夹,JSON类型数据,需包含"name"和"id"选项
-		 * @return 操作返回的结果状态码, 一般情况下, 0位成功
+		 * @return 操作返回的结果状态码, 一般情况下, 0为成功
 		 */
 		@Contract(pure = true) public int restore(@NotNull List<JSONObject> filesInfo) {
 			return batchTask("RESTORE", filesInfo, "");
@@ -287,13 +288,13 @@ public class TianYiYunPan {
 		/**
 		 * 创建文件夹
 		 *
-		 * @param folderId   文件夹ID
-		 * @param folderName 文件夹名称
-		 * @return 返回的响应结果状态码
+		 * @param parentFolderId 父文件夹ID
+		 * @param folderName     文件夹名称
+		 * @return 返回的JSON数据
 		 */
-		@Contract(pure = true) public int createFolder(@NotNull String folderId, String folderName) {
-			return JSONObject.parseObject(conn.url(renameFileUrl).requestBody("parentFolderId=" + folderId + "&folderName=" + folderName).execute().body())
-					.getInteger("res_code");
+		@Contract(pure = true) public JSONObject createFolder(@NotNull String parentFolderId, String folderName) {
+			return JSONObject.parseObject(
+					conn.url(renameFileUrl).requestBody("parentFolderId=" + parentFolderId + "&folderName=" + folderName).execute().body());
 		}
 
 		/**
@@ -412,22 +413,12 @@ public class TianYiYunPan {
 		}
 
 		/**
-		 * 通过文件ID获取文件的直链,不能用于分享页面获取
-		 *
-		 * @param fileId 文件ID
-		 * @return 用于下载的直链
-		 */
-		@Contract(pure = true) public String getStraight(@NotNull String fileId) {
-			return JSONObject.parseObject(conn.url(fileDownloadUrl).data("fileId", fileId).get().text()).getString("fileDownloadUrl");
-		}
-
-		/**
 		 * 通过文件夹ID获取当前页面所有文件和文件夹信息
 		 *
 		 * @param folderId 文件夹ID
 		 * @return List - JSON类型数据,包含了文件的所有信息
 		 */
-		@Contract(pure = true) public List<JSONObject> getInfoAsHomeOfFolderId(@NotNull String folderId) {
+		@Contract(pure = true) public List<JSONObject> getInfoAsHomeOfFolder(@NotNull String folderId) {
 			Map<String, String> data = new HashMap<>();
 			data.put("pageSize", "1");
 			data.put("folderId", folderId);
@@ -447,8 +438,8 @@ public class TianYiYunPan {
 		 * @param folderId 文件夹ID
 		 * @return List - JSON类型数据,包含了文件的所有信息
 		 */
-		@Contract(pure = true) public List<JSONObject> getFilesInfoAsHomeOfFolderId(@NotNull String folderId) {
-			return getInfoAsHomeOfFolderId("-11").stream().filter(l -> !l.containsKey("fileCount")).collect(Collectors.toList());
+		@Contract(pure = true) public List<JSONObject> getFilesInfoAsHomeOfFolder(@NotNull String folderId) {
+			return getInfoAsHomeOfFolder("-11").stream().filter(l -> !l.containsKey("fileCount")).collect(Collectors.toList());
 		}
 
 		/**
@@ -457,8 +448,8 @@ public class TianYiYunPan {
 		 * @param folderId 文件夹ID
 		 * @return List - JSON类型数据,包含了文件的所有信息
 		 */
-		@Contract(pure = true) public List<JSONObject> getFoldersInfoAsHomeOfFolderId(@NotNull String folderId) {
-			return getInfoAsHomeOfFolderId("-11").stream().filter(l -> l.containsKey("fileCount")).collect(Collectors.toList());
+		@Contract(pure = true) public List<JSONObject> getFoldersInfoAsHomeOfFolder(@NotNull String folderId) {
+			return getInfoAsHomeOfFolder("-11").stream().filter(l -> l.containsKey("fileCount")).collect(Collectors.toList());
 		}
 
 		/**
@@ -467,7 +458,7 @@ public class TianYiYunPan {
 		 * @return List - JSON类型数据,包含了文件的所有信息
 		 */
 		@Contract(pure = true) public List<JSONObject> getFilesInfoAsHome() {
-			return getInfoAsHomeOfFolderId("-11"); // -11 主页
+			return getInfoAsHomeOfFolder("-11"); // -11 主页
 		}
 
 		/**
@@ -478,9 +469,9 @@ public class TianYiYunPan {
 		 */
 		@Contract(pure = true) public List<JSONObject> getFilesInfoAsHomeOfAll(@NotNull String folderId) {
 			List<JSONObject> filesInfo = new ArrayList<>();
-			for (JSONObject fileInfo : getInfoAsHomeOfFolderId(folderId)) {
+			for (JSONObject fileInfo : getInfoAsHomeOfFolder(folderId)) {
 				if (fileInfo.containsKey("fileCount")) {
-					filesInfo.addAll(Judge.isEmpty(fileInfo.getInteger("fileCount")) ? new ArrayList<>() : getInfoAsHomeOfFolderId(fileInfo.getString("id")));
+					filesInfo.addAll(Judge.isEmpty(fileInfo.getInteger("fileCount")) ? new ArrayList<>() : getInfoAsHomeOfFolder(fileInfo.getString("id")));
 				} else {
 					filesInfo.add(fileInfo);
 				}
@@ -533,6 +524,16 @@ public class TianYiYunPan {
 			return fileUrls;
 		}
 
+		/**
+		 * 通过文件ID获取文件的直链,不能用于分享页面获取
+		 *
+		 * @param fileId 文件ID
+		 * @return 用于下载的直链
+		 */
+		@Contract(pure = true) public String getStraight(@NotNull String fileId) {
+			return JSONObject.parseObject(conn.url(fileDownloadUrl).data("fileId", fileId).get().text()).getString("fileDownloadUrl");
+		}
+
 	}
 
 	/**
@@ -554,8 +555,8 @@ public class TianYiYunPan {
 		 * @return 此链接, 用于API操作
 		 */
 		@Contract(pure = true) public static Map<String, String> login(@NotNull String userName, @NotNull String password) {
-			Connection conn = JsoupUtil.connect(encryptConfUrl);
-			JSONObject encryptConfData = JSONObject.parseObject(JSONObject.parseObject(conn.get().text()).getString("data"));
+			Connection conn = JsoupUtil.newSession();
+			JSONObject encryptConfData = JSONObject.parseObject(conn.url(encryptConfUrl).get().text()).getJSONObject("data");
 			String pre = encryptConfData.getString("pre");
 			String pubKey = encryptConfData.getString("pubKey");
 			userName = pre + encrypt(userName, pubKey);

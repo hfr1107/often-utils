@@ -1,4 +1,4 @@
-Java爬虫常用工具类
+Java 网络常用工具类
 ===============
 
 使用方法:
@@ -13,7 +13,7 @@ mvn clean install
 简介:
 ----
 
-在日常使用爬虫中,针对经常遇到的一些问题,设计的一些常用类,目的是使代码简洁且高效,复杂的操作尽可能由一段代码完成,并且尽可能的使用Java
+在日常网络操作中,针对经常遇到的一些问题,设计的一些常用类,目的是使代码简洁且高效,重复且复杂的操作尽可能由一段代码完成,并且尽可能的使用Java
 
 文件下载工具类
 ------------
@@ -141,4 +141,20 @@ Map<String, String> loginDatas = LocalLoginData.home() // 获取LoginData(账号
 
 Map<String, String> storages = LocalStorage.home() // 获取 Local Storage  
 .getStoragesForDomain("pixiv.net");
+```
+
+云盘API
+------
+
+### 说明:
+
+1.支持网盘: 天翼云盘,阿里云盘,蓝奏云盘,123云盘  
+2.为保证兼容性,降低复杂度,均以传递JSON数据操作
+
+### 简单示例:
+
+```
+ TianYiYunPan.login(username,password).getFilesInfoAsHome(); // 获取主页文件列表信息
+ 
+ YunPan123.login(auth).getStraight(fileInfo); // 根据JSON配置获取直链
 ```
