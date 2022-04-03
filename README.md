@@ -158,3 +158,31 @@ Map<String, String> storages = LocalStorage.home() // 获取 Local Storage
  
  YunPan123.login(auth).getStraight(fileInfo); // 根据JSON配置获取直链
 ```
+
+参数化多线程
+----------
+
+### 说明:
+
+1.使多线程方法参数化,可直接传入参数,应用范围很广  
+2.最多支持传入10个参数
+
+### 简单示例:
+
+```
+ExecutorService executorService = Executors.newFixedThreadPool(10);
+for (int i = 0; i < 10; i++) {
+	executorService.execute(new Thread(() -> { // 执行多线程
+		// TODO
+	}));
+			
+	executorService.execute(new ParameterizedThread<>(i, (index) -> { // 传参执行多线程
+		// TODO
+	}));
+			
+	Future<Integer> future = executorService.submit(new FutureTaskThread<>(i, (index) -> { // 传参执行多线程带返回值
+		return index + 1;
+	}));
+}
+MultiThreadUtils.WaitForEnd(executorService); // 等待线程结束
+```
