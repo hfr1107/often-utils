@@ -443,7 +443,7 @@ public class YunPan123 {
 		@Contract(pure = true) protected List<JSONObject> InfoListAsHome(@NotNull String fileId, @NotNull String search, boolean trashed) {
 			Map<String, String> data = new HashMap<>();
 			data.put("driveId", "0");
-			data.put("limit", "1");
+			data.put("limit", "1000");
 			data.put("next", "0");
 			data.put("orderBy", "fileId");
 			data.put("orderDirection", "desc");
