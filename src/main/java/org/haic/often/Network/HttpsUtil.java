@@ -66,7 +66,7 @@ public class HttpsUtil {
 	protected static class HttpConnection extends Connection {
 
 		protected String url; // URL
-		protected String params = ""; // 请求参数
+		protected String body; // 请求数据
 		protected int retry; // 请求异常重试次数
 		protected int MILLISECONDS_SLEEP; // 重试等待时间
 		protected int timeout; // 连接超时时间
@@ -76,6 +76,7 @@ public class HttpsUtil {
 		protected Proxy proxy = Proxy.NO_PROXY; // 代理
 		protected Method method = Method.GET;
 		protected Parser parser = Parser.htmlParser();
+		protected Map<String, String> params = new HashMap<>(); // 请求头
 		protected Map<String, String> headers = new HashMap<>(); // 请求头
 		protected Map<String, String> cookies = new HashMap<>(); // cookies
 		protected List<Integer> retryStatusCodes = new ArrayList<>();
@@ -103,7 +104,8 @@ public class HttpsUtil {
 		}
 
 		@Contract(pure = true) public Connection newRequest() {
-			params = "";
+			body = "";
+			params = new HashMap<>();
 			headers = new HashMap<>();
 			method = Method.GET;
 			return this;
@@ -170,13 +172,13 @@ public class HttpsUtil {
 		}
 
 		@Contract(pure = true) public Connection data(@NotNull String key, @NotNull String value) {
-			params += Judge.isEmpty(params) ? key + "=" + value : "&" + key + "=" + value;
-			return this;
+			params.put(key, value);
+			return data(params);
 		}
 
 		@Contract(pure = true) public Connection data(@NotNull Map<String, String> params) {
-			this.params = "";
-			params.forEach(this::data);
+			this.params = params;
+			body = params.entrySet().stream().map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.joining("&"));
 			return this;
 		}
 
@@ -191,7 +193,7 @@ public class HttpsUtil {
 		}
 
 		@Contract(pure = true) public Connection requestBody(@NotNull String body) {
-			params = body;
+			this.body = body;
 			return URIUtils.isJson(body) ?
 					header("content-type", "application/json;charset=UTF-8") :
 					header("content-type", "application/x-www-form-urlencoded;charset=UTF-8");
@@ -284,7 +286,7 @@ public class HttpsUtil {
 			try {
 				switch (method) {
 				case GET -> {
-					conn = connection(Judge.isEmpty(params) ? url : url + (url.contains("?") ? "&" : "?") + params);
+					conn = connection(Judge.isEmpty(body) ? url : url + (url.contains("?") ? "&" : "?") + body);
 					conn.connect();
 				}
 				case OPTIONS, DELETE, HEAD, TRACE -> {
@@ -298,8 +300,8 @@ public class HttpsUtil {
 					conn.setDoOutput(true); // 设置是否向HttpUrlConnction输出，因为这个是POST请求，参数要放在http正文内，因此需要设为true，默认情况下是false
 					conn.setDoInput(true); // 设置是否向HttpUrlConnection读入，默认情况下是true
 					try (DataOutputStream output = new DataOutputStream(conn.getOutputStream())) {
-						if (!Judge.isEmpty(params)) {
-							output.writeBytes(params); // 发送请求参数
+						if (!Judge.isEmpty(body)) {
+							output.writeBytes(body); // 发送请求参数
 						}
 						if (!Judge.isNull(file)) { // 发送文件
 							output.writeBytes(file.first);
