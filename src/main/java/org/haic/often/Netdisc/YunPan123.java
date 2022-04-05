@@ -72,7 +72,7 @@ public class YunPan123 {
 		return getInfosAsPage(shareUrl.substring(shareUrl.lastIndexOf("/") + 1), sharePwd, "0", 1);
 	}
 
-	@Contract(pure = true) protected static Map<String, String> getInfosAsPage(String key, String sharePwd, String parentFileId, int page) {
+	@Contract(pure = true) protected static Map<String, String> getInfosAsPage(String key, String sharePwd, String parentId, int page) {
 		Map<String, String> data = new HashMap<>();
 		data.put("limit", "100");
 		data.put("next", "1");
@@ -80,7 +80,7 @@ public class YunPan123 {
 		data.put("orderDirection", "desc");
 		data.put("shareKey", key);
 		data.put("sharePwd", sharePwd);
-		data.put("ParentFileId", parentFileId);
+		data.put("ParentFileId", parentId);
 		data.put("Page", String.valueOf(page));
 
 		JSONObject pageInfo = JSONObject.parseObject(HttpsUtil.connect(shareGetUrl).data(data).get().text()).getJSONObject("data");
@@ -126,7 +126,7 @@ public class YunPan123 {
 		protected Connection conn = HttpsUtil.newSession();
 
 		protected YunPan123API(@NotNull String auth) {
-			conn = conn.authorization(auth);
+			conn.authorization(auth);
 		}
 
 		/**
@@ -210,10 +210,9 @@ public class YunPan123 {
 		 * @return 返回执行结果代码, 一般情况下, 0为成功
 		 */
 		@Contract(pure = true) public int cancelShare(@NotNull List<String> shareIdList) {
-			JSONObject data = new JSONObject();
-			data.put("driveId", "0");
-			data.put("shareInfoList", shareIdList.stream().map(l -> new JSONObject().fluentPut("shareId", l)).toList());
-			return JSONObject.parseObject(conn.url(shareDeleteUrl).requestBody(data.toJSONString()).post().text()).getInteger("code");
+			return JSONObject.parseObject(conn.url(shareDeleteUrl).requestBody(new JSONObject().fluentPut("driveId", "0")
+							.fluentPut("shareInfoList", shareIdList.stream().map(l -> new JSONObject().fluentPut("shareId", l)).toList()).toJSONString()).post().text())
+					.getInteger("code");
 		}
 
 		/**
@@ -234,7 +233,7 @@ public class YunPan123 {
 		@Contract(pure = true) public List<JSONObject> listShares(@NotNull String search) {
 			return JSONObject.parseArray(JSONObject.parseObject(
 							conn.url(shareListUrl).requestBody("driveId=0&limit=10000&next=0&orderBy=fileId&orderDirection=desc&SearchData=" + search).get().text())
-					.getJSONObject("data").getJSONArray("InfoList").toJSONString(), JSONObject.class);
+					.getJSONObject("data").getString("InfoList"), JSONObject.class);
 		}
 
 		/**
@@ -297,16 +296,16 @@ public class YunPan123 {
 		/**
 		 * 创建文件夹
 		 *
-		 * @param parentFileId 父文件夹ID,0为根目录
-		 * @param fileName     文件夹名称
+		 * @param parentId 父文件夹ID,0为根目录
+		 * @param fileName 文件夹名称
 		 * @return 返回的JSON数据
 		 */
-		@Contract(pure = true) public JSONObject createFolder(@NotNull String parentFileId, @NotNull String fileName) {
+		@Contract(pure = true) public JSONObject createFolder(@NotNull String parentId, @NotNull String fileName) {
 			JSONObject data = new JSONObject();
 			data.put("driveId", "0");
 			data.put("etag", "");
 			data.put("fileName", fileName);
-			data.put("parentFileId", parentFileId);
+			data.put("parentFileId", parentId);
 			data.put("size", "0");
 			data.put("type", "1");
 			data.put("duplicate", "1");
@@ -356,24 +355,24 @@ public class YunPan123 {
 		/**
 		 * 移动文件到指定文件夹下
 		 *
-		 * @param parentFileId 移动后的文件夹ID
-		 * @param fileId       需要移动的文件ID,可指定多个
+		 * @param parentId 移动后的文件夹ID
+		 * @param fileId   需要移动的文件ID,可指定多个
 		 * @return 返回执行结果代码, 一般情况下, 0为成功
 		 */
-		@Contract(pure = true) public int move(@NotNull String parentFileId, @NotNull String... fileId) {
-			return move(parentFileId, List.of(fileId));
+		@Contract(pure = true) public int move(@NotNull String parentId, @NotNull String... fileId) {
+			return move(parentId, List.of(fileId));
 		}
 
 		/**
 		 * 移动文件到指定文件夹下
 		 *
-		 * @param parentFileId 移动后的文件夹ID
-		 * @param fileIdList   需要移动的文件ID列表
+		 * @param parentId   移动后的文件夹ID
+		 * @param fileIdList 需要移动的文件ID列表
 		 * @return 返回执行结果代码, 一般情况下, 0为成功
 		 */
-		@Contract(pure = true) public int move(@NotNull String parentFileId, @NotNull List<String> fileIdList) {
+		@Contract(pure = true) public int move(@NotNull String parentId, @NotNull List<String> fileIdList) {
 			JSONObject data = new JSONObject();
-			data.put("parentFileId", parentFileId);
+			data.put("parentFileId", parentId);
 			data.put("fileIdList", new JSONArray().fluentAddAll(fileIdList.stream().map(l -> new JSONObject().fluentPut("fileId", l)).toList()));
 			return JSONObject.parseObject(conn.url(modPidUrl).requestBody(data.toJSONString()).post().text()).getInteger("code");
 		}
@@ -400,22 +399,22 @@ public class YunPan123 {
 		/**
 		 * 获取用户主页的指定文件夹下的文件信息
 		 *
-		 * @param fileId 文件夹ID
+		 * @param folderId 文件夹ID
 		 * @return 文件信息JSON数组
 		 */
-		@Contract(pure = true) public List<JSONObject> getInfosAsHomeOfFolder(@NotNull String fileId) {
-			return getInfosAsHomeOfFolder(fileId, "");
+		@Contract(pure = true) public List<JSONObject> getInfosAsHomeOfFolder(@NotNull String folderId) {
+			return getInfosAsHomeOfFolder(folderId, "");
 		}
 
 		/**
 		 * 获取用户主页的指定文件夹下的匹配搜索项的文件信息
 		 *
-		 * @param fileId 文件夹ID
-		 * @param search 待搜索数据
+		 * @param folderId 文件夹ID
+		 * @param search   待搜索数据
 		 * @return 文件信息JSON数组
 		 */
-		@Contract(pure = true) public List<JSONObject> getInfosAsHomeOfFolder(@NotNull String fileId, @NotNull String search) {
-			return InfoListAsHome(fileId, search, false);
+		@Contract(pure = true) public List<JSONObject> getInfosAsHomeOfFolder(@NotNull String folderId, @NotNull String search) {
+			return InfoListAsHome(folderId, search, false);
 		}
 
 		/**
@@ -441,7 +440,8 @@ public class YunPan123 {
 			JSONObject info = JSONObject.parseObject(conn.url(filelistUrl).data(data).get().text()).getJSONObject("data");
 			filesInfo.addAll(info.getJSONArray("InfoList"));
 			for (int i = 2; !info.getString("Next").equals("-1"); i++) {
-				info = JSONObject.parseObject(conn.url(filelistUrl).data("Page", String.valueOf(i)).get().text()).getJSONObject("data");
+				data.put("Page", String.valueOf(i));
+				info = JSONObject.parseObject(conn.url(filelistUrl).data(data).get().text()).getJSONObject("data");
 				filesInfo.addAll(info.getJSONArray("InfoList"));
 			}
 			return JSONObject.parseArray(filesInfo.toJSONString(), JSONObject.class);

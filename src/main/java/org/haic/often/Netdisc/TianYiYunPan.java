@@ -31,10 +31,6 @@ public class TianYiYunPan {
 	public static final String listShareDirUrl = "https://cloud.189.cn/api/open/share/listShareDir.action";
 	public static final String shareInfoByCodeUrl = "https://cloud.189.cn/api/open/share/getShareInfoByCode.action";
 
-	public static final Map<String, String> headers = new HashMap<>() {{
-		put("accept", "application/json;charset=UTF-8");
-	}};
-
 	protected TianYiYunPan() {
 	}
 
@@ -67,7 +63,8 @@ public class TianYiYunPan {
 	 */
 	@Contract(pure = true) public static JSONObject getshareUrlInfo(@NotNull String shareUrl) {
 		String code = shareUrl.contains("code") ? StringUtils.extractRegex(shareUrl, "code=.*").substring(5) : shareUrl.substring(shareUrl.lastIndexOf("/"));
-		return JSONObject.parseObject(JsoupUtil.connect(shareInfoByCodeUrl).data("shareCode", code).headers(headers).get().text());
+		return JSONObject.parseObject(
+				JsoupUtil.connect(shareInfoByCodeUrl).data("shareCode", code).header("accept", "application/json;charset=UTF-8").get().text());
 	}
 
 	/**
@@ -108,14 +105,14 @@ public class TianYiYunPan {
 	 * @return List - JSON数据类型,包含文件所有信息
 	 */
 	@Contract(pure = true) public static List<JSONObject> getFilesInfoAsPage(@NotNull Map<String, String> data) {
-		Connection conn = JsoupUtil.connect(listShareDirUrl).headers(headers);
+		Connection conn = JsoupUtil.connect(listShareDirUrl).header("accept", "application/json;charset=UTF-8");
 		JSONObject infos = JSONObject.parseObject(conn.data(data).execute().body()).getJSONObject("fileListAO");
 		if (Judge.isNull(infos) || Judge.isEmpty(infos.getInteger("count"))) {
 			return new ArrayList<>();
 		}
-		List<JSONObject> filesInfo = new ArrayList<>(JSONObject.parseArray(infos.getJSONArray("fileList").toJSONString(), JSONObject.class));
+		List<JSONObject> filesInfo = JSONObject.parseArray(infos.getString("fileList"), JSONObject.class);
 		Map<String, String> thisData = new HashMap<>(data);
-		for (JSONObject folderInfo : JSONObject.parseArray(infos.getJSONArray("folderList").toJSONString(), JSONObject.class)) {
+		for (JSONObject folderInfo : JSONObject.parseArray(infos.getString("folderList"), JSONObject.class)) {
 			thisData.put("fileId", folderInfo.getString("id"));
 			filesInfo.addAll(getFilesInfoAsPage(thisData));
 		}
@@ -138,12 +135,10 @@ public class TianYiYunPan {
 		public static final String createFolderUrl = "https://cloud.189.cn/api/open/file/createFolder.action";
 		public static final String listRecycleBinFilesUrl = "https://cloud.189.cn/api/open/file/listRecycleBinFiles.action";
 
-		public Connection conn;
-		public Map<String, String> cookies;
+		public Connection conn = HttpsUtil.newSession();
 
 		protected TianYiYunPanAPI(@NotNull Map<String, String> cookies) {
-			this.cookies = cookies;
-			conn = HttpsUtil.newSession().headers(headers).cookies(cookies);
+			conn.cookies(cookies).header("accept", "application/json;charset=UTF-8");
 		}
 
 		/**
@@ -288,13 +283,12 @@ public class TianYiYunPan {
 		/**
 		 * 创建文件夹
 		 *
-		 * @param parentFolderId 父文件夹ID
-		 * @param folderName     文件夹名称
+		 * @param parentId   父文件夹ID
+		 * @param folderName 文件夹名称
 		 * @return 返回的JSON数据
 		 */
-		@Contract(pure = true) public JSONObject createFolder(@NotNull String parentFolderId, String folderName) {
-			return JSONObject.parseObject(
-					conn.url(renameFileUrl).requestBody("parentFolderId=" + parentFolderId + "&folderName=" + folderName).execute().body());
+		@Contract(pure = true) public JSONObject createFolder(@NotNull String parentId, String folderName) {
+			return JSONObject.parseObject(conn.url(renameFileUrl).requestBody("parentFolderId=" + parentId + "&folderName=" + folderName).execute().body());
 		}
 
 		/**

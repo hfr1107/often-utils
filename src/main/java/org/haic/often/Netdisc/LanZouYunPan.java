@@ -184,10 +184,8 @@ public class LanZouYunPan {
 		protected Connection conn = HttpsUtil.newSession();
 
 		protected LanZouYunPanAPI(Map<String, String> cookies) {
-			conn = conn.cookies(cookies);
+			conn.cookies(cookies);
 		}
-		//delete_complete_recycle
-		//restore_recycle
 
 		/**
 		 * 获取回收站的文件列表
@@ -438,7 +436,7 @@ public class LanZouYunPan {
 		 * @return 文件信息JSON数组
 		 */
 		@Contract(pure = true) public List<JSONObject> getFileInfosAsHomeOfFolder(@NotNull String folderId) {
-			return JSONObject.parseArray(doupload("task=5&pg=1&folder_id=" + folderId).getJSONArray("text").toJSONString(), JSONObject.class);
+			return JSONObject.parseArray(doupload("task=5&pg=1&folder_id=" + folderId).getString("text"), JSONObject.class);
 		}
 
 		/**
@@ -448,7 +446,7 @@ public class LanZouYunPan {
 		 * @return 文件信息JSON数组
 		 */
 		@Contract(pure = true) public List<JSONObject> getFolderInfosAsHomeOfFolder(@NotNull String folderId) {
-			return JSONObject.parseArray(doupload("task=47/&folder_id=" + folderId).getJSONArray("text").toJSONString(), JSONObject.class);
+			return JSONObject.parseArray(doupload("task=47/&folder_id=" + folderId).getString("text"), JSONObject.class);
 		}
 
 		/**
