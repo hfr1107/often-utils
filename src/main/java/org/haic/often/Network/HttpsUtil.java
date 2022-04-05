@@ -66,6 +66,7 @@ public class HttpsUtil {
 	protected static class HttpConnection extends Connection {
 
 		protected String url; // URL
+		protected String auth; // 身份识别标识
 		protected String params = ""; // 请求参数
 		protected int retry; // 请求异常重试次数
 		protected int MILLISECONDS_SLEEP; // 重试等待时间
@@ -84,19 +85,17 @@ public class HttpsUtil {
 
 		protected HttpConnection(@NotNull String url) {
 			System.setProperty("http.keepAlive", "false"); // 关闭长连接复用,防止流阻塞
-			this.url = url;
+			initialization(url);
+		}
+
+		@Contract(pure = true) protected Connection initialization(@NotNull String url) {
 			header("accept", "text/html, application/xhtml+xml, application/json;q=0.9, */*;q=0.8");
 			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
 			header("accept-encoding", "gzip, deflate, br"); // 允许压缩gzip,br-Brotli
 			header("user-agent", UserAgent.chrome()); // 设置随机请求头;
+			return url(url);
 		}
 
-		/**
-		 * 设置要获取的请求 URL，协议必须是 HTTP 或 HTTPS
-		 *
-		 * @param url 要连接的 URL
-		 * @return 此连接，用于链接
-		 */
 		@Contract(pure = true) public Connection url(@NotNull String url) {
 			this.url = url;
 			return this;
@@ -106,7 +105,8 @@ public class HttpsUtil {
 			params = "";
 			headers = new HashMap<>();
 			method = Method.GET;
-			return this;
+			initialization("");
+			return Judge.isEmpty(auth) ? this : authorization(auth);
 		}
 
 		@Contract(pure = true) public Connection sslSocketFactory(SSLContext sslSocket) {
@@ -132,7 +132,7 @@ public class HttpsUtil {
 		}
 
 		@Contract(pure = true) public Connection authorization(@NotNull String auth) {
-			return header("authorization", auth.startsWith("Bearer ") ? auth : "Bearer " + auth);
+			return header("authorization", (this.auth = auth.startsWith("Bearer ") ? auth : "Bearer " + auth));
 		}
 
 		@Contract(pure = true) public Connection timeout(int millis) {

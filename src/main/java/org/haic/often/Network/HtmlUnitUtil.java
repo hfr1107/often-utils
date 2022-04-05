@@ -85,7 +85,7 @@ public class HtmlUnitUtil {
 
 	protected static class HttpConnection extends Connection {
 
-		protected String url; // 请求URL
+		protected String auth; // 身份识别标识
 		protected boolean errorExit; // 错误退出
 		protected boolean unlimitedRetry;// 请求异常无限重试
 		protected int waitJSTime = 1000; // JS最大运行时间
@@ -97,18 +97,28 @@ public class HtmlUnitUtil {
 		protected List<Integer> retryStatusCodes = new ArrayList<>();
 
 		protected WebClient webClient = createClient();
-		protected WebRequest request = new WebRequest(null); // 会话
+		protected WebRequest request; // 会话
 
 		protected HttpConnection() {
+			initialization(new WebRequest(null));
+		}
+
+		@Contract(pure = true) protected Connection initialization(@NotNull WebRequest request) {
+			this.request = request;
 			header("accept", "text/html, application/xhtml+xml, application/json;q=0.9, */*;q=0.8");
 			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
 			header("accept-encoding", "gzip, deflate, br"); // 允许压缩gzip,br-Brotli
-			header("user-agent", UserAgent.chrome()); // 设置随机请求头
+			return header("user-agent", UserAgent.chrome()); // 设置随机请求头
 		}
 
 		@Contract(pure = true) public Connection url(@NotNull String url) {
-			request.setUrl(URIUtils.getURL(this.url = url));
+			request.setUrl(URIUtils.getURL(url));
 			return this;
+		}
+
+		@Contract(pure = true) public Connection newRequest() {
+			initialization(new WebRequest(null)).cookies(cookies);
+			return Judge.isEmpty(auth) ? this : authorization(auth);
 		}
 
 		@Contract(pure = true) public Connection userAgent(@NotNull String userAgent) {
@@ -129,7 +139,7 @@ public class HtmlUnitUtil {
 		}
 
 		@Contract(pure = true) public Connection authorization(@NotNull String auth) {
-			return header("authorization", auth.startsWith("Bearer ") ? auth : "Bearer " + auth);
+			return header("authorization", (this.auth = auth.startsWith("Bearer ") ? auth : "Bearer " + auth));
 		}
 
 		@Contract(pure = true) public Connection timeout(int millis) {
@@ -319,7 +329,7 @@ public class HtmlUnitUtil {
 			// webClient.close(); // 关闭webClient
 
 			if (errorExit && !URIUtils.statusIsNormal(statusCode)) {
-				throw new RuntimeException("连接URL失败，状态码: " + statusCode + " URL: " + url);
+				throw new RuntimeException("连接URL失败，状态码: " + statusCode + " URL: " + request.getUrl());
 			}
 
 			return response;
@@ -487,6 +497,14 @@ public class HtmlUnitUtil {
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection url(@NotNull String url);
+
+		/**
+		 * 连接newRequest ()
+		 * 创建一个新请求，使用此 Connection 作为会话状态并初始化连接设置（然后可以独立于返回的 Connection.Request 对象）。
+		 *
+		 * @return 一个新的 Connection 对象，具有共享的 Cookie 存储和来自此 Connection 和 Request 的初始化设置
+		 */
+		@Contract(pure = true) public abstract Connection newRequest();
 
 		/**
 		 * 连接用户代理（ 字符串 用户代理）<br/>

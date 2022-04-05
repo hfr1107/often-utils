@@ -44,7 +44,7 @@ public class JsoupUtil {
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public static Connection connect(@NotNull String url) {
-		return new HttpConnection(url, Jsoup.connect(url));
+		return new HttpConnection(Jsoup.connect(url));
 	}
 
 	/**
@@ -55,11 +55,11 @@ public class JsoupUtil {
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public static Connection newSession() {
-		return new HttpConnection("", Jsoup.newSession());
+		return new HttpConnection(Jsoup.newSession());
 	}
 
 	protected static class HttpConnection extends Connection {
-		protected String url; // 请求URL
+		protected String auth; // 身份识别标识
 		protected int retry; // 请求异常重试次数
 		protected int MILLISECONDS_SLEEP; // 重试等待时间
 		protected boolean unlimitedRetry;// 请求异常无限重试
@@ -70,23 +70,26 @@ public class JsoupUtil {
 
 		protected org.jsoup.Connection conn;
 
-		protected HttpConnection(String url, org.jsoup.Connection conn) {
-			this.url = url;
+		protected HttpConnection(@NotNull org.jsoup.Connection conn) {
+			initialization(conn);
+		}
+
+		@Contract(pure = true) protected Connection initialization(@NotNull org.jsoup.Connection conn) {
 			this.conn = conn.maxBodySize(0).timeout(0).ignoreContentType(true).ignoreHttpErrors(true);
 			header("accept", "text/html, application/xhtml+xml, application/json;q=0.9, */*;q=0.8");
 			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
 			header("accept-encoding", "gzip, deflate, br"); // 允许压缩gzip,br-Brotli
-			header("user-agent", UserAgent.chrome());
+			return header("user-agent", UserAgent.chrome()); // 设置随机请求头
 		}
 
 		@Contract(pure = true) public Connection url(@NotNull String url) {
-			conn.url(this.url = url);
+			conn.url(url);
 			return this;
 		}
 
 		@Contract(pure = true) public Connection newRequest() {
-			conn.newRequest();
-			return this;
+			initialization(conn.newRequest());
+			return Judge.isEmpty(auth) ? this : authorization(auth);
 		}
 
 		@Contract(pure = true) public Connection sslSocketFactory(SSLContext sslSocket) {
@@ -117,7 +120,7 @@ public class JsoupUtil {
 		}
 
 		@Contract(pure = true) public Connection authorization(@NotNull String auth) {
-			return header("authorization", auth.startsWith("Bearer ") ? auth : "Bearer " + auth);
+			return header("authorization", (this.auth = auth.startsWith("Bearer ") ? auth : "Bearer " + auth));
 		}
 
 		@Contract(pure = true) public Connection timeout(int millis) {
@@ -267,7 +270,7 @@ public class JsoupUtil {
 				statusCode = Judge.isNull(response) ? statusCode : response.statusCode();
 			}
 			if (errorExit && !URIUtils.statusIsNormal(statusCode)) {
-				throw new RuntimeException("连接URL失败，状态码: " + statusCode + " URL: " + url);
+				throw new RuntimeException("连接URL失败，状态码: " + statusCode + " URL: " + conn.request().url());
 			}
 			return response;
 		}

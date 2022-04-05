@@ -84,6 +84,7 @@ public class HttpClientUtil {
 
 		protected String url; // URL
 		protected String requestBody;
+		protected String auth; // 身份识别标识
 		protected int retry; // 请求异常重试次数
 		protected int MILLISECONDS_SLEEP; // 重试等待时间
 		protected int timeout; // 连接超时时间
@@ -104,11 +105,15 @@ public class HttpClientUtil {
 		protected HttpEntity entity;
 
 		protected HttpConnection(@NotNull String url) {
-			this.url = url;
+			initialization(url);
+		}
+
+		@Contract(pure = true) protected Connection initialization(@NotNull String url) {
 			header("accept", "text/html, application/xhtml+xml, application/json;q=0.9, */*;q=0.8");
 			header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
 			header("accept-encoding", "gzip, deflate, br"); // 允许压缩gzip,br-Brotli
 			header("user-agent", UserAgent.chrome()); // 设置随机请求头;
+			return url(url);
 		}
 
 		@Contract(pure = true) public Connection url(@NotNull String url) {
@@ -117,10 +122,12 @@ public class HttpClientUtil {
 		}
 
 		@Contract(pure = true) public Connection newRequest() {
+			requestBody = "";
 			params = new ArrayList<>();
 			headers = new HashMap<>();
 			method = Method.GET;
-			return this;
+			initialization("");
+			return Judge.isEmpty(auth) ? this : authorization(auth);
 		}
 
 		@Contract(pure = true) public Connection sslSocketFactory(SSLContext sslSocket) {
@@ -146,7 +153,7 @@ public class HttpClientUtil {
 		}
 
 		@Contract(pure = true) public Connection authorization(@NotNull String auth) {
-			return header("authorization", auth.startsWith("Bearer ") ? auth : "Bearer " + auth);
+			return header("authorization", (this.auth = auth.startsWith("Bearer ") ? auth : "Bearer " + auth));
 		}
 
 		@Contract(pure = true) public Connection timeout(int millis) {
