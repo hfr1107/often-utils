@@ -104,7 +104,7 @@ public class ALiYunPan {
 		 * 删除多个回收站的文件或文件夹
 		 *
 		 * @param fileId 指定的文件或文件夹,可指定多个
-		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
+		 * @return 返回的JSON数据
 		 */
 		@Contract(pure = true) public JSONObject clearRecycle(@NotNull String... fileId) {
 			return clearRecycle(Arrays.asList(fileId));
@@ -114,7 +114,7 @@ public class ALiYunPan {
 		 * 删除多个回收站的文件或文件夹
 		 *
 		 * @param fileIdList 指定的文件或文件夹ID列表
-		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
+		 * @return 返回的JSON数据
 		 */
 		@Contract(pure = true) public JSONObject clearRecycle(@NotNull List<String> fileIdList) {
 			JSONObject data = new JSONObject().fluentPut("requests", fileIdList.stream().map(l -> new JSONObject() {{
@@ -134,7 +134,7 @@ public class ALiYunPan {
 		 * 还原回收站的文件或文件夹
 		 *
 		 * @param fileId 文件或文件夹ID,可指定多个
-		 * @return 操作返回的结果状态码, 一般情况下, 0为成功
+		 * @return 返回的JSON数据
 		 */
 		@Contract(pure = true) public JSONObject restore(@NotNull String... fileId) {
 			return restore(Arrays.asList(fileId));
@@ -144,7 +144,7 @@ public class ALiYunPan {
 		 * 还原回收站的文件或文件夹
 		 *
 		 * @param fileIdList 文件或文件夹ID列表
-		 * @return 操作返回的结果状态码, 一般情况下, 0为成功
+		 * @return 返回的JSON数据
 		 */
 		@Contract(pure = true) public JSONObject restore(@NotNull List<String> fileIdList) {
 			JSONObject data = new JSONObject().fluentPut("requests", fileIdList.stream().map(l -> new JSONObject() {{
