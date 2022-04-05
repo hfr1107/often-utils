@@ -10,10 +10,8 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.nodes.Document;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * 阿里云盘API(开发中)
@@ -91,6 +89,8 @@ public class ALiYunPan {
 		public static final String userInfoUrl = "https://api.aliyundrive.com/v2/user/get";
 		public static final String fileSearchUrl = "https://api.aliyundrive.com/adrive/v3/file/search";
 		public static final String batchUrl = "https://api.aliyundrive.com/v3/batch";
+		public static final String createShareLinkUrl = "https://api.aliyundrive.com/adrive/v2/share_link/create";
+		public static final String recyclebinListUrl = "https://api.aliyundrive.com/v2/recyclebin/list";
 
 		protected JSONObject userInfo;
 		protected Connection conn = HttpsUtil.newSession();
@@ -101,20 +101,197 @@ public class ALiYunPan {
 		}
 
 		/**
+		 * 删除多个回收站的文件或文件夹
+		 *
+		 * @param fileId 指定的文件或文件夹,可指定多个
+		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
+		 */
+		@Contract(pure = true) public JSONObject clearRecycle(@NotNull String... fileId) {
+			return clearRecycle(Arrays.asList(fileId));
+		}
+
+		/**
+		 * 删除多个回收站的文件或文件夹
+		 *
+		 * @param fileIdList 指定的文件或文件夹ID列表
+		 * @return 操作返回的结果状态码, 一般情况下, 0表示成功
+		 */
+		@Contract(pure = true) public JSONObject clearRecycle(@NotNull List<String> fileIdList) {
+			JSONObject data = new JSONObject().fluentPut("requests", fileIdList.stream().map(l -> new JSONObject() {{
+				put("body", new JSONObject() {{
+					put("drive_id", userInfo.getString("default_drive_id"));
+					put("file_id", l);
+				}});
+				put("headers", new JSONObject().fluentPut("Content-Type", "application/json"));
+				put("id", l);
+				put("method", "POST");
+				put("url", "/file/delete");
+			}}).toList()).fluentPut("resource", "file");
+			return JSONObject.parseObject(conn.url(batchUrl).requestBody(data.toJSONString()).post().text());
+		}
+
+		/**
+		 * 还原回收站的文件或文件夹
+		 *
+		 * @param fileId 文件或文件夹ID,可指定多个
+		 * @return 操作返回的结果状态码, 一般情况下, 0为成功
+		 */
+		@Contract(pure = true) public JSONObject restore(@NotNull String... fileId) {
+			return restore(Arrays.asList(fileId));
+		}
+
+		/**
+		 * 还原回收站的文件或文件夹
+		 *
+		 * @param fileIdList 文件或文件夹ID列表
+		 * @return 操作返回的结果状态码, 一般情况下, 0为成功
+		 */
+		@Contract(pure = true) public JSONObject restore(@NotNull List<String> fileIdList) {
+			JSONObject data = new JSONObject().fluentPut("requests", fileIdList.stream().map(l -> new JSONObject() {{
+				put("body", new JSONObject() {{
+					put("drive_id", userInfo.getString("default_drive_id"));
+					put("file_id", l);
+				}});
+				put("headers", new JSONObject().fluentPut("Content-Type", "application/json"));
+				put("id", l);
+				put("method", "POST");
+				put("url", "/recyclebin/restore");
+			}}).toList()).fluentPut("resource", "file");
+			return JSONObject.parseObject(conn.url(batchUrl).requestBody(data.toJSONString()).post().text());
+		}
+
+		/**
+		 * 获取回收站文件列表
+		 *
+		 * @return 返回的JSON格式文件列表
+		 */
+		@Contract(pure = true) public List<JSONObject> listRecycleBinFiles() {
+			JSONObject data = new JSONObject();
+			data.put("drive_id", userInfo.getString("default_drive_id"));
+			data.put("limit", 100);
+			data.put("order_by", "name");
+			data.put("order_direction", "DESC");
+			return inquire(recyclebinListUrl, data);
+		}
+
+		/**
+		 * 取消收藏文件
+		 *
+		 * @param fileId 文件ID,可指定多个
+		 * @return 返回的JSON数据
+		 */
+		@Contract(pure = true) public JSONObject cancelCollect(@NotNull String... fileId) {
+			return cancelCollect(Arrays.asList(fileId));
+		}
+
+		/**
+		 * 取消收藏文件
+		 *
+		 * @param fileIdList 文件ID列表
+		 * @return 返回的JSON数据
+		 */
+		@Contract(pure = true) public JSONObject cancelCollect(@NotNull List<String> fileIdList) {
+			JSONObject data = new JSONObject().fluentPut("requests", fileIdList.stream().map(l -> new JSONObject() {{
+				put("body", new JSONObject() {{
+					put("drive_id", userInfo.getString("default_drive_id"));
+					put("file_id", l);
+					put("starred", false);
+					put("custom_index_key", "");
+				}});
+				put("headers", new JSONObject().fluentPut("Content-Type", "application/json"));
+				put("id", l);
+				put("method", "PUT");
+				put("url", "/file/update");
+			}}).toList()).fluentPut("resource", "file");
+			return JSONObject.parseObject(conn.url(batchUrl).requestBody(data.toJSONString()).post().text());
+		}
+
+		/**
+		 * 收藏文件
+		 *
+		 * @param fileId 文件ID,可指定多个
+		 * @return 返回的JSON数据
+		 */
+		@Contract(pure = true) public JSONObject collect(@NotNull String... fileId) {
+			return collect(Arrays.asList(fileId));
+		}
+
+		/**
+		 * 收藏文件
+		 *
+		 * @param fileIdList 文件ID列表
+		 * @return 返回的JSON数据
+		 */
+		@Contract(pure = true) public JSONObject collect(@NotNull List<String> fileIdList) {
+			JSONObject data = new JSONObject().fluentPut("requests", fileIdList.stream().map(l -> new JSONObject() {{
+				put("body", new JSONObject() {{
+					put("drive_id", userInfo.getString("default_drive_id"));
+					put("file_id", l);
+					put("starred", true);
+					put("custom_index_key", "starred_yes");
+				}});
+				put("headers", new JSONObject().fluentPut("Content-Type", "application/json"));
+				put("id", l);
+				put("method", "PUT");
+				put("url", "/file/update");
+			}}).toList()).fluentPut("resource", "file");
+			return JSONObject.parseObject(conn.url(batchUrl).requestBody(data.toJSONString()).post().text());
+		}
+
+		/**
+		 * 创建分享链接
+		 *
+		 * @param day       分享天数,0为永久
+		 * @param shareCode 分享码,空字符串为公开链接
+		 * @param fileId    文件ID,可指定多个
+		 * @return 返回的JSON数据
+		 */
+		@Contract(pure = true) public JSONObject createShare(int day, @NotNull String shareCode, @NotNull String... fileId) {
+			return createShare(day, shareCode, Arrays.asList(fileId));
+		}
+
+		/**
+		 * 创建分享链接
+		 *
+		 * @param day        分享天数,0为永久
+		 * @param shareCode  分享码,空字符串为公开链接
+		 * @param fileIdList 文件ID列表
+		 * @return 返回的JSON数据
+		 */
+		@Contract(pure = true) public JSONObject createShare(int day, @NotNull String shareCode, @NotNull List<String> fileIdList) {
+			Calendar time = Calendar.getInstance();
+			time.add(Calendar.DAY_OF_MONTH, day);
+			SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss'.094Z'");
+			JSONObject data = new JSONObject() {{
+				put("drive_id", userInfo.getString("default_drive_id"));
+				put("expiration", Judge.isEmpty(day) ? "" : format.format(time.getTime()));
+				put("file_id_list", new JSONArray().fluentAddAll(fileIdList));
+				put("share_pwd", shareCode);
+				put("sync_to_homepage", false);
+			}};
+			return JSONObject.parseObject(conn.url(createShareLinkUrl).requestBody(data.toJSONString()).post().text());
+		}
+
+		/**
 		 * 删除文件或文件夹
 		 *
 		 * @param fileId 文件或文件夹ID,可指定多个
-		 * @return 返回的JSON数据中提取的结果状态码, 一般情况下200为成功
+		 * @return 返回的JSON数据
 		 */
 		@Contract(pure = true) public JSONObject delete(@NotNull String... fileId) {
 			return delete(Arrays.asList(fileId));
 		}
 
+		/**
+		 * 删除文件或文件夹
+		 *
+		 * @param fileIdList 文件或文件夹ID列表
+		 * @return 返回的JSON数据
+		 */
 		@Contract(pure = true) public JSONObject delete(@NotNull List<String> fileIdList) {
 			JSONObject data = new JSONObject().fluentPut("requests", fileIdList.stream().map(l -> new JSONObject() {{
 				put("body", new JSONObject() {{
-					String driveId = userInfo.getString("default_drive_id");
-					put("drive_id", driveId);
+					put("drive_id", userInfo.getString("default_drive_id"));
 					put("file_id", l);
 				}});
 				put("id", l);
@@ -129,7 +306,7 @@ public class ALiYunPan {
 		 *
 		 * @param parentId 指定目录ID
 		 * @param fileId   文件或文件夹ID,可指定多个
-		 * @return 返回的JSON数据中提取的结果状态码, 一般情况下200为成功
+		 * @return 返回的JSON数据
 		 */
 		@Contract(pure = true) public JSONObject move(@NotNull String parentId, @NotNull String... fileId) {
 			return move(parentId, Arrays.asList(fileId));
@@ -140,7 +317,7 @@ public class ALiYunPan {
 		 *
 		 * @param parentId   指定目录ID
 		 * @param fileIdList 文件或文件夹ID列表
-		 * @return 返回的JSON数据中提取的结果状态码, 一般情况下200为成功
+		 * @return 返回的JSON数据
 		 */
 		@Contract(pure = true) public JSONObject move(@NotNull String parentId, @NotNull List<String> fileIdList) {
 			JSONObject data = new JSONObject().fluentPut("requests", fileIdList.stream().map(l -> new JSONObject() {{
