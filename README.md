@@ -143,22 +143,6 @@ Map<String, String> storages = LocalStorage.home() // 获取 Local Storage
 .getStoragesForDomain("pixiv.net");
 ```
 
-云盘API
-------
-
-### 说明:
-
-1.支持网盘: 天翼云盘,阿里云盘,蓝奏云盘,123云盘  
-2.为保证兼容性,降低复杂度,均以传递JSON数据操作
-
-### 简单示例:
-
-```
- TianYiYunPan.login(username,password).getFilesInfoAsHome(); // 获取主页文件列表信息
- 
- YunPan123.login(auth).getStraight(fileInfo); // 根据JSON配置获取直链
-```
-
 参数化多线程
 ----------
 
