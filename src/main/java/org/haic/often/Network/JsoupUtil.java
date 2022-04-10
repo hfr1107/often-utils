@@ -89,7 +89,7 @@ public class JsoupUtil {
 
 		@Contract(pure = true) public Connection newRequest() {
 			initialization(conn.newRequest());
-			return Judge.isEmpty(auth) ? this : authorization(auth);
+			return Judge.isEmpty(auth) ? this : auth(auth);
 		}
 
 		@Contract(pure = true) public Connection sslSocketFactory(SSLContext sslSocket) {
@@ -119,8 +119,8 @@ public class JsoupUtil {
 			return header("referer", referrer);
 		}
 
-		@Contract(pure = true) public Connection authorization(@NotNull String auth) {
-			return header("authorization", (this.auth = auth.startsWith("Bearer ") ? auth : "Bearer " + auth));
+		@Contract(pure = true) public Connection auth(@NotNull String auth) {
+			return header("authorization", (this.auth = auth.contains(" ") ? auth : "Bearer " + auth));
 		}
 
 		@Contract(pure = true) public Connection timeout(int millis) {
@@ -138,6 +138,10 @@ public class JsoupUtil {
 			return this;
 		}
 
+		@Contract(pure = true) public Connection contentType(@NotNull String type) {
+			return header("content-type", type);
+		}
+
 		@Contract(pure = true) public Connection header(@NotNull String name, @NotNull String value) {
 			conn.header(name, value);
 			return this;
@@ -148,12 +152,24 @@ public class JsoupUtil {
 			return this;
 		}
 
+		@Contract(pure = true) public Connection setHeaders(@NotNull Map<String, String> headers) {
+			conn.request().headers().clear();
+			conn.headers(headers);
+			return this;
+		}
+
 		@Contract(pure = true) public Connection cookie(@NotNull String name, @NotNull String value) {
 			conn.cookie(name, value);
 			return this;
 		}
 
 		@Contract(pure = true) public Connection cookies(@NotNull Map<String, String> cookies) {
+			conn.cookies(cookies);
+			return this;
+		}
+
+		@Contract(pure = true) public Connection setCookies(@NotNull Map<String, String> cookies) {
+			conn.request().cookies().clear();
 			conn.cookies(cookies);
 			return this;
 		}
@@ -173,6 +189,7 @@ public class JsoupUtil {
 		}
 
 		@Contract(pure = true) public Connection data(@NotNull Map<String, String> params) {
+			conn.request().data().clear();
 			conn.data(params);
 			return this;
 		}
@@ -193,9 +210,7 @@ public class JsoupUtil {
 
 		@Contract(pure = true) public Connection requestBody(@NotNull String body) {
 			conn.requestBody(body);
-			return URIUtils.isJson(body) ?
-					header("content-type", "application/json;charset=UTF-8") :
-					header("content-type", "application/x-www-form-urlencoded;charset=UTF-8");
+			return URIUtils.isJson(body) ? contentType("application/json;charset=UTF-8") : contentType("application/x-www-form-urlencoded;charset=UTF-8");
 		}
 
 		@Contract(pure = true) public Connection socks(@NotNull String proxyHost, int proxyPort) {

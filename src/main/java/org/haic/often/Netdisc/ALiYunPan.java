@@ -96,7 +96,7 @@ public class ALiYunPan {
 		protected Connection conn = HttpsUtil.newSession();
 
 		protected ALiYunPanAPI(@NotNull String auth) {
-			conn.authorization(auth);
+			conn.auth(auth);
 			userInfo = JSONObject.parseObject(conn.url(userInfoUrl).requestBody(new JSONObject().toJSONString()).post().text());
 		}
 

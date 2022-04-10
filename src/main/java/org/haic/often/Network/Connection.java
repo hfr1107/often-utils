@@ -84,14 +84,18 @@ public abstract class Connection {
 	@Contract(pure = true) public abstract Connection referrer(@NotNull String referrer);
 
 	/**
-	 * 设置授权码或身份识别标识<br/>
-	 * 有些服务器不使用cookie验证身份,使用authorization进行验证<br/>
+	 * 设置授权码或身份识别标识
+	 * <p>
+	 * 有些服务器不使用cookie验证身份,使用authorization进行验证
+	 * <p>
 	 * 一般信息在cookie或local Storage中存储
+	 * <p>
+	 * 如果没有协议类型,默认使用Bearer
 	 *
 	 * @param auth 授权码或身份识别标识
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public abstract Connection authorization(@NotNull String auth);
+	@Contract(pure = true) public abstract Connection auth(@NotNull String auth);
 
 	/**
 	 * 设置总请求超时时间，连接超时（ int millis）<br/>
@@ -114,6 +118,14 @@ public abstract class Connection {
 	@Contract(pure = true) public abstract Connection parser(@NotNull Parser parser);
 
 	/**
+	 * 设置连接请求类型参数,用于服务器识别内容类型
+	 *
+	 * @param type 请求类型
+	 * @return 此连接，用于链接
+	 */
+	@Contract(pure = true) public abstract Connection contentType(@NotNull String type);
+
+	/**
 	 * 连接头（ 字符串 名称， 字符串 值）<br/>
 	 * 设置请求标头
 	 *
@@ -124,13 +136,24 @@ public abstract class Connection {
 	@Contract(pure = true) public abstract Connection header(@NotNull String name, @NotNull String value);
 
 	/**
-	 * 连接头（ Map  < String  , String  > 头）<br/>
+	 * 连接头（ Map  < String  , String  > 头）
+	 * <p>
 	 * 将每个提供的标头添加到请求中
 	 *
 	 * @param headers 标头名称映射 -> 值对
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public abstract Connection headers(@NotNull Map<String, String> headers);
+
+	/**
+	 * 连接头（ Map  < String  , String  > 头）
+	 * <p>
+	 * 将为连接设置全新的请求标头
+	 *
+	 * @param headers 标头名称映射 -> 值对
+	 * @return 此连接，用于链接
+	 */
+	@Contract(pure = true) public abstract Connection setHeaders(@NotNull Map<String, String> headers);
 
 	/**
 	 * 设置要在请求中发送的 cookie
@@ -142,13 +165,24 @@ public abstract class Connection {
 	@Contract(pure = true) public abstract Connection cookie(@NotNull String name, @NotNull String value);
 
 	/**
-	 * 连接 cookies （ Map < String  , String  >cookies）<br/>
+	 * 连接 cookies （ Map < String  , String  >cookies）
+	 * <p>
 	 * 将每个提供的 cookie 添加到请求中
 	 *
 	 * @param cookies 名称映射 -> 值对
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public abstract Connection cookies(@NotNull Map<String, String> cookies);
+
+	/**
+	 * 连接 cookies （ Map < String  , String  >cookies）
+	 * <p>
+	 * 将为连接设置全新的 cookie
+	 *
+	 * @param cookies 名称映射 -> 值对
+	 * @return 此连接，用于链接
+	 */
+	@Contract(pure = true) public abstract Connection setCookies(@NotNull Map<String, String> cookies);
 
 	/**
 	 * CookieStore  - Map < String , String >
@@ -170,7 +204,7 @@ public abstract class Connection {
 	@Contract(pure = true) public abstract Connection data(@NotNull String key, @NotNull String value);
 
 	/**
-	 * 将所有提供的数据添加到请求数据参数
+	 * 根据所有提供的数据设置全新的请求数据参数
 	 *
 	 * @param params 数据参数
 	 * @return 此连接，用于链接

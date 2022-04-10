@@ -106,7 +106,7 @@ public class HttpsUtil {
 			headers = new HashMap<>();
 			method = Method.GET;
 			initialization("");
-			return Judge.isEmpty(auth) ? this : authorization(auth);
+			return Judge.isEmpty(auth) ? this : auth(auth);
 		}
 
 		@Contract(pure = true) public Connection sslSocketFactory(SSLContext sslSocket) {
@@ -131,8 +131,8 @@ public class HttpsUtil {
 			return header("referer", referrer);
 		}
 
-		@Contract(pure = true) public Connection authorization(@NotNull String auth) {
-			return header("authorization", (this.auth = auth.startsWith("Bearer ") ? auth : "Bearer " + auth));
+		@Contract(pure = true) public Connection auth(@NotNull String auth) {
+			return header("authorization", (this.auth = auth.contains(" ") ? auth : "Bearer " + auth));
 		}
 
 		@Contract(pure = true) public Connection timeout(int millis) {
@@ -145,14 +145,23 @@ public class HttpsUtil {
 			return this;
 		}
 
+		@Contract(pure = true) public Connection contentType(@NotNull String type) {
+			return header("content-type", type);
+		}
+
 		@Contract(pure = true) public Connection header(@NotNull String name, @NotNull String value) {
 			this.headers.put(name, value);
 			return this;
 		}
 
 		@Contract(pure = true) public Connection headers(@NotNull Map<String, String> headers) {
-			this.headers = headers;
+			this.headers.putAll(headers);
 			return this;
+		}
+
+		@Contract(pure = true) public Connection setHeaders(@NotNull Map<String, String> headers) {
+			this.headers = new HashMap<>();
+			return headers(headers);
 		}
 
 		@Contract(pure = true) public Connection cookie(@NotNull String name, @NotNull String value) {
@@ -161,8 +170,13 @@ public class HttpsUtil {
 		}
 
 		@Contract(pure = true) public Connection cookies(@NotNull Map<String, String> cookies) {
-			this.cookies = cookies;
+			this.cookies.putAll(cookies);
 			return this;
+		}
+
+		@Contract(pure = true) public Connection setCookies(@NotNull Map<String, String> cookies) {
+			this.cookies = new HashMap<>();
+			return cookies(cookies);
 		}
 
 		@Contract(pure = true) public Map<String, String> cookieStore() {
@@ -182,7 +196,7 @@ public class HttpsUtil {
 		@Contract(pure = true) public Connection data(@NotNull String key, @NotNull String fileName, @NotNull InputStream inputStream) {
 			ThreeTuple<String, String, String> fromData = URIUtils.getFormData(key, fileName);
 			file = Tuple.of(fromData.second, inputStream, fromData.third);
-			return header("content-type", "multipart/form-data; boundary=" + fromData.first);
+			return contentType("multipart/form-data; boundary=" + fromData.first);
 		}
 
 		@Contract(pure = true) public Connection file(@NotNull String fileName, @NotNull InputStream inputStream) {
@@ -191,9 +205,7 @@ public class HttpsUtil {
 
 		@Contract(pure = true) public Connection requestBody(@NotNull String body) {
 			params = body;
-			return URIUtils.isJson(body) ?
-					header("content-type", "application/json;charset=UTF-8") :
-					header("content-type", "application/x-www-form-urlencoded;charset=UTF-8");
+			return URIUtils.isJson(body) ? contentType("application/json;charset=UTF-8") : contentType("application/x-www-form-urlencoded;charset=UTF-8");
 		}
 
 		@Contract(pure = true) public Connection socks(@NotNull String proxyHost, int proxyPort) {
@@ -314,7 +326,7 @@ public class HttpsUtil {
 				}
 				conn.disconnect();
 				Response response = new HttpResponse(this, conn);
-				cookies.putAll(response.cookies()); // 维护cookies
+				cookies(response.cookies()); // 维护cookies
 
 				String redirectUrl; // 修复重定向
 				if (followRedirects && URIUtils.statusIsRedirect(response.statusCode()) && !Judge.isEmpty(redirectUrl = conn.getHeaderField("location"))) {

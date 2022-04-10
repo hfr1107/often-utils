@@ -118,7 +118,7 @@ public class HtmlUnitUtil {
 
 		@Contract(pure = true) public Connection newRequest() {
 			initialization(new WebRequest(null)).cookies(cookies);
-			return Judge.isEmpty(auth) ? this : authorization(auth);
+			return Judge.isEmpty(auth) ? this : auth(auth);
 		}
 
 		@Contract(pure = true) public Connection userAgent(@NotNull String userAgent) {
@@ -138,8 +138,8 @@ public class HtmlUnitUtil {
 			return header("referer", referrer);
 		}
 
-		@Contract(pure = true) public Connection authorization(@NotNull String auth) {
-			return header("authorization", (this.auth = auth.startsWith("Bearer ") ? auth : "Bearer " + auth));
+		@Contract(pure = true) public Connection auth(@NotNull String auth) {
+			return header("authorization", (this.auth = auth.contains(" ") ? auth : "Bearer " + auth));
 		}
 
 		@Contract(pure = true) public Connection timeout(int millis) {
@@ -152,6 +152,10 @@ public class HtmlUnitUtil {
 			return this;
 		}
 
+		@Contract(pure = true) public Connection contentType(@NotNull String type) {
+			return header("content-type", type);
+		}
+
 		@Contract(pure = true) public Connection header(@NotNull String name, @NotNull String value) {
 			request.setAdditionalHeader(name, value);
 			return this;
@@ -162,16 +166,28 @@ public class HtmlUnitUtil {
 			return this;
 		}
 
+		@Contract(pure = true) public Connection setHeaders(@NotNull Map<String, String> headers) {
+			request.getAdditionalHeaders().clear();
+			headers(headers);
+			String cookie = this.cookies.toString().replaceAll(",", ";");
+			return header("cookie", cookie.substring(1, cookie.length() - 1));
+		}
+
 		@Contract(pure = true) public Connection cookie(@NotNull String name, @NotNull String value) {
 			cookies.put(name, value);
 			String cookie = request.getAdditionalHeader("cookie");
-			return header("cookie", Judge.isEmpty(cookie) ? name + "=" + value : cookie + "; " + name + "=" + value);
+			return header("cookie", (Judge.isEmpty(cookie) ? "" : cookie + "; ") + name + "=" + value);
 		}
 
 		@Contract(pure = true) public Connection cookies(@NotNull Map<String, String> cookies) {
-			this.cookies = cookies;
-			String cookie = cookies.toString().replaceAll(",", ";");
+			this.cookies.putAll(cookies);
+			String cookie = this.cookies.toString().replaceAll(",", ";");
 			return header("cookie", cookie.substring(1, cookie.length() - 1));
+		}
+
+		@Contract(pure = true) public Connection setCookies(@NotNull Map<String, String> cookies) {
+			this.cookies = new HashMap<>();
+			return cookies(cookies);
 		}
 
 		@Contract(pure = true) public Connection data(@NotNull String key, @NotNull String value) {
@@ -186,9 +202,7 @@ public class HtmlUnitUtil {
 
 		@Contract(pure = true) public Connection requestBody(@NotNull String body) {
 			request.setRequestBody(body);
-			return URIUtils.isJson(body) ?
-					header("content-type", "application/json;charset=UTF-8") :
-					header("content-type", "application/x-www-form-urlencoded;charset=UTF-8");
+			return URIUtils.isJson(body) ? contentType("application/json;charset=UTF-8") : contentType("application/x-www-form-urlencoded;charset=UTF-8");
 		}
 
 		@Contract(pure = true) public Connection socks(@NotNull String proxyHost, int proxyPort) {
@@ -343,7 +357,7 @@ public class HtmlUnitUtil {
 				return null;
 			}
 			webClient.waitForBackgroundJavaScript(waitJSTime); // 阻塞并执行JS
-			cookies.putAll(response.cookies()); // 维护cookies
+			cookies(response.cookies()); // 维护cookies
 
 			return response;
 		}
@@ -542,14 +556,18 @@ public class HtmlUnitUtil {
 		@Contract(pure = true) public abstract Connection referrer(@NotNull String referrer);
 
 		/**
-		 * 设置授权码或身份识别标识<br/>
-		 * 有些服务器不使用cookie验证身份,使用authorization进行验证<br/>
+		 * 设置授权码或身份识别标识
+		 * <p>
+		 * 有些服务器不使用cookie验证身份,使用authorization进行验证
+		 * <p>
 		 * 一般信息在cookie或local Storage中存储
+		 * <p>
+		 * 如果没有协议类型,默认使用Bearer
 		 *
 		 * @param auth 授权码或身份识别标识
 		 * @return 此连接，用于链接
 		 */
-		@Contract(pure = true) public abstract Connection authorization(@NotNull String auth);
+		@Contract(pure = true) public abstract Connection auth(@NotNull String auth);
 
 		/**
 		 * 设置总请求超时时间，连接超时（ int millis）<br/>
@@ -572,6 +590,14 @@ public class HtmlUnitUtil {
 		@Contract(pure = true) public abstract Connection parser(@NotNull Parser parser);
 
 		/**
+		 * 设置连接请求类型参数,用于服务器识别内容类型
+		 *
+		 * @param type 请求类型
+		 * @return 此连接，用于链接
+		 */
+		@Contract(pure = true) public abstract Connection contentType(@NotNull String type);
+
+		/**
 		 * 连接头（ 字符串 名称， 字符串 值）<br/>
 		 * 设置请求标头
 		 *
@@ -589,6 +615,16 @@ public class HtmlUnitUtil {
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection headers(@NotNull Map<String, String> headers);
+
+		/**
+		 * 连接头（ Map  < String  , String  > 头）
+		 * <p>
+		 * 将为连接设置全新的请求标头
+		 *
+		 * @param headers 标头名称映射 -> 值对
+		 * @return 此连接，用于链接
+		 */
+		@Contract(pure = true) public abstract Connection setHeaders(@NotNull Map<String, String> headers);
 
 		/**
 		 * 设置要在请求中发送的 cookie
@@ -609,6 +645,16 @@ public class HtmlUnitUtil {
 		@Contract(pure = true) public abstract Connection cookies(@NotNull Map<String, String> cookies);
 
 		/**
+		 * 连接 cookies （ Map < String  , String  >cookies）
+		 * <p>
+		 * 将为连接设置全新的 cookie
+		 *
+		 * @param cookies 名称映射 -> 值对
+		 * @return 此连接，用于链接
+		 */
+		@Contract(pure = true) public abstract Connection setCookies(@NotNull Map<String, String> cookies);
+
+		/**
 		 * 连接数据（ 字符串 键、 字符串 值）<br/>
 		 * 添加请求数据参数。请求参数在 GET 的请求查询字符串中发送，在 POST 的请求正文中发送。一个请求可能有多个同名的值。
 		 *
@@ -619,7 +665,7 @@ public class HtmlUnitUtil {
 		@Contract(pure = true) public abstract Connection data(@NotNull String key, @NotNull String value);
 
 		/**
-		 * 将所有提供的数据添加到请求数据参数
+		 * 根据所有提供的数据设置全新的请求数据参数
 		 *
 		 * @param params 数据参数
 		 * @return 此连接，用于链接

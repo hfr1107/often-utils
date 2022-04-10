@@ -126,7 +126,7 @@ public class YunPan123 {
 		protected Connection conn = HttpsUtil.newSession();
 
 		protected YunPan123API(@NotNull String auth) {
-			conn.authorization(auth);
+			conn.auth(auth);
 		}
 
 		/**
