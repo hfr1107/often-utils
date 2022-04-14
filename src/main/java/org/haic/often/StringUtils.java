@@ -319,7 +319,7 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils {
 	 * @return 一般字符串
 	 */
 	@NotNull @Contract(pure = true) public static String unicodeStrToString(@NotNull String unicodeStr) {
-		final String regex = "\\\\u[a-f0-9A-F]{1,4}";
+		final String regex = "\\\\u[a-f\\dA-F]{1,4}";
 		int count = 0;
 		Matcher matcher = Pattern.compile(regex).matcher(unicodeStr);
 		StringBuilder result = new StringBuilder();

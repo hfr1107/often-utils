@@ -503,7 +503,7 @@ public class FilesUtils {
 	 * @return 正常的Windows文件名
 	 */
 	@NotNull @Contract(pure = true) public static String illegalFileName(@NotNull String fileName) {
-		return fileName.replaceAll("[\\\\/:*?\"<>|]", "_").replaceAll("[_]{2,}", "_");
+		return fileName.replaceAll("[\\\\/:*?\"<>|]", "_").replaceAll("_{2,}", "_");
 	}
 
 	/**

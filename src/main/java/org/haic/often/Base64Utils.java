@@ -151,7 +151,7 @@ public class Base64Utils {
 	 * @return 判断结果
 	 */
 	@Contract(pure = true) public static boolean isBase64(@NotNull String str) {
-		return Pattern.matches("^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$", str);
+		return Pattern.matches("^([A-Za-z\\d+/]{4})*([A-Za-z\\d+/]{4}|[A-Za-z\\d+/]{3}=|[A-Za-z\\d+/]{2}==)$", str);
 	}
 
 }

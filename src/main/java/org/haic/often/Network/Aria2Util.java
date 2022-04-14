@@ -40,7 +40,7 @@ public class Aria2Util {
 	}
 
 	/**
-	 * aria2RpcUrl: http://localhost:6800/jsonrpc
+	 * aria2RpcUrl: <a href="http://localhost:6800/jsonrpc">http://localhost:6800/jsonrpc</a>
 	 *
 	 * @return this
 	 */
@@ -581,7 +581,7 @@ public class Aria2Util {
 		 */
 		CHANGEPOSITION("aria2.changePosition"),
 		/**
-		 * This method removes the URIs in delUris from and appends the URIs in addUris to download denoted by gid. delUris and addUris are lists of strings. A download can contain multiple files and URIs are attached to each file. fileIndex is used to select which file to remove/attach given URIs. fileIndex is 1-based. position is used to specify where URIs are inserted in the existing waiting URI list. position is 0-based. When position is omitted, URIs are appended to the back of the list. This method first executes the removal and then the addition. position is the position after URIs are removed, not the position when this method is called. When removing an URI, if the same URIs exist in download, only one of them is removed for each URI in delUris. In other words, if there are three URIs http://example.org/aria2 and you want remove them all, you have to specify (at least) 3 http://example.org/aria2 in delUris. This method returns a list which contains two integers. The first integer is the number of URIs deleted. The second integer is the number of URIs added.
+		 * This method removes the URIs in delUris from and appends the URIs in addUris to download denoted by gid. delUris and addUris are lists of strings. A download can contain multiple files and URIs are attached to each file. fileIndex is used to select which file to remove/attach given URIs. fileIndex is 1-based. position is used to specify where URIs are inserted in the existing waiting URI list. position is 0-based. When position is omitted, URIs are appended to the back of the list. This method first executes the removal and then the addition. position is the position after URIs are removed, not the position when this method is called. When removing an URI, if the same URIs exist in download, only one of them is removed for each URI in delUris. In other words, if there are three URIs <a href="http://example.org/aria2">http://example.org/aria2</a> and you want remove them<a href=" all, you have to specif"> all, you have to specif</a>y (at least) 3 <a href="http://example.org/aria2">http://example.org/aria2</a> in delUris. This method returns a list which contains two integers. The first integer is the number of URIs deleted. The second integer is the number of URIs added.
 		 */
 		CHANGEURI("aria2.changeUri"),
 		/**
