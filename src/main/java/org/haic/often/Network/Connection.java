@@ -297,19 +297,19 @@ public abstract class Connection {
 	/**
 	 * 在请求超时或者指定状态码发生时，无限进行重试，直至状态码正常返回
 	 *
-	 * @param unlimitedRetry 启用无限重试, 默认false
+	 * @param unlimit 启用无限重试, 默认false
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public abstract Connection retry(boolean unlimitedRetry);
+	@Contract(pure = true) public abstract Connection retry(boolean unlimit);
 
 	/**
 	 * 在请求超时或者指定状态码发生时，无限进行重试，直至状态码正常返回
 	 *
-	 * @param unlimitedRetry 启用无限重试, 默认false
-	 * @param millis         重试等待时间(毫秒)
+	 * @param unlimit 启用无限重试, 默认false
+	 * @param millis  重试等待时间(毫秒)
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public abstract Connection retry(boolean unlimitedRetry, int millis);
+	@Contract(pure = true) public abstract Connection retry(boolean unlimit, int millis);
 
 	/**
 	 * 额外指定错误状态码码，在指定状态发生时，也进行重试，可指定多个

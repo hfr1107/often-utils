@@ -88,7 +88,7 @@ public class HttpClientUtil {
 		protected int retry; // 请求异常重试次数
 		protected int MILLISECONDS_SLEEP; // 重试等待时间
 		protected int timeout; // 连接超时时间
-		protected boolean unlimitedRetry;// 请求异常无限重试
+		protected boolean unlimit;// 请求异常无限重试
 		protected boolean errorExit; // 错误退出
 		protected boolean followRedirects = true; // 重定向
 		protected HttpHost proxy;
@@ -274,13 +274,13 @@ public class HttpClientUtil {
 			return this;
 		}
 
-		@Contract(pure = true) public Connection retry(boolean unlimitedRetry) {
-			this.unlimitedRetry = unlimitedRetry;
+		@Contract(pure = true) public Connection retry(boolean unlimit) {
+			this.unlimit = unlimit;
 			return this;
 		}
 
-		@Contract(pure = true) public Connection retry(boolean unlimitedRetry, int millis) {
-			this.unlimitedRetry = unlimitedRetry;
+		@Contract(pure = true) public Connection retry(boolean unlimit, int millis) {
+			this.unlimit = unlimit;
 			this.MILLISECONDS_SLEEP = millis;
 			return this;
 		}
@@ -360,7 +360,7 @@ public class HttpClientUtil {
 
 			Response response = executeProgram(request);
 			int statusCode = Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.statusCode();
-			for (int i = 0; (URIUtils.statusIsTimeout(statusCode) || retryStatusCodes.contains(statusCode)) && (i < retry || unlimitedRetry); i++) {
+			for (int i = 0; (URIUtils.statusIsTimeout(statusCode) || retryStatusCodes.contains(statusCode)) && (i < retry || unlimit); i++) {
 				MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP); // 程序等待
 				response = executeProgram(request);
 				statusCode = Judge.isNull(response) ? statusCode : response.statusCode();

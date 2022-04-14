@@ -30,6 +30,7 @@ public class NetworkFileUtil {
 	protected String url; // 请求URL
 	protected String fileName; // 文件名
 	protected String hash; // hash值,md5算法
+	protected String lastHash; // hash值,md5算法,用于判断服务器文件损坏
 	protected int MILLISECONDS_SLEEP; // 重试等待时间
 	protected int retry; // 请求异常重试次数
 	protected int MAX_THREADS = 16; // 默认16线程下载
@@ -565,10 +566,18 @@ public class NetworkFileUtil {
 			if (!ReadWriteUtils.orgin(conf).append(false).text(fileInfo.toJSONString())) { // 重置信息文件
 				throw new RuntimeException("Configuration file reset information failed");
 			}
+			String errorText;
 			if (unlimitedRetry) {
-				return method(NetworkFileUtil.Method.FILE).download(folder);
+				if (md5.equals(lastHash)) {
+					errorText = "Server file is corrupt";
+				} else {
+					lastHash = md5;
+					return method(NetworkFileUtil.Method.FILE).download(folder);
+				}
+			} else {
+				errorText = "File verification is not accurate";
 			}
-			String errorText = "File verification is not accurate, URLFile md5:" + hash + " LocalFile md5: " + md5 + " URL: " + url;
+			errorText += ", Server md5:" + hash + " Local md5: " + md5 + " URL: " + url;
 			if (errorExit) {
 				throw new RuntimeException(errorText);
 			} else {
