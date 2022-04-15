@@ -6,7 +6,6 @@ import org.jetbrains.annotations.NotNull;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -29,6 +28,7 @@ public class ReadWriteUtils {
 	protected Charset charset = StandardCharsets.UTF_8; // 字符集编码格式
 	protected boolean append = true; // 默认追加写入
 	protected boolean newline = true; // 默认自动换行
+	protected boolean tailine = false; // 字符串以'\n'结尾
 
 	protected ReadWriteUtils() {
 	}
@@ -105,17 +105,58 @@ public class ReadWriteUtils {
 		return charset(Charset.forName(charsetName));
 	}
 
-	// ================================================== WriteUtils ==================================================
-
 	/**
 	 * 设置 追加写入
 	 *
-	 * @param append 启用追加写入
+	 * @param append 启用追加写入,默认true
 	 * @return this
 	 */
 	@Contract(pure = true) public ReadWriteUtils append(boolean append) {
 		this.append = append;
 		return this;
+	}
+
+	/**
+	 * 为输入字符串添加换行
+	 *
+	 * @param newline boolean, 默认true
+	 * @return this
+	 */
+	@Contract(pure = true) public ReadWriteUtils newline(boolean newline) {
+		this.newline = newline;
+		return this;
+	}
+
+	/**
+	 * 输入的字符串仅以'\n'换行符结尾,如果有多个换行符,重置为一个
+	 *
+	 * @param tailine boolean, 默认false
+	 * @return this
+	 */
+	@Contract(pure = true) public ReadWriteUtils tailine(boolean tailine) {
+		this.tailine = tailine;
+		return this;
+	}
+
+	// ================================================== WriteUtils ==================================================
+
+	@Contract(pure = true) protected String handleString(@NotNull String str) {
+		if (tailine) {
+			if (str.endsWith(StringUtils.LF)) {
+				int index = 0;
+				int len = str.length();
+				while (len > 1 && str.charAt(len - index - 2) == '\n') {
+					index++;
+				}
+				return str.substring(0, len - index);
+			} else {
+				return str + StringUtils.LF;
+			}
+		} else if (newline) {
+			return str + StringUtils.LF;
+		} else {
+			return str;
+		}
 	}
 
 	/**
@@ -130,7 +171,7 @@ public class ReadWriteUtils {
 			FilesUtils.createFolder(parent);
 		}
 		try (BufferedWriter outStream = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(source, append), charset), bufferSize)) {
-			outStream.write(StringUtils.join(lists, StringUtils.SPACE) + (newline ? StringUtils.LF : "")); // 文件输出流用于将数据写入文件
+			outStream.write(handleString(StringUtils.join(lists, StringUtils.SPACE))); // 文件输出流用于将数据写入文件
 			outStream.flush();
 			return true;
 		} catch (IOException e) {
@@ -151,7 +192,7 @@ public class ReadWriteUtils {
 			FilesUtils.createFolder(parent);
 		}
 		try (BufferedWriter outStream = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(source, append), charset), bufferSize)) {
-			outStream.write(str + (newline ? StringUtils.LF : "")); // 文件输出流用于将数据写入文件
+			outStream.write(handleString(str)); // 文件输出流用于将数据写入文件
 			outStream.flush();
 			return true;
 		} catch (IOException e) {
@@ -171,7 +212,7 @@ public class ReadWriteUtils {
 		if (!Judge.isNull(parent)) {
 			FilesUtils.createFolder(parent);
 		}
-		try (OutputStream outStream = new FileOutputStream(source, append)) {
+		try (FileOutputStream outStream = new FileOutputStream(source, append)) {
 			outStream.write(bytes); // 文件输出流用于将数据写入文件
 			outStream.flush();
 			return true;
@@ -193,7 +234,7 @@ public class ReadWriteUtils {
 			FilesUtils.createFolder(parent);
 		}
 		try (BufferedWriter outStream = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(source, append), charset), bufferSize)) {
-			outStream.write(lists.parallelStream().collect(Collectors.joining(StringUtils.LF)) + (newline ? StringUtils.LF : ""));
+			outStream.write(handleString(lists.parallelStream().collect(Collectors.joining(StringUtils.LF))));
 			outStream.flush();
 			return true;
 		} catch (IOException e) {
@@ -214,7 +255,7 @@ public class ReadWriteUtils {
 			FilesUtils.createFolder(parent);
 		}
 		try (DataOutputStream outStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(source, append), bufferSize))) {
-			for (byte b : (str + (newline ? StringUtils.LF : "")).getBytes()) {
+			for (byte b : handleString(str).getBytes()) {
 				outStream.writeInt(b); // 文件输出流用于将数据写入文件
 			}
 			outStream.flush();
@@ -237,7 +278,7 @@ public class ReadWriteUtils {
 			FilesUtils.createFolder(parent);
 		}
 		try (FileChannel channel = new FileOutputStream(source, append).getChannel()) {
-			channel.write(charset.encode(str + (newline ? StringUtils.LF : "")));
+			channel.write(charset.encode(handleString(str)));
 			return true;
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -260,7 +301,7 @@ public class ReadWriteUtils {
 			if (append) {
 				randomAccess.seek(source.length());
 			}
-			randomAccess.write((str + (newline ? StringUtils.LF : "")).getBytes(charset));
+			randomAccess.write(handleString(str).getBytes(charset));
 			return true;
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -279,9 +320,9 @@ public class ReadWriteUtils {
 		if (!Judge.isNull(parent)) {
 			FilesUtils.createFolder(parent);
 		}
-		byte[] params = (str + (newline ? StringUtils.LF : "")).getBytes(charset);
+		byte[] params = handleString(str).getBytes(charset);
 		try (FileChannel fileChannel = append ?
-				new RandomAccessFile(source, "rw").getChannel() :
+				FileChannel.open(source.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE) :
 				FileChannel.open(source.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
 			fileChannel.map(FileChannel.MapMode.READ_WRITE, append ? source.length() : 0, params.length).put(params);
 			return true;
@@ -632,8 +673,7 @@ public class ReadWriteUtils {
 	@Contract(pure = true) public String mappedText() {
 		CharBuffer result = null;
 		try (FileChannel channel = new FileInputStream(source).getChannel()) {
-			MappedByteBuffer mappedByteBuffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
-			result = charset.decode(mappedByteBuffer.asReadOnlyBuffer());
+			result = charset.decode(channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size()).asReadOnlyBuffer());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
