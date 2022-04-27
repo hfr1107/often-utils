@@ -577,13 +577,11 @@ public class NetworkFileUtil {
 			} else {
 				errorText = "File verification is not accurate";
 			}
-			errorText += ", Server md5:" + hash + " Local md5: " + md5 + " URL: " + url;
 			if (errorExit) {
-				throw new RuntimeException(errorText);
+				throw new RuntimeException(errorText + ", Server md5:" + hash + " Local md5: " + md5 + " URL: " + url);
 			} else {
-				System.err.println(errorText);
+				return HttpStatus.SC_FORBIDDEN;
 			}
-			return HttpStatus.SC_REQUEST_TIMEOUT;
 		}
 
 		conf.delete(); // 删除信息文件
