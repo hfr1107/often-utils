@@ -10,6 +10,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,6 +24,26 @@ import java.util.stream.Stream;
  * @since 2021/3/7 17:29
  */
 public class FilesUtils {
+
+	/**
+	 * 获取文件名的字符长度
+	 *
+	 * @param fileName 文件名
+	 * @return 文件名的字符长度
+	 */
+	@Contract(pure = true) public static int nameLength(@NotNull String fileName) {
+		return new String(fileName.getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1).length();
+	}
+
+	/**
+	 * 获取文件名的字符长度
+	 *
+	 * @param file 文件对象
+	 * @return 文件名的字符长度
+	 */
+	@Contract(pure = true) public static int nameLength(@NotNull File file) {
+		return nameLength(file.getName());
+	}
 
 	/**
 	 * 文件hash效验, 支持 MD5, SHA1, SHA256, SHA384, SHA512

@@ -242,6 +242,8 @@ public class NetworkFileUtil {
 
 	/**
 	 * 设置将要下载文件的文件名
+	 * <p>
+	 * 文件名字符串字符长度不能高于240,使用 FilesUtils.illegalFileName 获取实际字符长度
 	 *
 	 * @param filename 文件名
 	 * @return 此连接，用于链接
@@ -503,8 +505,9 @@ public class NetworkFileUtil {
 			// 文件名排除非法字符
 			fileName = FilesUtils.illegalFileName(fileName);
 			// 文件名长度检验
-			if (fileName.length() > 200) {
-				throw new RuntimeException("Error: File name length is greater than 200 URL: " + url + " FileName: " + fileName);
+
+			if (FilesUtils.nameLength(fileName) > 240) {
+				throw new RuntimeException("Error: File name length is greater than 240 URL: " + url + " FileName: " + fileName);
 			}
 
 			// 获取待下载文件和配置文件对象
