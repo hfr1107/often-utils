@@ -372,15 +372,21 @@ public class HttpClientUtil {
 		}
 
 		@Contract(pure = true) protected Response executeProgram(@NotNull HttpUriRequest request) {
-			CloseableHttpResponse response;
+			CloseableHttpResponse httpResponse;
 			try {
-				response = httpclient.execute(request, context);
+				httpResponse = httpclient.execute(request, context);
 			} catch (IOException e) {
 				return null;
 			}
-			Response httpHesponse = new HttpResponse(this, request, response);
-			cookies(httpHesponse.cookies()); // 维护cookies
-			return httpHesponse;
+			Response response = new HttpResponse(this, request, httpResponse);
+			cookies(response.cookies()); // 维护cookies
+
+			String redirectUrl; // 修复重定向
+			if (followRedirects && URIUtils.statusIsOK(response.statusCode()) && !Judge.isEmpty(redirectUrl = response.header("location"))) {
+				response = url(redirectUrl).execute();
+			}
+
+			return response;
 		}
 	}
 

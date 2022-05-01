@@ -359,6 +359,13 @@ public class HtmlUnitUtil {
 			webClient.waitForBackgroundJavaScript(waitJSTime); // 阻塞并执行JS
 			cookies(response.cookies()); // 维护cookies
 
+			String redirectUrl; // 修复重定向
+			if (webClient.getOptions().isRedirectEnabled() && URIUtils.statusIsOK(response.statusCode()) && !Judge.isEmpty(
+					redirectUrl = response.header("location"))) {
+				url(redirectUrl);
+				response = executeProgram(request);
+			}
+
 			return response;
 		}
 	}

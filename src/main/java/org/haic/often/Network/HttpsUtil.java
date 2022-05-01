@@ -329,8 +329,8 @@ public class HttpsUtil {
 				cookies(response.cookies()); // 维护cookies
 
 				String redirectUrl; // 修复重定向
-				if (followRedirects && URIUtils.statusIsRedirect(response.statusCode()) && !Judge.isEmpty(redirectUrl = conn.getHeaderField("location"))) {
-					return executeProgram(redirectUrl);
+				if (followRedirects && URIUtils.statusIsNormal(response.statusCode()) && !Judge.isEmpty(redirectUrl = response.header("location"))) {
+					response = executeProgram(redirectUrl);
 				}
 				return response;
 			} catch (IOException e) {
