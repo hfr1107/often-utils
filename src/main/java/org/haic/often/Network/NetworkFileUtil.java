@@ -631,9 +631,7 @@ public class NetworkFileUtil {
 			}));
 		}
 		MultiThreadUtils.WaitForEnd(executorService); // 等待线程结束
-		// 判断下载状态
-		List<Integer> statusCode = statusCodes.parallelStream().filter(s -> !URIUtils.statusIsOK(s)).toList();
-		return statusCode.isEmpty() ? HttpStatus.SC_OK : statusCode.get(0);
+		return statusCodes.stream().filter(s -> !URIUtils.statusIsOK(s)).findFirst().orElse(HttpStatus.SC_OK);
 	}
 
 	/**
