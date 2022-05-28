@@ -245,11 +245,11 @@ public class NetworkFileUtil {
 	 * <p>
 	 * 文件名字符串字符长度不能高于240,使用 FilesUtils.illegalFileName 获取实际字符长度
 	 *
-	 * @param filename 文件名
+	 * @param fileName 文件名
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public NetworkFileUtil filename(@NotNull String filename) {
-		this.fileName = filename;
+	@Contract(pure = true) public NetworkFileUtil fileName(@NotNull String fileName) {
+		this.fileName = fileName;
 		return this;
 	}
 
