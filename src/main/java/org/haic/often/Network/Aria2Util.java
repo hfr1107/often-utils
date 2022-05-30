@@ -141,7 +141,7 @@ public class Aria2Util {
 	 * @return this
 	 */
 	@Contract(pure = true) public Aria2Util rpcToken(@NotNull String token) {
-		sessionsJson = JSONArray.parseArray(sessionsJson.toJSONString().replaceAll("\"token:\"", "\"token:" + token + "\""));
+		sessionsJson = JSONArray.parseArray(sessionsJson.toString().replaceAll("\"token:\"", "\"token:" + token + "\""));
 		this.token = token;
 		return this;
 	}
@@ -329,7 +329,7 @@ public class Aria2Util {
 		final StringBuilder result = new StringBuilder();
 		WebSocketClient socket = new WebSocketClient(URIUtils.getURI(aria2RpcUrl)) {
 			@Override @Contract(pure = true) public void onOpen(ServerHandshake handshakedata) {
-				send(sessionsJson.toJSONString());
+				send(sessionsJson.toString());
 			}
 
 			@Override @Contract(pure = true) public void onMessage(String message) {
@@ -360,7 +360,7 @@ public class Aria2Util {
 	 * @return result or webstatus
 	 */
 	@Contract(pure = true) public String get() {
-		return JsoupUtil.connect(aria2RpcUrl).data("params", Base64Utils.encryptToBase64(sessionsJson.toJSONString())).proxy(proxy).get().text();
+		return JsoupUtil.connect(aria2RpcUrl).data("params", Base64Utils.encryptToBase64(sessionsJson.toString())).proxy(proxy).get().text();
 	}
 
 	/**
@@ -369,7 +369,7 @@ public class Aria2Util {
 	 * @return result or webstatus
 	 */
 	@Contract(pure = true) public String post() {
-		return JsoupUtil.connect(aria2RpcUrl).requestBody(sessionsJson.toJSONString()).proxy(proxy).post().text();
+		return JsoupUtil.connect(aria2RpcUrl).requestBody(sessionsJson.toString()).proxy(proxy).post().text();
 	}
 
 	/**
