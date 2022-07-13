@@ -234,14 +234,14 @@ public class HttpClientUtil {
 			return URIUtils.isJson(body) ? contentType("application/json;charset=UTF-8") : contentType("application/x-www-form-urlencoded;charset=UTF-8");
 		}
 
-		@Contract(pure = true) public Connection socks(@NotNull String proxyHost, int proxyPort) {
+		@Contract(pure = true) public Connection socks(@NotNull String host, int port) {
 			httpClientBuilder = httpClientBuilder.setConnectionManager(HttpClientHelper.PoolingHttpClientConnectionManager());
-			this.context.setAttribute("socks.address", new InetSocketAddress(proxyHost, proxyPort));
+			this.context.setAttribute("socks.address", new InetSocketAddress(host, port));
 			return this;
 		}
 
-		@Contract(pure = true) public Connection proxy(@NotNull String proxyHost, int proxyPort) {
-			this.proxy = new HttpHost(proxyHost, proxyPort, "HTTP");
+		@Contract(pure = true) public Connection proxy(@NotNull String host, int port) {
+			this.proxy = new HttpHost(host, port, "HTTP");
 			return this;
 		}
 

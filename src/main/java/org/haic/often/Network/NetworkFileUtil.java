@@ -200,7 +200,7 @@ public class NetworkFileUtil {
 	 * @param auth 授权码或身份识别标识
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public NetworkFileUtil authorization(@NotNull String auth) {
+	@Contract(pure = true) public NetworkFileUtil auth(@NotNull String auth) {
 		return header("authorization", auth.startsWith("Bearer ") ? auth : "Bearer " + auth);
 	}
 
@@ -256,23 +256,23 @@ public class NetworkFileUtil {
 	/**
 	 * 设置用于此请求的 SOCKS 代理
 	 *
-	 * @param proxyHost 代理主机名
-	 * @param proxyPort 代理端口
+	 * @param host 代理主机名
+	 * @param port 代理端口
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public NetworkFileUtil socks(@NotNull String proxyHost, int proxyPort) {
-		return proxy(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(proxyHost, proxyPort)));
+	@Contract(pure = true) public NetworkFileUtil socks(@NotNull String host, int port) {
+		return proxy(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(host, port)));
 	}
 
 	/**
 	 * 设置用于此请求的 HTTP 代理
 	 *
-	 * @param proxyHost 代理主机名
-	 * @param proxyPort 代理端口
+	 * @param host 代理主机名
+	 * @param port 代理端口
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public NetworkFileUtil proxy(@NotNull String proxyHost, int proxyPort) {
-		return proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)));
+	@Contract(pure = true) public NetworkFileUtil proxy(@NotNull String host, int port) {
+		return proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port)));
 	}
 
 	/**

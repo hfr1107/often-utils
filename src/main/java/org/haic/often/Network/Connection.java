@@ -243,21 +243,21 @@ public abstract class Connection {
 	/**
 	 * 设置用于此请求的 SOCKS 代理
 	 *
-	 * @param proxyHost 代理主机名
-	 * @param proxyPort 代理端口
+	 * @param host 代理主机名
+	 * @param port 代理端口
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public abstract Connection socks(@NotNull String proxyHost, int proxyPort);
+	@Contract(pure = true) public abstract Connection socks(@NotNull String host, int port);
 
 	/**
 	 * 连接代理（ @NotNull  Proxy 代理）<br/>
 	 * * 设置用于此请求的代理
 	 *
-	 * @param proxyHost 代理地址
-	 * @param proxyPort 代理端口
+	 * @param host 代理地址
+	 * @param port 代理端口
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public abstract Connection proxy(@NotNull String proxyHost, int proxyPort);
+	@Contract(pure = true) public abstract Connection proxy(@NotNull String host, int port);
 
 	/**
 	 * 连接代理（ @NotNull  Proxy 代理）<br/>

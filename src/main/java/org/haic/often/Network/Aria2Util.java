@@ -149,26 +149,26 @@ public class Aria2Util {
 	/**
 	 * 设置Aria2代理
 	 *
-	 * @param proxyHost 代理URL
-	 * @param proxyPort 代理端口
+	 * @param host 代理URL
+	 * @param post 代理端口
 	 * @return this
 	 */
-	@Contract(pure = true) public Aria2Util setProxy(@NotNull String proxyHost, int proxyPort) {
-		this.mixinParams.put("all-proxy", proxyHost + ":" + proxyPort);
+	@Contract(pure = true) public Aria2Util setProxy(@NotNull String host, int post) {
+		this.mixinParams.put("all-proxy", host + ":" + post);
 		return this;
 	}
 
 	/**
 	 * 设置访问PRC接口代理
 	 *
-	 * @param proxyHost 代理地址
-	 * @param proxyPort 代理端口
+	 * @param host 代理地址
+	 * @param post 代理端口
 	 * @return this
 	 */
-	@Contract(pure = true) public Aria2Util proxy(@NotNull String proxyHost, int proxyPort) {
+	@Contract(pure = true) public Aria2Util proxy(@NotNull String host, int post) {
 		proxy = aria2RpcUrl.startsWith("http") ?
-				new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)) :
-				new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(proxyHost, proxyPort));
+				new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, post)) :
+				new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(host, post));
 		return this;
 	}
 

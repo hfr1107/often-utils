@@ -208,12 +208,12 @@ public class HttpsUtil {
 			return URIUtils.isJson(body) ? contentType("application/json;charset=UTF-8") : contentType("application/x-www-form-urlencoded;charset=UTF-8");
 		}
 
-		@Contract(pure = true) public Connection socks(@NotNull String proxyHost, int proxyPort) {
-			return proxy(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(proxyHost, proxyPort)));
+		@Contract(pure = true) public Connection socks(@NotNull String host, int port) {
+			return proxy(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(host, port)));
 		}
 
-		@Contract(pure = true) public Connection proxy(@NotNull String proxyHost, int proxyPort) {
-			return proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)));
+		@Contract(pure = true) public Connection proxy(@NotNull String host, int port) {
+			return proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port)));
 		}
 
 		@Contract(pure = true) public Connection proxy(@NotNull Proxy proxy) {

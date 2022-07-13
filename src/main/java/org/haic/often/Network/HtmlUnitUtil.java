@@ -205,34 +205,34 @@ public class HtmlUnitUtil {
 			return URIUtils.isJson(body) ? contentType("application/json;charset=UTF-8") : contentType("application/x-www-form-urlencoded;charset=UTF-8");
 		}
 
-		@Contract(pure = true) public Connection socks(@NotNull String proxyHost, int proxyPort) {
+		@Contract(pure = true) public Connection socks(@NotNull String host, int port) {
 			webClient.getOptions().setWebSocketEnabled(true); // WebSocket支持
 			webClient.getOptions().setProxyConfig(new ProxyConfig() {{
 				setSocksProxy(true);
-				setProxyHost(proxyHost);
-				setProxyPort(proxyPort);
+				setProxyHost(host);
+				setProxyPort(port);
 			}});
 			return this;
 		}
 
-		@Contract(pure = true) public Connection socks(@NotNull String proxyHost, int proxyPort, @NotNull String username, @NotNull String password) {
+		@Contract(pure = true) public Connection socks(@NotNull String host, int port, @NotNull String username, @NotNull String password) {
 			((DefaultCredentialsProvider) webClient.getCredentialsProvider()).addCredentials(username, password);
-			return socks(proxyHost, proxyPort);
+			return socks(host, port);
 		}
 
-		@Contract(pure = true) public Connection proxy(@NotNull String proxyHost, int proxyPort) {
+		@Contract(pure = true) public Connection proxy(@NotNull String host, int port) {
 			webClient.getOptions().setWebSocketEnabled(false); // WebSocket支持
 			webClient.getOptions().setProxyConfig(new ProxyConfig() {{
 				setSocksProxy(false);
-				setProxyHost(proxyHost);
-				setProxyPort(proxyPort);
+				setProxyHost(host);
+				setProxyPort(port);
 			}});
 			return this;
 		}
 
-		@Contract(pure = true) public Connection proxy(@NotNull String proxyHost, int proxyPort, @NotNull String username, @NotNull String password) {
+		@Contract(pure = true) public Connection proxy(@NotNull String host, int port, @NotNull String username, @NotNull String password) {
 			((DefaultCredentialsProvider) webClient.getCredentialsProvider()).addCredentials(username, password);
-			return proxy(proxyHost, proxyPort);
+			return proxy(host, port);
 		}
 
 		@Contract(pure = true) public Connection proxy(@NotNull Proxy proxy) {
@@ -692,46 +692,46 @@ public class HtmlUnitUtil {
 		/**
 		 * 设置用于此请求的 SOCKS 代理
 		 *
-		 * @param proxyHost 代理主机名
-		 * @param proxyPort 代理端口
+		 * @param host 代理主机名
+		 * @param port 代理端口
 		 * @return 此连接，用于链接
 		 */
-		@Contract(pure = true) public abstract Connection socks(@NotNull String proxyHost, int proxyPort);
+		@Contract(pure = true) public abstract Connection socks(@NotNull String host, int port);
 
 		/**
 		 * 设置用于此请求的 SOCKS 代理<br/>
 		 * 需要验证的代理服务器<br/>
 		 * 接口存在问题，SOCKS协议代理访问外网会失败，应使用Http协议代理
 		 *
-		 * @param proxyHost 代理URL
-		 * @param proxyPort 代理端口
-		 * @param username  代理用户名
-		 * @param password  代理用户密码
+		 * @param host     代理URL
+		 * @param port     代理端口
+		 * @param username 代理用户名
+		 * @param password 代理用户密码
 		 * @return 此连接，用于链接
 		 */
-		@Contract(pure = true) public abstract Connection socks(@NotNull String proxyHost, int proxyPort, @NotNull String username, @NotNull String password);
+		@Contract(pure = true) public abstract Connection socks(@NotNull String host, int port, @NotNull String username, @NotNull String password);
 
 		/**
 		 * 连接代理（ @NotNull  Proxy 代理）<br/>
 		 * * 设置用于此请求的代理
 		 *
-		 * @param proxyHost 代理地址
-		 * @param proxyPort 代理端口
+		 * @param host 代理地址
+		 * @param port 代理端口
 		 * @return 此连接，用于链接
 		 */
-		@Contract(pure = true) public abstract Connection proxy(@NotNull String proxyHost, int proxyPort);
+		@Contract(pure = true) public abstract Connection proxy(@NotNull String host, int port);
 
 		/**
 		 * 设置用于此请求的 HTTP 代理<br/>
 		 * 需要验证的代理服务器
 		 *
-		 * @param proxyHost 代理URL
-		 * @param proxyPort 代理端口
-		 * @param username  代理用户名
-		 * @param password  代理用户密码
+		 * @param host     代理URL
+		 * @param port     代理端口
+		 * @param username 代理用户名
+		 * @param password 代理用户密码
 		 * @return 此连接，用于链接
 		 */
-		@Contract(pure = true) public abstract Connection proxy(@NotNull String proxyHost, int proxyPort, @NotNull String username, @NotNull String password);
+		@Contract(pure = true) public abstract Connection proxy(@NotNull String host, int port, @NotNull String username, @NotNull String password);
 
 		/**
 		 * 连接代理（ @NotNull  Proxy 代理）<br/>
