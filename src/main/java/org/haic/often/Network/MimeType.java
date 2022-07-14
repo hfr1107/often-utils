@@ -3458,29 +3458,29 @@ public enum MimeType {
 	}
 
 	/**
-	 * 响应头content-type对应的MIMI类型
+	 * 响应头content-type对应的MIME类型
 	 *
-	 * @param mimeType MIMI类型
-	 * @return MIMI类型对应的文件后缀
+	 * @param mimeType MIME类型
+	 * @return MIME类型对应的文件后缀
 	 */
 	public static String getMimeSuffix(String mimeType) {
 		return getMimeType(mimeType).getValue();
 	}
 
 	/**
-	 * 响应头content-type对应的MIMI类型
+	 * 响应头content-type对应的MIME类型
 	 *
-	 * @param mimeType MIMI类型
-	 * @return 对应的MIMI类型
+	 * @param mimeType MIME类型
+	 * @return 对应的MIME类型
 	 */
 	public static MimeType getMimeType(String mimeType) {
 		return MimeType.valueOf((mimeType.contains(";") ? mimeType.substring(0, mimeType.indexOf(";")) : mimeType).replaceAll("[-/+.]", "_"));
 	}
 
 	/**
-	 * 响应头content-type对应的MIMI类型
+	 * 响应头content-type对应的MIME类型
 	 *
-	 * @return MIMI的值
+	 * @return MIME的值
 	 */
 	public final String getValue() {
 		return value;

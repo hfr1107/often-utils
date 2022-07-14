@@ -1,15 +1,17 @@
 package org.haic.often;
 
+import com.coremedia.iso.boxes.Container;
+import com.googlecode.mp4parser.authoring.Movie;
+import com.googlecode.mp4parser.authoring.Track;
+import com.googlecode.mp4parser.authoring.builder.DefaultMp4Builder;
+import com.googlecode.mp4parser.authoring.container.mp4.MovieCreator;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.filechooser.FileSystemView;
 import java.awt.*;
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.*;
@@ -695,6 +697,27 @@ public class FilesUtils {
 			if (!copyFile(file, newFile)) {
 				return false;
 			}
+		}
+		return true;
+	}
+
+	/**
+	 * 合并音频和视频文件
+	 *
+	 * @param audio  音频文件路径
+	 * @param video  视频文件路径
+	 * @param output 输出路径
+	 * @return 操作是否成功
+	 */
+	@Contract(pure = true) public static boolean audioVideoMerge(@NotNull String audio, @NotNull String video, @NotNull String output) {
+		try (FileOutputStream fos = new FileOutputStream(output)) {
+			Movie countVideo = MovieCreator.build(audio);
+			Track audioTrack = MovieCreator.build(video).getTracks().get(0);
+			countVideo.addTrack(audioTrack);
+			Container out = new DefaultMp4Builder().build(countVideo);
+			out.writeContainer(fos.getChannel());
+		} catch (IOException e) {
+			return false;
 		}
 		return true;
 	}
