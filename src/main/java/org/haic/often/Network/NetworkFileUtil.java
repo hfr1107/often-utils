@@ -39,8 +39,8 @@ public class NetworkFileUtil {
 	protected int retry; // 请求异常重试次数
 	protected int MAX_THREADS = 10; // 默认10线程下载
 	protected int bufferSize = 8192; // 默认缓冲区大小
-	protected int fileSize; // 文件大小
-	protected int PIECE_MAX_SIZE = 1048576; // 默认块大小，1M
+	protected long fileSize; // 文件大小
+	protected long PIECE_MAX_SIZE = 1048576; // 默认块大小，1M
 	protected boolean unlimitedRetry;// 请求异常无限重试
 	protected boolean errorExit; // 错误退出
 	protected Proxy proxy = Proxy.NO_PROXY; // 代理
@@ -228,7 +228,7 @@ public class NetworkFileUtil {
 	 * @param fileSize file size
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public NetworkFileUtil fileSize(int fileSize) {
+	@Contract(pure = true) public NetworkFileUtil fileSize(long fileSize) {
 		this.fileSize = fileSize;
 		return this;
 	}
@@ -403,7 +403,7 @@ public class NetworkFileUtil {
 	 * @param pieceSize 指定块大小(KB)
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public NetworkFileUtil pieceSize(int pieceSize) {
+	@Contract(pure = true) public NetworkFileUtil pieceSize(long pieceSize) {
 		this.PIECE_MAX_SIZE = pieceSize * 1024;
 		return this;
 	}
@@ -474,7 +474,7 @@ public class NetworkFileUtil {
 					throw new RuntimeException("Info is error -> " + conf);
 				}
 				hash = fileInfo.getString("x-cos-meta-md5");
-				fileSize = fileInfo.getInteger("content-length");
+				fileSize = fileInfo.getLong("content-length");
 				MAX_THREADS = fileInfo.getInteger("threads");
 				method = NetworkFileUtil.Method.valueOf(fileInfo.getString("method"));
 				headers = StringUtils.jsonToMap(fileInfo.getString("header"));
@@ -527,7 +527,7 @@ public class NetworkFileUtil {
 
 			String contentLength = response.header("content-length"); // 获取文件大小
 
-			fileSize = Judge.isNull(contentLength) ? fileSize : Integer.parseInt(contentLength);
+			fileSize = Judge.isNull(contentLength) ? fileSize : Long.parseLong(contentLength);
 			hash = Judge.isEmpty(hash) ? response.header("x-cos-meta-md5") : hash; // 获取文件MD5
 			if (conf.exists()) { // 文件存在但不是文件，抛出异常
 				throw new RuntimeException("Not is file " + conf);
@@ -556,9 +556,9 @@ public class NetworkFileUtil {
 		case PIECE -> statusCode = MULTITHREAD((int) Math.ceil((double) fileSize / (double) PIECE_MAX_SIZE), PIECE_MAX_SIZE);
 		case MULTITHREAD -> {
 			int PIECE_COUNT = Math.min((int) Math.ceil((double) fileSize / (double) PIECE_MAX_SIZE), MAX_THREADS);
-			statusCode = MULTITHREAD(PIECE_COUNT, (int) Math.ceil((double) fileSize / (double) PIECE_COUNT));
+			statusCode = MULTITHREAD(PIECE_COUNT, (long) Math.ceil((double) fileSize / (double) PIECE_COUNT));
 		}
-		case MANDATORY -> statusCode = MULTITHREAD(MAX_THREADS, (int) Math.ceil((double) fileSize / (double) MAX_THREADS));
+		case MANDATORY -> statusCode = MULTITHREAD(MAX_THREADS, (long) Math.ceil((double) fileSize / (double) MAX_THREADS));
 		}
 		if (!URIUtils.statusIsOK(statusCode)) { // 验证下载状态
 			if (errorExit) {
@@ -621,13 +621,13 @@ public class NetworkFileUtil {
 		return HttpStatus.SC_OK;
 	}
 
-	@Contract(pure = true) protected int MULTITHREAD(int PIECE_COUNT, int PIECE_SIZE) {
+	@Contract(pure = true) protected int MULTITHREAD(int PIECE_COUNT, long PIECE_SIZE) {
 		List<Integer> statusCodes = new CopyOnWriteArrayList<>();
 		executorService = Executors.newFixedThreadPool(MAX_THREADS); // 限制多线程;
 		for (int i = 0; i < PIECE_COUNT; i++) {
 			executorService.execute(new ParameterizedThread<>(i, (index) -> { // 执行多线程程
-				int start = index * PIECE_SIZE;
-				int end = (index + 1 == PIECE_COUNT ? fileSize : (index + 1) * PIECE_SIZE) - 1;
+				long start = index * PIECE_SIZE;
+				long end = (index + 1 == PIECE_COUNT ? fileSize : (index + 1) * PIECE_SIZE) - 1;
 				int statusCode = addPiece(start, end);
 				statusCodes.add(statusCode);
 				if (!URIUtils.statusIsOK(statusCode)) {
@@ -646,7 +646,7 @@ public class NetworkFileUtil {
 	 * @param end   结束位
 	 * @return 状态码
 	 */
-	@Contract(pure = true) protected int addPiece(int start, int end) {
+	@Contract(pure = true) protected int addPiece(long start, long end) {
 		if (infos.contains(start + "-" + end)) {
 			return HttpStatus.SC_PARTIAL_CONTENT;
 		}
@@ -665,7 +665,7 @@ public class NetworkFileUtil {
 	 * @param end   块结束位
 	 * @return 下载并写入是否成功(状态码)
 	 */
-	@Contract(pure = true) protected int writePiece(int start, int end) {
+	@Contract(pure = true) protected int writePiece(long start, long end) {
 		Response piece = JsoupUtil.connect(url).proxy(proxy).headers(headers).header("range", "bytes=" + start + "-" + end).cookies(cookies).execute();
 		return Judge.isNull(piece) ?
 				HttpStatus.SC_REQUEST_TIMEOUT :
@@ -680,7 +680,7 @@ public class NetworkFileUtil {
 	 * @param piece 块Response对象
 	 * @return 下载并写入是否成功(状态码)
 	 */
-	@Contract(pure = true) protected int writePiece(int start, int end, Response piece) {
+	@Contract(pure = true) protected int writePiece(long start, long end, Response piece) {
 		try (InputStream inputStream = piece.bodyStream(); RandomAccessFile output = new RandomAccessFile(storage, "rw")) {
 			output.seek(start);
 			byte[] buffer = new byte[bufferSize];
