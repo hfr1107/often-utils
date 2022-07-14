@@ -19,7 +19,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * 网络文件 工具类 默认16线程下载
+ * 网络文件 工具类
+ * <p>
+ * 用于文件的上传和下载
+ * <p>
+ * 默认10线程下载,不应设置过高
  *
  * @author haicdust
  * @version 1.8.2
@@ -33,7 +37,7 @@ public class NetworkFileUtil {
 	protected String lastHash; // hash值,md5算法,用于判断服务器文件损坏
 	protected int MILLISECONDS_SLEEP; // 重试等待时间
 	protected int retry; // 请求异常重试次数
-	protected int MAX_THREADS = 16; // 默认16线程下载
+	protected int MAX_THREADS = 10; // 默认10线程下载
 	protected int bufferSize = 8192; // 默认缓冲区大小
 	protected int fileSize; // 文件大小
 	protected int PIECE_MAX_SIZE = 1048576; // 默认块大小，1M
@@ -504,15 +508,16 @@ public class NetworkFileUtil {
 			}
 			// 文件名排除非法字符
 			fileName = FilesUtils.illegalFileName(fileName);
+			// 尝试修复后缀
+			fileName = fileName.contains(".") ? fileName : fileName + MimeType.getMimeSuffix(response.header("content-type"));
 			// 文件名长度检验
-
 			if (FilesUtils.nameLength(fileName) > 240) {
 				throw new RuntimeException("Error: File name length is greater than 240 URL: " + url + " FileName: " + fileName);
 			}
 
 			// 获取待下载文件和配置文件对象
 			storage = new File(folder, fileName); // 获取其file对象
-			conf = new File(storage + ".haic"); // 配置信息文件后缀
+			conf = new File(storage + ".session"); // 配置信息文件后缀
 			if (storage.isFile() && !conf.exists()) { // 文件已存在，结束下载
 				return HttpStatus.SC_OK;
 			}
