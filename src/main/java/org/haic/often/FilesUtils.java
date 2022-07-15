@@ -1,11 +1,14 @@
 package org.haic.often;
 
 import com.coremedia.iso.boxes.Container;
+import com.googlecode.mp4parser.DataSource;
+import com.googlecode.mp4parser.FileDataSourceImpl;
 import com.googlecode.mp4parser.authoring.Movie;
 import com.googlecode.mp4parser.authoring.Track;
 import com.googlecode.mp4parser.authoring.builder.DefaultMp4Builder;
 import com.googlecode.mp4parser.authoring.container.mp4.MovieCreator;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.haic.often.Multithread.MultiThreadUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -710,16 +713,22 @@ public class FilesUtils {
 	 * @return 操作是否成功
 	 */
 	@Contract(pure = true) public static boolean audioVideoMerge(@NotNull String audio, @NotNull String video, @NotNull String output) {
-		try (FileOutputStream fos = new FileOutputStream(output)) {
-			Movie countVideo = MovieCreator.build(audio);
-			Track audioTrack = MovieCreator.build(video).getTracks().get(0);
+		boolean success = false;
+		try (FileOutputStream fos = new FileOutputStream(output);
+				DataSource videoDataSource = new FileDataSourceImpl(video);
+				DataSource audioDataSource = new FileDataSourceImpl(audio)) {
+			Movie countVideo = MovieCreator.build(videoDataSource);
+			Track audioTrack = MovieCreator.build(audioDataSource).getTracks().get(0);
 			countVideo.addTrack(audioTrack);
 			Container out = new DefaultMp4Builder().build(countVideo);
 			out.writeContainer(fos.getChannel());
+			success = true;
 		} catch (IOException e) {
-			return false;
+			e.printStackTrace();
 		}
-		return true;
+		System.gc();
+		MultiThreadUtils.WaitForThread(50);
+		return success;
 	}
 
 }
