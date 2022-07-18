@@ -654,7 +654,7 @@ public class NetworkFileUtil {
 			for (int len; (len = in.read(buffer, 0, DEFAULT_BUFFER_SIZE)) > -1; count += len, schedule.addAndGet(len)) {
 				out.write(buffer, 0, len);
 			}
-			if (count == fileSize) {
+			if (fileSize == 0 || fileSize == count) {
 				return HttpStatus.SC_OK;
 			}
 		} catch (Exception e) {
