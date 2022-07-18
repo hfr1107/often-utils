@@ -11,12 +11,15 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 网络文件 工具类
@@ -35,11 +38,13 @@ public class NetworkFileUtil {
 	protected String fileName; // 文件名
 	protected String hash; // hash值,md5算法
 	protected String lastHash; // hash值,md5算法,用于判断服务器文件损坏
+	protected int DEFAULT_BUFFER_SIZE = 8192;
 	protected int MILLISECONDS_SLEEP; // 重试等待时间
 	protected int retry; // 请求异常重试次数
 	protected int MAX_THREADS = 10; // 默认10线程下载
 	protected int bufferSize = 8192; // 默认缓冲区大小
 	protected long fileSize; // 文件大小
+	protected AtomicLong schedule = new AtomicLong(0); // 进度
 	protected long PIECE_MAX_SIZE = 1048576; // 默认块大小，1M
 	protected boolean unlimitedRetry;// 请求异常无限重试
 	protected boolean errorExit; // 错误退出
@@ -108,8 +113,7 @@ public class NetworkFileUtil {
 	 */
 	@Contract(pure = true) protected NetworkFileUtil url(@NotNull String url) {
 		this.url = url;
-		header("accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
-		return header("accept-encoding", "gzip, deflate, br");
+		return this;
 	}
 
 	/**
@@ -409,6 +413,37 @@ public class NetworkFileUtil {
 	}
 
 	/**
+	 * 获取 当前下载进度
+	 *
+	 * @return 下载进度
+	 */
+	@Contract(pure = true) public long schedule() {
+		return schedule.get();
+	}
+
+	/**
+	 * 获取 当前下载进度(百分比)
+	 * <p>
+	 * 格式: 00.00
+	 *
+	 * @return 下载进度
+	 */
+	@Contract(pure = true) public Float scheduleOfPercentage() {
+		BigDecimal bd = BigDecimal.valueOf((double) schedule.get() / (double) fileSize());
+		bd = bd.setScale(2, RoundingMode.HALF_UP);
+		return bd.floatValue();
+	}
+
+	/**
+	 * 获取 当前文件大小
+	 *
+	 * @return 文件大小
+	 */
+	@Contract(pure = true) public long fileSize() {
+		return fileSize;
+	}
+
+	/**
 	 * 上传网络文件,返回状态码
 	 *
 	 * @param filePath 待上传的文件路径
@@ -613,12 +648,19 @@ public class NetworkFileUtil {
 	 * @return 下载并写入是否成功(状态码)
 	 */
 	@Contract(pure = true) protected int FULL(Response response) {
-		try (InputStream inputStream = response.bodyStream(); OutputStream outputStream = new FileOutputStream(storage)) {
-			inputStream.transferTo(outputStream);
+		try (InputStream in = response.bodyStream(); OutputStream out = new FileOutputStream(storage)) {
+			byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
+			int count = 0;
+			for (int len; (len = in.read(buffer, 0, DEFAULT_BUFFER_SIZE)) > -1; count += len, schedule.addAndGet(len)) {
+				out.write(buffer, 0, len);
+			}
+			if (count == fileSize) {
+				return HttpStatus.SC_OK;
+			}
 		} catch (Exception e) {
-			return HttpStatus.SC_REQUEST_TIMEOUT;
+			// e.printStackTrace();
 		}
-		return HttpStatus.SC_OK;
+		return HttpStatus.SC_REQUEST_TIMEOUT;
 	}
 
 	@Contract(pure = true) protected int MULTITHREAD(int PIECE_COUNT, long PIECE_SIZE) {
@@ -685,8 +727,8 @@ public class NetworkFileUtil {
 			output.seek(start);
 			byte[] buffer = new byte[bufferSize];
 			int count = 0;
-			for (int length; !Judge.isMinusOne(length = inputStream.read(buffer)); count += length) {
-				output.write(buffer, 0, length);
+			for (int len; !Judge.isMinusOne(len = inputStream.read(buffer)); count += len, schedule.addAndGet(len)) {
+				output.write(buffer, 0, len);
 			}
 			if (end - start + 1 == count) {
 				ReadWriteUtils.orgin(conf).text(start + "-" + end);
