@@ -10,6 +10,16 @@ Java 网络常用工具类
 mvn clean install
 ```
 
+Maven依赖添加:
+
+```
+<dependency>
+    <groupId>org.haic.often</groupId>
+    <artifactId>often-utils</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
 简介:
 ----
 
@@ -169,4 +179,20 @@ for (int i = 0; i < 10; i++) {
 	}));
 }
 MultiThreadUtils.WaitForEnd(executorService); // 等待线程结束
+```
+
+常用网盘API
+----------
+
+### 说明:
+
+1.支持网盘: 天翼云盘,阿里云盘,蓝奏云盘,123云盘   
+2.为保证兼容性,降低复杂度,均以传递JSON数据操作
+
+### 简单示例:
+
+```
+TianYiYunPan.login(username,password).getFilesInfoAsHome(); // 获取主页文件列表信息
+
+YunPan123.login(auth).getStraight(fileInfo); // 根据JSON配置获取直链
 ```
