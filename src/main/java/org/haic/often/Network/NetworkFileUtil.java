@@ -471,7 +471,43 @@ public class NetworkFileUtil {
 	}
 
 	/**
+	 * 后台下载,可以使用schedule方法查看下载进度
+	 * <p>
+	 * 自动寻找并存放下载文件夹路径
+	 *
+	 * @return this
+	 */
+	@Contract(pure = true) public NetworkFileUtil downloadAsBackstage() {
+		new Thread(this::download).start();
+		return this;
+	}
+
+	/**
+	 * 后台下载,可以使用schedule方法查看下载进度
+	 *
+	 * @param folderPath 文件存放目录路径
+	 * @return this
+	 */
+	@Contract(pure = true) public NetworkFileUtil downloadAsBackstage(@NotNull String folderPath) {
+		new Thread(() -> download(folderPath)).start();
+		return this;
+	}
+
+	/**
+	 * 后台下载,可以使用schedule方法查看下载进度
+	 *
+	 * @param folder 文件存放目录对象
+	 * @return this
+	 */
+	@Contract(pure = true) public NetworkFileUtil downloadAsBackstage(@NotNull File folder) {
+		new Thread(() -> download(folder)).start();
+		return this;
+	}
+
+	/**
 	 * 下载网络文件,返回状态码
+	 * <p>
+	 * 自动寻找并存放下载文件夹路径
 	 *
 	 * @return 下载状态码
 	 */
@@ -690,6 +726,7 @@ public class NetworkFileUtil {
 	 */
 	@Contract(pure = true) protected int addPiece(long start, long end) {
 		if (infos.contains(start + "-" + end)) {
+			schedule.addAndGet(end - start + 1);
 			return HttpStatus.SC_PARTIAL_CONTENT;
 		}
 		int statusCode = writePiece(start, end);
