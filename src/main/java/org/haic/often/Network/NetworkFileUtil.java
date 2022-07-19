@@ -429,7 +429,7 @@ public class NetworkFileUtil {
 	 * @return 下载进度
 	 */
 	@Contract(pure = true) public Float scheduleOfPercentage() {
-		BigDecimal bd = BigDecimal.valueOf((double) schedule.get() / (double) fileSize());
+		BigDecimal bd = BigDecimal.valueOf((double) schedule.get() * 100 / (double) fileSize());
 		bd = bd.setScale(2, RoundingMode.HALF_UP);
 		return bd.floatValue();
 	}
@@ -489,8 +489,7 @@ public class NetworkFileUtil {
 	 * @return this
 	 */
 	@Contract(pure = true) public NetworkFileUtil downloadAsBackstage(@NotNull String folderPath) {
-		new Thread(() -> download(folderPath)).start();
-		return this;
+		return downloadAsBackstage(new File(folderPath));
 	}
 
 	/**
