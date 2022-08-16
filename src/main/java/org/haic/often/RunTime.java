@@ -60,6 +60,16 @@ public class RunTime {
 	}
 
 	/**
+	 * 针对安卓的文件路径需要特殊处理才能正确识别命令
+	 *
+	 * @param path 文件路径
+	 * @return 处理后的文件路径
+	 */
+	@Contract(pure = true) public static String quote(@NotNull String path) {
+		return "'" + path + "'";
+	}
+
+	/**
 	 * 设置 终端命令
 	 *
 	 * @param command 终端命令

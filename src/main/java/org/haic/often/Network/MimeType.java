@@ -1,6 +1,8 @@
 package org.haic.often.Network;
 
 /**
+ * 常用网络MIME类型
+ *
  * @author haicdust
  * @version 1.0
  * @since 2022/7/14 10:12
