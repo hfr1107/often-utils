@@ -5,7 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import org.haic.often.Judge;
 import org.haic.often.Network.Connection;
 import org.haic.often.Network.HttpsUtil;
-import org.haic.often.Network.NetworkFileUtil;
+import org.haic.often.Network.NetworkUtil;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -499,7 +499,7 @@ public class YunPan123 {
 		 * @param folderPath 存放的文件夹路径
 		 */
 		@Contract(pure = true) public void download(@NotNull JSONObject fileInfo, @NotNull String folderPath) {
-			NetworkFileUtil.connect(getStraight(fileInfo)).fileName(fileInfo.getString("FileName")).download(folderPath + fileInfo.getString("Path"));
+			NetworkUtil.connect(getStraight(fileInfo)).fileName(fileInfo.getString("FileName")).download(folderPath + fileInfo.getString("Path"));
 		}
 
 		/**

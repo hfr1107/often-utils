@@ -36,12 +36,13 @@ Maven依赖添加:
 ### 简单示例:
 
 ```
-NetworkFileUtil.connect(fileUrl)  
-.filename("qq.apk")  //设置文件名，文件名会替换非法字符，不设置会自动获取文件名   
+NetworkUtil.Response res = NetworkUtil.connect(fileUrl)  
+.fileName("qq.apk")  //设置文件名，文件名会替换非法字符，不设置会自动获取文件名   
 .retry(4，1000)  //重试次数,以及重试等待间隔, true为无限重试
 .multithread(10)  //多线程下载,无法获取文件大小转为全量下载,默认线程16  
-.errorExit(true)  //下载失败抛出执行异常,默认false,可用于检测错误  
 .download(folder); //设置存放的文件夹
+res.statusCode(); // 下载完成状态
+res.headers(); // 返回请求头
 ```
 
 ## 调用Aria2下载
