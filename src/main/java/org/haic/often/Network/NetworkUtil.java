@@ -185,6 +185,15 @@ public class NetworkUtil {
 			return URIUtils.statusIsOK(statusCode()) ? this : conn.download(request.getStorage().getParentFile());
 		}
 
+		@Contract(pure = true) public boolean clear() {
+			return new File(request.getStorage().getPath() + ".session").exists() && delete();
+		}
+
+		@Contract(pure = true) public boolean delete() {
+			File storage = request.getStorage();
+			File session = new File(storage.getPath() + ".session");
+			return (!storage.exists() || storage.delete()) && (!session.exists() || session.delete());
+		}
 	}
 
 	/**
@@ -280,6 +289,20 @@ public class NetworkUtil {
 		 * @return 此连接, 用于连接
 		 */
 		@Contract(pure = true) public abstract Response restart();
+
+		/**
+		 * 清理未完成的存储文件,如果文件下载完成则不做处理
+		 *
+		 * @return 执行状态
+		 */
+		@Contract(pure = true) public abstract boolean clear();
+
+		/**
+		 * 删除当前下载的本地存储文件,无论是否完成
+		 *
+		 * @return 执行状态
+		 */
+		@Contract(pure = true) public abstract boolean delete();
 	}
 
 	protected static class HttpConnection extends Connection {
