@@ -276,26 +276,26 @@ public class JsoupUtil {
 			return method(Method.POST).execute().parse();
 		}
 
-		@Contract(pure = true) public Response execute() {
-			Response response = executeProgram(conn);
-			int statusCode = Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.statusCode();
+		@NotNull @Contract(pure = true) public Response execute() {
+			Response res = executeProgram(conn);
+			int statusCode = res.statusCode();
 			for (int i = 0; (URIUtils.statusIsTimeout(statusCode) || retryStatusCodes.contains(statusCode)) && (i < retry || unlimit); i++) {
 				MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP); // 程序等待
-				response = executeProgram(conn);
-				statusCode = Judge.isNull(response) ? statusCode : response.statusCode();
+				res = executeProgram(conn);
+				statusCode = res.statusCode();
 			}
 			if (errorExit && !URIUtils.statusIsNormal(statusCode)) {
 				throw new RuntimeException("连接URL失败，状态码: " + statusCode + " URL: " + conn.request().url());
 			}
-			return response;
+			return res;
 		}
 
-		@Contract(pure = true) protected Response executeProgram(@NotNull org.jsoup.Connection conn) {
+		@NotNull @Contract(pure = true) protected Response executeProgram(@NotNull org.jsoup.Connection conn) {
 			org.jsoup.Connection.Response response;
 			try {
 				response = conn.execute();
 			} catch (IOException e) {
-				return null;
+				return new HttpResponse(this, null);
 			}
 			return new HttpResponse(this, response);
 		}

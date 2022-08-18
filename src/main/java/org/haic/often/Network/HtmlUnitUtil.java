@@ -331,13 +331,13 @@ public class HtmlUnitUtil {
 			return method(Method.POST).execute().parse();
 		}
 
-		@Contract(pure = true) public Response execute() {
+		@NotNull @Contract(pure = true) public Response execute() {
 			Response response = executeProgram(request);
-			int statusCode = Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.statusCode();
+			int statusCode = response.statusCode();
 			for (int i = 0; (URIUtils.statusIsTimeout(statusCode) || retryStatusCodes.contains(statusCode)) && (i < retry || unlimit); i++) {
 				MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP);
 				response = executeProgram(request);
-				statusCode = Judge.isNull(response) ? statusCode : response.statusCode();
+				statusCode = response.statusCode();
 			}
 
 			// webClient.close(); // 关闭webClient
@@ -349,12 +349,12 @@ public class HtmlUnitUtil {
 			return response;
 		}
 
-		@Contract(pure = true) protected Response executeProgram(@NotNull WebRequest request) {
+		@NotNull @Contract(pure = true) protected Response executeProgram(@NotNull WebRequest request) {
 			Response response;
 			try { // 获得页面
 				response = new HttpResponse(this, webClient.getPage(request));
 			} catch (IOException e) {
-				return null;
+				return new HttpResponse(this, null);
 			}
 			webClient.waitForBackgroundJavaScript(waitJSTime); // 阻塞并执行JS
 			cookies(response.cookies()); // 维护cookies

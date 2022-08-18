@@ -271,13 +271,13 @@ public class HttpsUtil {
 			return method(Method.POST).execute().parse();
 		}
 
-		@Contract(pure = true) public Response execute() {
+		@NotNull @Contract(pure = true) public Response execute() {
 			Response response = executeProgram(url);
-			int statusCode = Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.statusCode();
+			int statusCode = response.statusCode();
 			for (int i = 0; (URIUtils.statusIsTimeout(statusCode) || retryStatusCodes.contains(statusCode)) && (i < retry || unlimit); i++) {
 				MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP); // 程序等待
 				response = executeProgram(url);
-				statusCode = Judge.isNull(response) ? statusCode : response.statusCode();
+				statusCode = response.statusCode();
 			}
 			if (errorExit && !URIUtils.statusIsNormal(statusCode)) {
 				throw new RuntimeException("连接URL失败，状态码: " + statusCode + " URL: " + url);
@@ -290,9 +290,10 @@ public class HttpsUtil {
 		 *
 		 * @return this
 		 */
-		@Contract(pure = true) protected Response executeProgram(@NotNull String url) {
-			HttpURLConnection conn = null;
+		@NotNull @Contract(pure = true) protected Response executeProgram(@NotNull String url) {
 			try {
+				HttpURLConnection conn = null;
+				Response res = new HttpResponse(this, null);
 				switch (method) {
 				case GET -> {
 					conn = connection(Judge.isEmpty(params) ? url : url + (url.contains("?") ? "&" : "?") + params);
@@ -320,21 +321,21 @@ public class HttpsUtil {
 						output.flush(); // flush输出流的缓冲
 					} catch (IOException e) {
 						conn.disconnect();
-						return null;
+						return res;
 					}
 				}
 				}
 				conn.disconnect();
-				Response response = new HttpResponse(this, conn);
-				cookies(response.cookies()); // 维护cookies
+				res = new HttpResponse(this, conn);
+				cookies(res.cookies()); // 维护cookies
 
 				String redirectUrl; // 修复重定向
-				if (followRedirects && URIUtils.statusIsNormal(response.statusCode()) && !Judge.isEmpty(redirectUrl = response.header("location"))) {
-					response = executeProgram(redirectUrl);
+				if (followRedirects && URIUtils.statusIsNormal(res.statusCode()) && !Judge.isEmpty(redirectUrl = res.header("location"))) {
+					res = executeProgram(redirectUrl);
 				}
-				return response;
+				return res;
 			} catch (IOException e) {
-				return null;
+				return new HttpResponse(this, null);
 			}
 		}
 

@@ -308,7 +308,7 @@ public class HttpClientUtil {
 			return method(Method.POST).execute().parse();
 		}
 
-		@Contract(pure = true) public Response execute() {
+		@NotNull @Contract(pure = true) public Response execute() {
 			HttpUriRequest request = null;
 			try {
 				URI builder = new URIBuilder(url).setParameters(params).build();
@@ -344,8 +344,8 @@ public class HttpClientUtil {
 				}};
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
-				return null;
+				// e.printStackTrace();
+				return new HttpResponse(null, null, null);
 			}
 
 			// 设置通用的请求属性
@@ -359,11 +359,11 @@ public class HttpClientUtil {
 			httpclient = Judge.isNull(httpclient) ? httpClientBuilder.build() : httpclient;
 
 			Response response = executeProgram(request);
-			int statusCode = Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.statusCode();
+			int statusCode = response.statusCode();
 			for (int i = 0; (URIUtils.statusIsTimeout(statusCode) || retryStatusCodes.contains(statusCode)) && (i < retry || unlimit); i++) {
 				MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP); // 程序等待
 				response = executeProgram(request);
-				statusCode = Judge.isNull(response) ? statusCode : response.statusCode();
+				statusCode = response.statusCode();
 			}
 			if (errorExit && !URIUtils.statusIsNormal(statusCode)) {
 				throw new RuntimeException("连接URL失败，状态码: " + statusCode + " URL: " + url);
@@ -371,12 +371,12 @@ public class HttpClientUtil {
 			return response;
 		}
 
-		@Contract(pure = true) protected Response executeProgram(@NotNull HttpUriRequest request) {
+		@NotNull @Contract(pure = true) protected Response executeProgram(@NotNull HttpUriRequest request) {
 			CloseableHttpResponse httpResponse;
 			try {
 				httpResponse = httpclient.execute(request, context);
 			} catch (IOException e) {
-				return null;
+				return new HttpResponse(this, request, null);
 			}
 			Response response = new HttpResponse(this, request, httpResponse);
 			cookies(response.cookies()); // 维护cookies
