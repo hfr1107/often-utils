@@ -454,17 +454,15 @@ public class NetworkUtil {
 
 		@Contract(pure = true) public Response upload(@NotNull File file) {
 			request.setStorage(file).setFileSize(file.length()).setHash(FilesUtils.getMD5(file));
-			org.haic.often.Network.Response response = null;
-			try (InputStream inputStream = new BufferedInputStream(new FileInputStream(file), DEFAULT_BUFFER_SIZE)) {
-				response = JsoupUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies)
-						.file(Judge.isEmpty(fileName) ? file.getName() : fileName, inputStream).retry(retry, MILLISECONDS_SLEEP).retry(unlimitedRetry)
-						.errorExit(errorExit).method(org.haic.often.Network.Method.POST).execute();
+			org.haic.often.Network.Response res;
+			try (InputStream in = new BufferedInputStream(new FileInputStream(file), DEFAULT_BUFFER_SIZE)) {
+				res = JsoupUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies).file(Judge.isEmpty(fileName) ? file.getName() : fileName, in)
+						.retry(retry, MILLISECONDS_SLEEP).retry(unlimitedRetry).errorExit(errorExit).method(org.haic.often.Network.Method.POST).execute();
+				request.headers(res.headers()).cookies(res.cookies());
 			} catch (IOException e) {
-				// e.printStackTrace();
+				return new HttpResponse(this, request.statusCode(HttpStatus.SC_REQUEST_TIMEOUT));
 			}
-			return new HttpResponse(this, Judge.isNull(response) ?
-					request.statusCode(HttpStatus.SC_REQUEST_TIMEOUT) :
-					request.statusCode(response.statusCode()).setBody(response.body()));
+			return new HttpResponse(this, request.statusCode(res.statusCode()).setBody(res.body()));
 		}
 
 		@Contract(pure = true) public Response download() {
@@ -476,7 +474,7 @@ public class NetworkUtil {
 		}
 
 		@Contract(pure = true) public Response download(@NotNull File folder) {
-			org.haic.often.Network.Response response = null;
+			org.haic.often.Network.Response res = null;
 			JSONObject fileInfo = new JSONObject();
 			switch (method) { // 配置信息
 			case FILE -> {
@@ -506,18 +504,17 @@ public class NetworkUtil {
 			}
 			case FULL, PIECE, MULTITHREAD, MANDATORY -> {
 				// 获取文件信息
-				response = JsoupUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies).retry(retry, MILLISECONDS_SLEEP).retry(unlimitedRetry)
+				res = JsoupUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies).retry(retry, MILLISECONDS_SLEEP).retry(unlimitedRetry)
 						.retryStatusCodes(retryStatusCodes).errorExit(errorExit).execute();
 				// 获取URL连接状态
-				int statusCode = Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.statusCode();
+				int statusCode = res.statusCode();
 				if (!URIUtils.statusIsOK(statusCode)) {
 					return new HttpResponse(this, request.statusCode(statusCode));
 				}
-				request.headers(response.headers());
-				request.cookies(response.cookies());
+				request.headers(res.headers()).cookies(res.cookies());
 				// 获取文件名
 				if (Judge.isEmpty(fileName)) {
-					String disposition = Objects.requireNonNull(response).header("content-disposition");
+					String disposition = Objects.requireNonNull(res).header("content-disposition");
 					fileName = Judge.isNull(disposition) ?
 							StringUtils.decodeByURL(
 									url.contains("?") ? url.substring(url.lastIndexOf("/") + 1, url.indexOf("?")) : url.substring(url.lastIndexOf("/") + 1)) :
@@ -526,7 +523,7 @@ public class NetworkUtil {
 				// 文件名排除非法字符
 				fileName = FilesUtils.illegalFileName(fileName);
 				// 尝试修复后缀
-				fileName = fileName.contains(".") ? fileName : fileName + MimeType.getMimeSuffix(response.header("content-type"));
+				fileName = fileName.contains(".") ? fileName : fileName + MimeType.getMimeSuffix(res.header("content-type"));
 				// 文件名长度检验
 				if (FilesUtils.nameLength(fileName) > 240) {
 					throw new RuntimeException("Error: File name length is greater than 240 URL: " + url + " FileName: " + fileName);
@@ -542,10 +539,10 @@ public class NetworkUtil {
 					return method(Method.FILE).download(folder);
 				}
 
-				String contentLength = response.header("content-length"); // 获取文件大小
+				String contentLength = res.header("content-length"); // 获取文件大小
 
 				request.setFileSize(fileSize = Judge.isNull(contentLength) ? fileSize : Long.parseLong(contentLength));
-				request.setHash(hash = Judge.isEmpty(hash) ? response.header("x-cos-meta-md5") : hash); // 获取文件MD5
+				request.setHash(hash = Judge.isEmpty(hash) ? res.header("x-cos-meta-md5") : hash); // 获取文件MD5
 				if (conf.exists()) { // 文件存在但不是文件，抛出异常
 					throw new RuntimeException("Not is file " + conf);
 				} else { // 创建并写入文件配置信息
@@ -568,7 +565,7 @@ public class NetworkUtil {
 			FilesUtils.createFolder(folder); // 创建文件夹
 			int statusCode = 0;
 			switch (method) {  // 开始下载
-			case FULL -> statusCode = Judge.isNull(response) ? FULL() : FULL(response);
+			case FULL -> statusCode = Judge.isNull(res) ? FULL() : FULL(res);
 			case PIECE -> statusCode = MULTITHREAD((int) Math.ceil((double) fileSize / (double) PIECE_MAX_SIZE), PIECE_MAX_SIZE);
 			case MULTITHREAD -> {
 				int PIECE_COUNT = Math.min((int) Math.ceil((double) fileSize / (double) PIECE_MAX_SIZE), MAX_THREADS);
@@ -691,9 +688,7 @@ public class NetworkUtil {
 		@Contract(pure = true) protected int writePiece(long start, long end) {
 			org.haic.often.Network.Response piece = JsoupUtil.connect(url).proxy(proxy).headers(headers).header("range", "bytes=" + start + "-" + end)
 					.cookies(cookies).execute();
-			return Judge.isNull(piece) ?
-					HttpStatus.SC_REQUEST_TIMEOUT :
-					URIUtils.statusIsOK(piece.statusCode()) ? writePiece(start, end, piece) : piece.statusCode();
+			return URIUtils.statusIsOK(piece.statusCode()) ? writePiece(start, end, piece) : piece.statusCode();
 		}
 
 		/**
