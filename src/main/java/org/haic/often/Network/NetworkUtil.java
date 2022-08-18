@@ -129,9 +129,11 @@ public class NetworkUtil {
 
 	protected static class HttpResponse extends Response {
 
+		protected Connection conn;
 		protected Request request;
 
-		protected HttpResponse(Request request) {
+		protected HttpResponse(Connection conn, Request request) {
+			this.conn = conn;
 			this.request = request;
 		}
 
@@ -173,6 +175,14 @@ public class NetworkUtil {
 
 		@Contract(pure = true) public String url() {
 			return request.getUrl();
+		}
+
+		@Contract(pure = true) public String uploadBody() {
+			return request.getBody();
+		}
+
+		@Contract(pure = true) public Response restart() {
+			return URIUtils.statusIsOK(statusCode()) ? this : conn.download(request.getStorage().getParentFile());
 		}
 
 	}
@@ -256,6 +266,20 @@ public class NetworkUtil {
 		 * @return URL
 		 */
 		@Contract(pure = true) public abstract String url();
+
+		/**
+		 * 在上传文件后服务端返回的数据
+		 *
+		 * @return 服务器返回数据
+		 */
+		@Contract(pure = true) public abstract String uploadBody();
+
+		/**
+		 * 如果完成状态不为成功,则重启当前下载任务
+		 *
+		 * @return 此连接, 用于连接
+		 */
+		@Contract(pure = true) public abstract Response restart();
 	}
 
 	protected static class HttpConnection extends Connection {
@@ -424,19 +448,23 @@ public class NetworkUtil {
 			return this;
 		}
 
-		@Contract(pure = true) public int upload(@NotNull String filePath) {
+		@Contract(pure = true) public Response upload(@NotNull String filePath) {
 			return upload(new File(filePath));
 		}
 
-		@Contract(pure = true) public int upload(@NotNull File file) {
+		@Contract(pure = true) public Response upload(@NotNull File file) {
+			request.setStorage(file).setFileSize(file.length()).setHash(FilesUtils.getMD5(file));
 			org.haic.often.Network.Response response = null;
 			try (InputStream inputStream = new BufferedInputStream(new FileInputStream(file), DEFAULT_BUFFER_SIZE)) {
-				response = JsoupUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies).file(fileName, inputStream).retry(retry, MILLISECONDS_SLEEP)
-						.retry(unlimitedRetry).errorExit(errorExit).method(org.haic.often.Network.Method.POST).execute();
+				response = JsoupUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies)
+						.file(Judge.isEmpty(fileName) ? file.getName() : fileName, inputStream).retry(retry, MILLISECONDS_SLEEP).retry(unlimitedRetry)
+						.errorExit(errorExit).method(org.haic.often.Network.Method.POST).execute();
 			} catch (IOException e) {
 				// e.printStackTrace();
 			}
-			return Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.statusCode();
+			return new HttpResponse(this, Judge.isNull(response) ?
+					request.statusCode(HttpStatus.SC_REQUEST_TIMEOUT) :
+					request.statusCode(response.statusCode()).setBody(response.body()));
 		}
 
 		@Contract(pure = true) public Response download() {
@@ -472,7 +500,7 @@ public class NetworkUtil {
 					if (errorExit) {
 						throw new RuntimeException("Not found or not is file " + conf);
 					} else {
-						return new HttpResponse(request.statusCode(0));
+						return new HttpResponse(this, request.statusCode(0));
 					}
 				}
 			}
@@ -483,7 +511,7 @@ public class NetworkUtil {
 				// 获取URL连接状态
 				int statusCode = Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.statusCode();
 				if (!URIUtils.statusIsOK(statusCode)) {
-					return new HttpResponse(request.statusCode(statusCode));
+					return new HttpResponse(this, request.statusCode(statusCode));
 				}
 				request.headers(response.headers());
 				request.cookies(response.cookies());
@@ -508,7 +536,7 @@ public class NetworkUtil {
 				request.setStorage(storage = new File(folder, fileName)); // 获取其file对象
 				conf = new File(storage + ".session"); // 配置信息文件后缀
 				if (storage.isFile() && !conf.exists()) { // 文件已存在，结束下载
-					return new HttpResponse(request.statusCode(HttpStatus.SC_OK));
+					return new HttpResponse(this, request.statusCode(HttpStatus.SC_OK));
 				}
 				if (conf.isFile()) {
 					return method(Method.FILE).download(folder);
@@ -552,7 +580,7 @@ public class NetworkUtil {
 				if (errorExit) {
 					throw new RuntimeException("文件下载失败，状态码: " + statusCode + " URL: " + url);
 				}
-				return new HttpResponse(request.statusCode(statusCode));
+				return new HttpResponse(this, request.statusCode(statusCode));
 			}
 
 			// 效验文件完整性
@@ -576,12 +604,12 @@ public class NetworkUtil {
 				if (errorExit) {
 					throw new RuntimeException(errorText + ", Server md5:" + hash + " Local md5: " + md5 + " URL: " + url);
 				} else {
-					return new HttpResponse(request.statusCode(HttpStatus.SC_FORBIDDEN));
+					return new HttpResponse(this, request.statusCode(HttpStatus.SC_FORBIDDEN));
 				}
 			}
 
 			conf.delete(); // 删除信息文件
-			return new HttpResponse(request.statusCode(HttpStatus.SC_OK));
+			return new HttpResponse(this, request.statusCode(HttpStatus.SC_OK));
 		}
 
 		/**
@@ -932,7 +960,7 @@ public class NetworkUtil {
 		 * @param filePath 待上传的文件路径
 		 * @return 上传状态码
 		 */
-		@Contract(pure = true) public abstract int upload(@NotNull String filePath);
+		@Contract(pure = true) public abstract Response upload(@NotNull String filePath);
 
 		/**
 		 * 上传网络文件,返回状态码
@@ -940,7 +968,7 @@ public class NetworkUtil {
 		 * @param file 待上传的文件对象
 		 * @return 上传状态码
 		 */
-		@Contract(pure = true) public abstract int upload(@NotNull File file);
+		@Contract(pure = true) public abstract Response upload(@NotNull File file);
 
 		/**
 		 * 下载网络文件,返回状态码
@@ -971,12 +999,14 @@ public class NetworkUtil {
 
 	private static class Request {
 		private String url; // 请求URL
-		private File storage;
 		private String hash; // hash值,md5算法
+		private String body;
 
 		private long fileSize; // 文件大小
-
 		private int statusCode;
+
+		private File storage;
+
 		private Map<String, String> headers = new HashMap<>(); // headers
 		private Map<String, String> cookies = new HashMap<>(); // cookies
 
@@ -993,48 +1023,63 @@ public class NetworkUtil {
 			return url;
 		}
 
-		public void setUrl(String url) {
+		public Request setUrl(String url) {
 			this.url = url;
+			return this;
 		}
 
 		public File getStorage() {
 			return storage;
 		}
 
-		public void setStorage(File storage) {
+		public Request setStorage(File storage) {
 			this.storage = storage;
+			return this;
 		}
 
 		public String getHash() {
 			return hash;
 		}
 
-		public void setHash(String hash) {
+		public Request setHash(String hash) {
 			this.hash = hash;
+			return this;
 		}
 
 		public long getFileSize() {
 			return fileSize;
 		}
 
-		public void setFileSize(long fileSize) {
+		public Request setFileSize(long fileSize) {
 			this.fileSize = fileSize;
+			return this;
 		}
 
 		public Map<String, String> headers() {
 			return headers;
 		}
 
-		public void headers(Map<String, String> headers) {
+		public Request headers(Map<String, String> headers) {
 			this.headers = headers;
+			return this;
 		}
 
 		public Map<String, String> cookies() {
 			return cookies;
 		}
 
-		public void cookies(Map<String, String> cookies) {
+		public Request cookies(Map<String, String> cookies) {
 			this.cookies = cookies;
+			return this;
+		}
+
+		public String getBody() {
+			return body;
+		}
+
+		public Request setBody(String body) {
+			this.body = body;
+			return this;
 		}
 	}
 
