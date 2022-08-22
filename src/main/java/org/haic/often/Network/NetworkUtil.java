@@ -402,7 +402,7 @@ public class NetworkUtil {
 		}
 
 		@Contract(pure = true) public Connection fileName(@NotNull String fileName) {
-			this.fileName = FilesUtils.illegalFileName(fileName);
+			this.fileName = FilesUtils.illegalFileName(StringUtils.decodeByURL(fileName));
 			fileNameValidity(fileName);
 			return this;
 		}
@@ -552,7 +552,7 @@ public class NetworkUtil {
 					String disposition = res.header("content-disposition");
 					if (Judge.isEmpty(disposition)) {
 						fileName = url.substring(url.lastIndexOf("/") + 1);
-						fileName = url.contains("?") ? url.substring(0, url.indexOf("?")) : fileName;
+						fileName = StringUtils.decodeByURL(url.contains("?") ? url.substring(0, url.indexOf("?")) : fileName);
 						fileName = fileName.contains(".") ? fileName : fileName + MimeType.getMimeSuffix(res.header("content-type")); // 尝试修复后缀
 					} else {
 						fileName = URIUtils.getFileNameForDisposition(disposition);
