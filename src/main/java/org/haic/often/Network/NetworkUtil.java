@@ -402,7 +402,8 @@ public class NetworkUtil {
 		}
 
 		@Contract(pure = true) public Connection fileName(@NotNull String fileName) {
-			this.fileName = fileName;
+			this.fileName = FilesUtils.illegalFileName(fileName);
+			fileNameValidity(fileName);
 			return this;
 		}
 
@@ -471,6 +472,17 @@ public class NetworkUtil {
 			return this;
 		}
 
+		/**
+		 * 受于系统限制,对文件名长度进行效验,防止致命错误
+		 *
+		 * @param fileName 文件名
+		 */
+		@Contract(pure = true) public void fileNameValidity(@NotNull String fileName) {
+			if (FilesUtils.nameLength(fileName) > 240) {
+				throw new RuntimeException("Error: File name length is greater than 240 URL: " + url + " FileName: " + fileName);
+			}
+		}
+
 		@Contract(pure = true) public Response upload(@NotNull String filePath) {
 			return upload(new File(filePath));
 		}
@@ -537,19 +549,16 @@ public class NetworkUtil {
 				request.headers(res.headers()).cookies(res.cookies());
 				// 获取文件名
 				if (Judge.isEmpty(fileName)) {
-					String disposition = Objects.requireNonNull(res).header("content-disposition");
-					fileName = Judge.isNull(disposition) ?
-							StringUtils.decodeByURL(
-									url.contains("?") ? url.substring(url.lastIndexOf("/") + 1, url.indexOf("?")) : url.substring(url.lastIndexOf("/") + 1)) :
-							URIUtils.getFileNameForDisposition(disposition);
-				}
-				// 文件名排除非法字符
-				fileName = FilesUtils.illegalFileName(fileName);
-				// 尝试修复后缀
-				fileName = fileName.contains(".") ? fileName : fileName + MimeType.getMimeSuffix(res.header("content-type"));
-				// 文件名长度检验
-				if (FilesUtils.nameLength(fileName) > 240) {
-					throw new RuntimeException("Error: File name length is greater than 240 URL: " + url + " FileName: " + fileName);
+					String disposition = res.header("content-disposition");
+					if (Judge.isEmpty(disposition)) {
+						fileName = url.substring(url.lastIndexOf("/") + 1);
+						fileName = url.contains("?") ? url.substring(0, url.indexOf("?")) : fileName;
+						fileName = fileName.contains(".") ? fileName : fileName + MimeType.getMimeSuffix(res.header("content-type")); // 尝试修复后缀
+					} else {
+						fileName = URIUtils.getFileNameForDisposition(disposition);
+					}
+					fileName = FilesUtils.illegalFileName(fileName); // 文件名排除非法字符
+					fileNameValidity(fileName);
 				}
 
 				// 获取待下载文件和配置文件对象
@@ -853,7 +862,7 @@ public class NetworkUtil {
 		/**
 		 * 设置将要下载文件的文件名
 		 * <p>
-		 * 文件名字符串字符长度不能高于240,使用 FilesUtils.illegalFileName 获取实际字符长度
+		 * 文件名字符串字符长度不能高于240,使用 FilesUtils.nameLength 获取实际字符长度
 		 *
 		 * @param fileName 文件名
 		 * @return 此连接，用于链接
