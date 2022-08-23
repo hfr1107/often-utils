@@ -346,10 +346,9 @@ public class NetworkUtil {
 		}
 
 		@Contract(pure = true) public Connection newUrl(@NotNull String url) {
-			request.setUrl(this.url = url);
 			request.setHash(this.hash = null);
 			this.fileName = null;
-			return this;
+			return url(url);
 		}
 
 		@Contract(pure = true) protected Connection setConf(@NotNull File conf) {
@@ -640,7 +639,7 @@ public class NetworkUtil {
 				if (errorExit) {
 					throw new RuntimeException(errorText + ", Server md5:" + hash + " Local md5: " + md5 + " URL: " + url);
 				} else {
-					return new HttpResponse(this, request.statusCode(HttpStatus.SC_FORBIDDEN));
+					return new HttpResponse(this, request.statusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR));
 				}
 			}
 
