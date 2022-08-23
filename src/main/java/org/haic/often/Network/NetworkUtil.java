@@ -345,6 +345,13 @@ public class NetworkUtil {
 			return this;
 		}
 
+		@Contract(pure = true) public Connection newUrl(@NotNull String url) {
+			request.setUrl(this.url = url);
+			request.setHash(this.hash = null);
+			this.fileName = null;
+			return this;
+		}
+
 		@Contract(pure = true) protected Connection setConf(@NotNull File conf) {
 			this.method = Method.FILE;
 			this.conf = conf;
@@ -763,12 +770,26 @@ public class NetworkUtil {
 	public abstract static class Connection {
 
 		/**
-		 * 设置要获取的请求 URL，协议必须是 HTTP 或 HTTPS
+		 * 设置要下载文件的 URL，协议必须是 HTTP 或 HTTPS
+		 * <p>
+		 * 此方法仅用于初始化设置或特殊情况下修改同一文件的 URL
+		 * <p>
+		 * 不同的下载链接不应复用类，内部被改变的 fileName 和 hash 参数会导致致命的下载错误，如果复用，应该同步修改或置空上述两个参数，建议使用 newUrl() 方法
 		 *
 		 * @param url 要连接的 URL
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection url(@NotNull String url);
+
+		/**
+		 * 设置新的要下载文件的 URL，协议必须是 HTTP 或 HTTPS
+		 * <p>
+		 * 在修改 URL 时，同步置空 fileName 和 hash 而不会修改其它参数，适用于相同域名或来源的下载
+		 *
+		 * @param url 要连接的 URL
+		 * @return 此连接，用于链接
+		 */
+		@Contract(pure = true) public abstract Connection newUrl(@NotNull String url);
 
 		/**
 		 * 连接用户代理（ 字符串 用户代理）<br/>
