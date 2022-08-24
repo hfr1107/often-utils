@@ -291,9 +291,9 @@ public class HttpsUtil {
 		 * @return this
 		 */
 		@NotNull @Contract(pure = true) protected Response executeProgram(@NotNull String url) {
+			Response res = new HttpResponse(this, null);
 			try {
 				HttpURLConnection conn = null;
-				Response res = new HttpResponse(this, null);
 				switch (method) {
 				case GET -> {
 					conn = connection(Judge.isEmpty(params) ? url : url + (url.contains("?") ? "&" : "?") + params);
@@ -333,10 +333,10 @@ public class HttpsUtil {
 				if (followRedirects && URIUtils.statusIsNormal(res.statusCode()) && !Judge.isEmpty(redirectUrl = res.header("location"))) {
 					res = executeProgram(redirectUrl);
 				}
-				return res;
 			} catch (IOException e) {
-				return new HttpResponse(this, null);
+				// e.printStackTrace();
 			}
+			return res;
 		}
 
 		/**
@@ -396,7 +396,7 @@ public class HttpsUtil {
 		@Contract(pure = true) public int statusCode() {
 			try {
 				return conn.getResponseCode();
-			} catch (IOException e) {
+			} catch (Exception e) {
 				return HttpStatus.SC_REQUEST_TIMEOUT;
 			}
 		}

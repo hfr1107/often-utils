@@ -201,6 +201,20 @@ public class URIUtils {
 	}
 
 	/**
+	 * 获取当前网址的IP，如果不存在则返回null
+	 *
+	 * @param host 网址
+	 * @return IP地址
+	 */
+	@Contract(pure = true) public static String hostIP(@NotNull String host) {
+		try {
+			return InetAddress.getByName(URIUtils.getDomain(host)).getHostAddress();
+		} catch (UnknownHostException e) {
+			return null;
+		}
+	}
+
+	/**
 	 * 获取 URL请求头Content-Disposition文件名属性
 	 *
 	 * @param disposition ontent-Disposition

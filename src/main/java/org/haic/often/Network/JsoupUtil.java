@@ -291,13 +291,13 @@ public class JsoupUtil {
 		}
 
 		@NotNull @Contract(pure = true) protected Response executeProgram(@NotNull org.jsoup.Connection conn) {
-			org.jsoup.Connection.Response response;
+			org.jsoup.Connection.Response res;
 			try {
-				response = conn.execute();
+				res = conn.execute();
 			} catch (IOException e) {
 				return new HttpResponse(this, null);
 			}
-			return new HttpResponse(this, response);
+			return new HttpResponse(this, res);
 		}
 	}
 
@@ -311,59 +311,59 @@ public class JsoupUtil {
 	protected static class HttpResponse extends Response {
 
 		protected HttpConnection conn;
-		protected org.jsoup.Connection.Response response;
+		protected org.jsoup.Connection.Response res;
 		protected Charset charset = StandardCharsets.UTF_8;
 
-		protected HttpResponse(HttpConnection conn, org.jsoup.Connection.Response response) {
+		protected HttpResponse(HttpConnection conn, org.jsoup.Connection.Response res) {
 			this.conn = conn;
-			this.response = response;
+			this.res = res;
 		}
 
 		@Contract(pure = true) public String url() {
-			return response.url().toExternalForm();
+			return res.url().toExternalForm();
 		}
 
 		@Contract(pure = true) public int statusCode() {
-			return Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.statusCode();
+			return Judge.isNull(res) ? HttpStatus.SC_REQUEST_TIMEOUT : res.statusCode();
 		}
 
 		@Contract(pure = true) public String statusMessage() {
-			return response.statusMessage();
+			return res.statusMessage();
 		}
 
 		@Contract(pure = true) public String header(@NotNull String name) {
-			return response.header(name);
+			return res.header(name);
 		}
 
 		@Contract(pure = true) public Map<String, String> headers() {
-			return response.headers().entrySet().stream().collect(Collectors.toMap(l -> l.getKey().toLowerCase(), Map.Entry::getValue));
+			return res.headers().entrySet().stream().collect(Collectors.toMap(l -> l.getKey().toLowerCase(), Map.Entry::getValue));
 		}
 
 		@Contract(pure = true) public Response header(@NotNull String key, @NotNull String value) {
-			response.header(key, value);
+			res.header(key, value);
 			return this;
 		}
 
 		@Contract(pure = true) public Response removeHeader(@NotNull String key) {
-			response.removeHeader(key);
+			res.removeHeader(key);
 			return this;
 		}
 
 		@Contract(pure = true) public String cookie(@NotNull String name) {
-			return response.cookie(name);
+			return res.cookie(name);
 		}
 
 		@Contract(pure = true) public Map<String, String> cookies() {
-			return response.cookies();
+			return res.cookies();
 		}
 
 		@Contract(pure = true) public Response cookie(@NotNull String name, @NotNull String value) {
-			response.cookie(name, value);
+			res.cookie(name, value);
 			return this;
 		}
 
 		@Contract(pure = true) public Response removeCookie(@NotNull String name) {
-			response.removeCookie(name);
+			res.removeCookie(name);
 			return this;
 		}
 
@@ -377,7 +377,7 @@ public class JsoupUtil {
 		}
 
 		@Contract(pure = true) public String contentType() {
-			return response.contentType();
+			return res.contentType();
 		}
 
 		@Contract(pure = true) public Document parse() {
@@ -396,11 +396,11 @@ public class JsoupUtil {
 		}
 
 		@Contract(pure = true) public InputStream bodyStream() {
-			return response.bodyStream();
+			return res.bodyStream();
 		}
 
 		@Contract(pure = true) public byte[] bodyAsBytes() {
-			return response.bodyAsBytes();
+			return res.bodyAsBytes();
 		}
 
 		@Contract(pure = true) public Response method(@NotNull Method method) {

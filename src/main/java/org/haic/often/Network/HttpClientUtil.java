@@ -23,6 +23,8 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContexts;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.brotli.dec.BrotliInputStream;
 import org.haic.often.Judge;
 import org.haic.often.Multithread.MultiThreadUtils;
@@ -105,6 +107,7 @@ public class HttpClientUtil {
 		protected HttpEntity entity;
 
 		protected HttpConnection(@NotNull String url) {
+			Logger.getLogger("org.apache.http").setLevel(Level.OFF); // 关闭日志
 			initialization(url);
 		}
 
@@ -440,14 +443,14 @@ public class HttpClientUtil {
 	 */
 	protected static class HttpResponse extends Response {
 		protected HttpConnection conn;
-		protected CloseableHttpResponse response;
+		protected CloseableHttpResponse res;
 		protected HttpUriRequest request;
 		protected Charset charset = StandardCharsets.UTF_8;
 
-		protected HttpResponse(HttpConnection conn, HttpUriRequest request, CloseableHttpResponse response) {
+		protected HttpResponse(HttpConnection conn, HttpUriRequest request, CloseableHttpResponse res) {
 			this.conn = conn;
 			this.request = request;
-			this.response = response;
+			this.res = res;
 		}
 
 		@Contract(pure = true) public String url() {
@@ -456,11 +459,11 @@ public class HttpClientUtil {
 		}
 
 		@Contract(pure = true) public int statusCode() {
-			return Judge.isNull(response) ? HttpStatus.SC_REQUEST_TIMEOUT : response.getStatusLine().getStatusCode();
+			return Judge.isNull(res) ? HttpStatus.SC_REQUEST_TIMEOUT : res.getStatusLine().getStatusCode();
 		}
 
 		@Contract(pure = true) public String statusMessage() {
-			return response.getStatusLine().getReasonPhrase();
+			return res.getStatusLine().getReasonPhrase();
 		}
 
 		@Contract(pure = true) public String header(@NotNull String name) {
@@ -474,7 +477,7 @@ public class HttpClientUtil {
 
 		@Contract(pure = true) public Map<String, String> headers() {
 			Map<String, String> headers = new HashMap<>();
-			for (Header header : response.getAllHeaders()) {
+			for (Header header : res.getAllHeaders()) {
 				String name = header.getName().toLowerCase();
 				String value = header.getValue();
 				if (name.equals("set-cookie")) {
@@ -502,7 +505,7 @@ public class HttpClientUtil {
 		}
 
 		@Contract(pure = true) public Map<String, String> cookies() {
-			Header[] cookies = response.getHeaders("Set-Cookie");
+			Header[] cookies = res.getHeaders("Set-Cookie");
 			return Judge.isEmpty(cookies.length) ?
 					new HashMap<>() :
 					Arrays.stream(cookies).map(l -> l.getValue().substring(0, l.getValue().indexOf(";")))
@@ -529,7 +532,7 @@ public class HttpClientUtil {
 		}
 
 		@Contract(pure = true) public String contentType() {
-			return response.getEntity().getContentType().getValue();
+			return res.getEntity().getContentType().getValue();
 		}
 
 		@Contract(pure = true) public Document parse() {
@@ -548,7 +551,7 @@ public class HttpClientUtil {
 		}
 
 		@Contract(pure = true) public InputStream bodyStream() throws IOException {
-			return response.getEntity().getContent();
+			return res.getEntity().getContent();
 		}
 
 		@Contract(pure = true) public byte[] bodyAsBytes() {
