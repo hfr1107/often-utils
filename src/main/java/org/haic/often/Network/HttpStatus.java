@@ -18,7 +18,7 @@ public class HttpStatus implements org.apache.http.HttpStatus {
 	 * <p>
 	 * 状态码 307 与 302 之间的唯一区别在于，当发送重定向请求的时候，307 状态码可以确保请求方法和消息主体不会发生变化。如果使用 302 响应状态码，一些旧客户端会错误地将请求方法转换为 GET：也就是说，在 Web 中，如果使用了 GET 以外的请求方法，且返回了 302 状态码，则重定向后的请求方法是不可预测的；但如果使用 307 状态码，之后的请求方法就是可预测的。对于 GET 请求来说，两种情况没有区别。
 	 */
-	public static final int TEMPORARY_REDIRECT = 307;
+	public static final int SC_TEMPORARY_REDIRECT = 307;
 	/**
 	 * @code 425
 	 * <p>
@@ -64,8 +64,17 @@ public class HttpStatus implements org.apache.http.HttpStatus {
 	/**
 	 * @code 451
 	 * <p>
-	 * 因法律原因不可用）是一种HTTP协议的错误状态代码，表示服务器由于法律原因，无法提供客户端请求的资源，例如可能会导致法律诉讼的页面。
+	 * (因法律原因不可用）是一种HTTP协议的错误状态代码，表示服务器由于法律原因，无法提供客户端请求的资源，例如可能会导致法律诉讼的页面。
 	 */
-	public static final int UNAVAILABLE_FOR_LEGAL_REASONS = 451;
+	public static final int SC_UNAVAILABLE_FOR_LEGAL_REASONS = 451;
+
+	/**
+	 * @code 510
+	 * <p>
+	 * 服务器资源错误或不可用
+	 * <p>
+	 * 私有协议状态码，由于服务器内部错误，导致资源错误或不可用
+	 */
+	public static final int SC_SERVER_RESOURCE_ERROR = 510;
 
 }

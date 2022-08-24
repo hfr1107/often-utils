@@ -639,7 +639,7 @@ public class NetworkUtil {
 				if (errorExit) {
 					throw new RuntimeException(errorText + ", Server md5:" + hash + " Local md5: " + md5 + " URL: " + url);
 				} else {
-					return new HttpResponse(this, request.statusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+					return new HttpResponse(this, request.statusCode(HttpStatus.SC_SERVER_RESOURCE_ERROR));
 				}
 			}
 
