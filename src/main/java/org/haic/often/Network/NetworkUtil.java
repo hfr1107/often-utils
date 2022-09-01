@@ -60,22 +60,22 @@ public class NetworkUtil {
 	 * 获取新的NetworkFileUtil对象并设置配置文件<br/>
 	 * 配置文件 -> 包含待下载文件的下载信息的文件
 	 *
-	 * @param conf down文件
+	 * @param path session文件路径
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public static Connection file(@NotNull String conf) {
-		return file(new File(conf));
+	@Contract(pure = true) public static Connection file(@NotNull String path) {
+		return file(new File(path));
 	}
 
 	/**
 	 * 获取新的NetworkFileUtil对象并设置配置文件<br/>
 	 * 配置文件 -> 包含待下载文件的下载信息的文件
 	 *
-	 * @param conf down文件
+	 * @param file session文件
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public static Connection file(@NotNull File conf) {
-		return new HttpConnection().setConf(conf);
+	@Contract(pure = true) public static Connection file(@NotNull File file) {
+		return new HttpConnection().setConf(file);
 	}
 
 	/**
@@ -311,6 +311,7 @@ public class NetworkUtil {
 		protected String lastHash; // hash值,md5算法,用于判断服务器文件损坏
 		protected String fileName; // 文件名
 		protected String hash; // hash值,md5算法
+		protected String SESSION_SUFFIX = ".session";
 
 		protected long fileSize; // 文件大小
 
@@ -324,7 +325,7 @@ public class NetworkUtil {
 		protected boolean errorExit; // 错误退出
 		protected Proxy proxy = Proxy.NO_PROXY; // 代理
 		protected File storage; // 本地存储文件
-		protected File conf; // 配置信息文件
+		protected File session; // 配置信息文件
 
 		protected ExecutorService executorService; // 下载线程池
 		protected Method method = Method.MULTITHREAD;// 下载模式
@@ -351,9 +352,12 @@ public class NetworkUtil {
 			return url(url);
 		}
 
-		@Contract(pure = true) protected Connection setConf(@NotNull File conf) {
+		@Contract(pure = true) protected Connection setConf(@NotNull File session) {
+			if (!session.getName().endsWith(SESSION_SUFFIX)) {
+				throw new RuntimeException("Not is session file: " + session);
+			}
 			this.method = Method.FILE;
-			this.conf = conf;
+			this.session = session;
 			return this;
 		}
 
@@ -519,13 +523,14 @@ public class NetworkUtil {
 			JSONObject fileInfo = new JSONObject();
 			switch (method) { // 配置信息
 			case FILE -> {
-				if (conf.isFile()) { // 如果设置配置文件下载，并且配置文件存在，获取信息
-					infos = ReadWriteUtils.orgin(conf).list();
+				if (session.isFile()) { // 如果设置配置文件下载，并且配置文件存在，获取信息
+					infos = ReadWriteUtils.orgin(session).list();
 					fileInfo = JSONObject.parseObject(infos.get(0));
+					infos.remove(0); // 删除信息行
 					url = fileInfo.getString("URL");
 					fileName = fileInfo.getString("fileName");
 					if (Judge.isEmpty(url) || Judge.isEmpty(fileName)) {
-						throw new RuntimeException("Info is error -> " + conf);
+						throw new RuntimeException("Info is error -> " + session);
 					}
 					request.setHash(hash = fileInfo.getString("x-cos-meta-md5"));
 					fileSize = fileInfo.getLong("content-length");
@@ -534,10 +539,10 @@ public class NetworkUtil {
 					headers = StringUtils.jsonToMap(fileInfo.getString("header"));
 					cookies = StringUtils.jsonToMap(fileInfo.getString("cookie"));
 					storage = new File(folder, fileName); // 获取其file对象
-					infos.remove(0); // 删除信息行
+					infos = storage.exists() ? infos : new ArrayList<>(); // 存储文件不存在重置下载
 				} else { // 配置文件不存在，抛出异常
 					if (errorExit) {
-						throw new RuntimeException("Not found or not is file " + conf);
+						throw new RuntimeException("Not found or not is file " + session);
 					} else {
 						return new HttpResponse(this, request.statusCode(0));
 					}
@@ -569,20 +574,19 @@ public class NetworkUtil {
 
 				// 获取待下载文件和配置文件对象
 				request.setStorage(storage = new File(folder, fileName)); // 获取其file对象
-				conf = new File(storage + ".session"); // 配置信息文件后缀
-				if (storage.isFile() && !conf.exists()) { // 文件已存在，结束下载
-					return new HttpResponse(this, request.statusCode(HttpStatus.SC_OK));
-				}
-				if (conf.isFile()) {
+				session = new File(storage + SESSION_SUFFIX); // 配置信息文件后缀
+
+				if (session.exists()) { // 转为会话配置
 					return method(Method.FILE).download(folder);
+				} else if (storage.exists()) { // 文件已存在,返回完成
+					return new HttpResponse(this, request.statusCode(HttpStatus.SC_OK));
 				}
 
 				String contentLength = res.header("content-length"); // 获取文件大小
-
 				request.setFileSize(fileSize = Judge.isNull(contentLength) ? fileSize : Long.parseLong(contentLength));
 				request.setHash(hash = Judge.isEmpty(hash) ? res.header("x-cos-meta-md5") : hash); // 获取文件MD5
-				if (conf.exists()) { // 文件存在但不是文件，抛出异常
-					throw new RuntimeException("Not is file " + conf);
+				if (session.exists()) { // 文件存在但不是文件，抛出异常
+					throw new RuntimeException("Not is file " + session);
 				} else { // 创建并写入文件配置信息
 					fileInfo.put("URL", url);
 					fileInfo.put("fileName", fileName);
@@ -592,7 +596,7 @@ public class NetworkUtil {
 					fileInfo.put("method", method.name());
 					fileInfo.put("header", JSONObject.toJSONString(headers));
 					fileInfo.put("cookie", JSONObject.toJSONString(cookies));
-					if (!ReadWriteUtils.orgin(conf).text(fileInfo.toJSONString())) {
+					if (!ReadWriteUtils.orgin(session).text(fileInfo.toJSONString())) {
 						throw new RuntimeException("Configuration file creation failed");
 					}
 				}
@@ -622,7 +626,7 @@ public class NetworkUtil {
 			String md5;
 			if (!Judge.isEmpty(hash) && !(md5 = FilesUtils.getMD5(storage)).equals(hash)) {
 				storage.delete(); // 删除下载错误的文件
-				if (!ReadWriteUtils.orgin(conf).append(false).text(fileInfo.toJSONString())) { // 重置信息文件
+				if (!ReadWriteUtils.orgin(session).append(false).text(fileInfo.toJSONString())) { // 重置信息文件
 					throw new RuntimeException("Configuration file reset information failed");
 				}
 				String errorText;
@@ -643,7 +647,7 @@ public class NetworkUtil {
 				}
 			}
 
-			conf.delete(); // 删除信息文件
+			session.delete(); // 删除信息文件
 			return new HttpResponse(this, request.statusCode(HttpStatus.SC_OK));
 		}
 
@@ -746,7 +750,7 @@ public class NetworkUtil {
 					output.write(buffer, 0, len);
 				}
 				if (end - start + 1 == count) {
-					ReadWriteUtils.orgin(conf).text(start + "-" + end);
+					ReadWriteUtils.orgin(session).text(start + "-" + end);
 					return HttpStatus.SC_PARTIAL_CONTENT;
 				}
 			} catch (IOException e) {
