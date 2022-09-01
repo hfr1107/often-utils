@@ -532,8 +532,8 @@ public class NetworkUtil {
 					if (Judge.isEmpty(url) || Judge.isEmpty(fileName)) {
 						throw new RuntimeException("Info is error -> " + session);
 					}
-					request.setHash(hash = fileInfo.getString("x-cos-meta-md5"));
-					fileSize = fileInfo.getLong("content-length");
+					request.setHash(hash = fileInfo.getString("md5"));
+					fileSize = fileInfo.getLong("fileSize");
 					MAX_THREADS = fileInfo.getInteger("threads");
 					method = Method.valueOf(fileInfo.getString("method"));
 					headers = StringUtils.jsonToMap(fileInfo.getString("header"));
@@ -585,22 +585,18 @@ public class NetworkUtil {
 				String contentLength = res.header("content-length"); // 获取文件大小
 				request.setFileSize(fileSize = Judge.isNull(contentLength) ? fileSize : Long.parseLong(contentLength));
 				request.setHash(hash = Judge.isEmpty(hash) ? res.header("x-cos-meta-md5") : hash); // 获取文件MD5
-				if (session.exists()) { // 文件存在但不是文件，抛出异常
-					throw new RuntimeException("Not is file " + session);
-				} else { // 创建并写入文件配置信息
-					fileInfo.put("URL", url);
-					fileInfo.put("fileName", fileName);
-					fileInfo.put("content-length", String.valueOf(fileSize));
-					fileInfo.put("x-cos-meta-md5", hash);
-					fileInfo.put("threads", MAX_THREADS);
-					fileInfo.put("method", method.name());
-					fileInfo.put("header", JSONObject.toJSONString(headers));
-					fileInfo.put("cookie", JSONObject.toJSONString(cookies));
-					if (!ReadWriteUtils.orgin(session).text(fileInfo.toJSONString())) {
-						throw new RuntimeException("Configuration file creation failed");
-					}
-				}
+				// 创建并写入文件配置信息
+				fileInfo.put("URL", url);
+				fileInfo.put("fileName", fileName);
+				fileInfo.put("fileSize", String.valueOf(fileSize));
+				fileInfo.put("md5", hash);
+				fileInfo.put("threads", MAX_THREADS);
+				fileInfo.put("method", method.name());
+				fileInfo.put("header", JSONObject.toJSONString(headers));
+				fileInfo.put("cookie", JSONObject.toJSONString(cookies));
+				ReadWriteUtils.orgin(session).text(fileInfo.toJSONString());
 			}
+			default -> throw new RuntimeException("Unknown mode");
 			}
 
 			method = Judge.isEmpty(fileSize) ? Method.FULL : method;// 如果文件大小获取失败或线程为1，使用全量下载模式
@@ -745,7 +741,7 @@ public class NetworkUtil {
 			try (InputStream inputStream = piece.bodyStream(); RandomAccessFile output = new RandomAccessFile(storage, "rw")) {
 				output.seek(start);
 				byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
-				int count = 0;
+				long count = 0;
 				for (int len; !Judge.isMinusOne(len = inputStream.read(buffer)); count += len) {
 					output.write(buffer, 0, len);
 				}
