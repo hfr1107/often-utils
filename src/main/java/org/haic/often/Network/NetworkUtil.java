@@ -349,6 +349,7 @@ public class NetworkUtil {
 		@Contract(pure = true) public Connection newUrl(@NotNull String url) {
 			request.setHash(this.hash = null);
 			this.fileName = null;
+			method = method == Method.FILE ? Method.MULTITHREAD : method;
 			return url(url);
 		}
 
@@ -519,6 +520,10 @@ public class NetworkUtil {
 		}
 
 		@Contract(pure = true) public Response download(@NotNull File folder) {
+			return download(folder, method);
+		}
+
+		@Contract(pure = true) protected Response download(@NotNull File folder, @NotNull Method method) {
 			org.haic.often.Network.Response res = null;
 			JSONObject fileInfo = new JSONObject();
 			switch (method) { // 配置信息
@@ -577,13 +582,14 @@ public class NetworkUtil {
 				session = new File(storage + SESSION_SUFFIX); // 配置信息文件后缀
 
 				if (session.exists()) { // 转为会话配置
-					return method(Method.FILE).download(folder);
+					return download(folder, Method.FILE);
 				} else if (storage.exists()) { // 文件已存在,返回完成
 					return new HttpResponse(this, request.statusCode(HttpStatus.SC_OK));
 				}
 
 				String contentLength = res.header("content-length"); // 获取文件大小
 				request.setFileSize(fileSize = Judge.isNull(contentLength) ? fileSize : Long.parseLong(contentLength));
+				method = Judge.isEmpty(fileSize) ? Method.FULL : method;// 如果文件大小获取失败或线程为1，使用全量下载模式
 				request.setHash(hash = Judge.isEmpty(hash) ? res.header("x-cos-meta-md5") : hash); // 获取文件MD5
 				// 创建并写入文件配置信息
 				fileInfo.put("URL", url);
@@ -599,7 +605,6 @@ public class NetworkUtil {
 			default -> throw new RuntimeException("Unknown mode");
 			}
 
-			method = Judge.isEmpty(fileSize) ? Method.FULL : method;// 如果文件大小获取失败或线程为1，使用全量下载模式
 			FilesUtils.createFolder(folder); // 创建文件夹
 			int statusCode = 0;
 			switch (method) {  // 开始下载
