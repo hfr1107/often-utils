@@ -14,9 +14,12 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 网络文件 工具类
@@ -326,17 +329,19 @@ public class NetworkUtil {
 		protected Proxy proxy = Proxy.NO_PROXY; // 代理
 		protected File storage; // 本地存储文件
 		protected File session; // 配置信息文件
-
-		protected ExecutorService executorService; // 下载线程池
-		protected Method method = Method.MULTITHREAD;// 下载模式
+		protected List<Integer> retryStatusCodes = new ArrayList<>();
 
 		protected Map<String, String> headers = new HashMap<>(); // headers
 		protected Map<String, String> cookies = new HashMap<>(); // cookies
 
-		protected Request request = new Request();
+		protected ExecutorService executorService; // 下载线程池
+		protected Method method = Method.MULTITHREAD;// 下载模式
 
-		protected List<String> infos = new ArrayList<>(); // 文件信息
-		protected List<Integer> retryStatusCodes = new ArrayList<>();
+		protected Request request = new Request();
+		protected Thread abnormal;
+		protected long MAX_COMPLETED;
+		protected AtomicLong schedule = new AtomicLong(0);
+		protected Map<Long, Long> status = new ConcurrentHashMap<>();
 
 		protected HttpConnection() {
 		}
@@ -524,14 +529,13 @@ public class NetworkUtil {
 		}
 
 		@Contract(pure = true) protected Response download(@NotNull File folder, @NotNull Method method) {
+			initializationStatus(); // 初始化
 			org.haic.often.Network.Response res = null;
 			JSONObject fileInfo = new JSONObject();
 			switch (method) { // 配置信息
 			case FILE -> {
 				if (session.isFile()) { // 如果设置配置文件下载，并且配置文件存在，获取信息
-					infos = ReadWriteUtils.orgin(session).list();
-					fileInfo = JSONObject.parseObject(infos.get(0));
-					infos.remove(0); // 删除信息行
+					fileInfo.putAll(JSONObject.parseObject(ReadWriteUtils.orgin(session).text()));
 					url = fileInfo.getString("URL");
 					fileName = fileInfo.getString("fileName");
 					if (Judge.isEmpty(url) || Judge.isEmpty(fileName)) {
@@ -544,7 +548,15 @@ public class NetworkUtil {
 					headers = StringUtils.jsonToMap(fileInfo.getString("header"));
 					cookies = StringUtils.jsonToMap(fileInfo.getString("cookie"));
 					storage = new File(folder, fileName); // 获取其file对象
-					infos = storage.exists() ? infos : new ArrayList<>(); // 存储文件不存在重置下载
+					JSONObject renew = fileInfo.getJSONObject("renew");
+					if (storage.exists() && !Judge.isNull(renew)) {
+						schedule.set(MAX_COMPLETED = renew.getLong("completed"));
+						String statusJson = renew.getString("status");
+						if (!Judge.isNull(statusJson)) {
+							status.putAll(StringUtils.jsonToMap(renew.getString("status")));
+						}
+					}
+					fileInfo.remove("status");
 				} else { // 配置文件不存在，抛出异常
 					if (errorExit) {
 						throw new RuntimeException("Not found or not is file " + session);
@@ -605,6 +617,10 @@ public class NetworkUtil {
 			default -> throw new RuntimeException("Unknown mode");
 			}
 
+			Runtime.getRuntime().addShutdownHook(abnormal = new Thread(() -> { // 异常退出时写入断电续传配置
+				ReadWriteUtils.orgin(session).append(false)
+						.text(fileInfo.fluentPut("renew", new JSONObject().fluentPut("completed", MAX_COMPLETED).fluentPut("status", status)).toJSONString());
+			}));
 			FilesUtils.createFolder(folder); // 创建文件夹
 			int statusCode = 0;
 			switch (method) {  // 开始下载
@@ -622,14 +638,13 @@ public class NetworkUtil {
 				}
 				return new HttpResponse(this, request.statusCode(statusCode));
 			}
+			Runtime.getRuntime().removeShutdownHook(abnormal);
 
 			// 效验文件完整性
 			String md5;
 			if (!Judge.isEmpty(hash) && !(md5 = FilesUtils.getMD5(storage)).equals(hash)) {
 				storage.delete(); // 删除下载错误的文件
-				if (!ReadWriteUtils.orgin(session).append(false).text(fileInfo.toJSONString())) { // 重置信息文件
-					throw new RuntimeException("Configuration file reset information failed");
-				}
+				ReadWriteUtils.orgin(session).append(false).text(fileInfo.toJSONString()); // 重置信息文件
 				String errorText;
 				if (unlimitedRetry) {
 					if (md5.equals(lastHash)) {
@@ -653,13 +668,22 @@ public class NetworkUtil {
 		}
 
 		/**
+		 * 初始化下载进度
+		 */
+		@Contract(pure = true) protected void initializationStatus() {
+			schedule.set(0);
+			MAX_COMPLETED = 0;
+			status.clear();
+		}
+
+		/**
 		 * 全量下载，下载获取文件信息并写入文件
 		 *
 		 * @return 下载并写入是否成功(状态码)
 		 */
 		@Contract(pure = true) protected int FULL() {
-			return FULL(JsoupUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies).retry(retry, MILLISECONDS_SLEEP).retry(unlimitedRetry)
-					.retryStatusCodes(retryStatusCodes).errorExit(errorExit).execute());
+			return FULL(JsoupUtil.connect(url).proxy(proxy).headers(headers).header("range", "bytes=" + MAX_COMPLETED + "-").cookies(cookies)
+					.retry(retry, MILLISECONDS_SLEEP).retry(unlimitedRetry).retryStatusCodes(retryStatusCodes).errorExit(errorExit).execute());
 		}
 
 		/**
@@ -669,13 +693,13 @@ public class NetworkUtil {
 		 * @return 下载并写入是否成功(状态码)
 		 */
 		@Contract(pure = true) protected int FULL(org.haic.often.Network.Response response) {
-			try (InputStream in = response.bodyStream(); OutputStream out = new FileOutputStream(storage)) {
+			try (InputStream in = response.bodyStream(); RandomAccessFile out = new RandomAccessFile(storage, "rw")) {
+				out.seek(MAX_COMPLETED);
 				byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
-				int count = 0;
-				for (int len; (len = in.read(buffer, 0, DEFAULT_BUFFER_SIZE)) > -1; count += len) {
+				for (int len; (len = in.read(buffer, 0, DEFAULT_BUFFER_SIZE)) > -1; MAX_COMPLETED = schedule.addAndGet(len)) {
 					out.write(buffer, 0, len);
 				}
-				if (fileSize == 0 || fileSize == count) {
+				if (fileSize == 0 || fileSize == MAX_COMPLETED) {
 					return HttpStatus.SC_OK;
 				}
 			} catch (Exception e) {
@@ -687,11 +711,23 @@ public class NetworkUtil {
 		@Contract(pure = true) protected int MULTITHREAD(int PIECE_COUNT, long PIECE_SIZE) {
 			List<Integer> statusCodes = new CopyOnWriteArrayList<>();
 			executorService = Executors.newFixedThreadPool(MAX_THREADS); // 限制多线程;
-			for (int i = 0; i < PIECE_COUNT; i++) {
+			AtomicBoolean addCompleted = new AtomicBoolean(true);
+			for (long i = MAX_COMPLETED / PIECE_SIZE; i < PIECE_COUNT; i++) {//PIECE_COUNT
 				executorService.execute(new ParameterizedThread<>(i, (index) -> { // 执行多线程程
 					long start = index * PIECE_SIZE;
 					long end = (index + 1 == PIECE_COUNT ? fileSize : (index + 1) * PIECE_SIZE) - 1;
-					int statusCode = addPiece(start, end);
+					long flip = status.getOrDefault(start, start);
+					schedule.addAndGet(flip - start);
+					int statusCode = flip == end ? HttpStatus.SC_PARTIAL_CONTENT : addPiece(start, flip, end);
+					if (addCompleted.get() && end > MAX_COMPLETED) {
+						addCompleted.set(false);
+						long completed;
+						while ((completed = status.getOrDefault(MAX_COMPLETED, MAX_COMPLETED)) == MAX_COMPLETED + PIECE_SIZE) {
+							status.remove(MAX_COMPLETED);
+							MAX_COMPLETED = completed;
+						}
+						addCompleted.set(true);
+					}
 					statusCodes.add(statusCode);
 					if (!URIUtils.statusIsOK(statusCode)) {
 						executorService.shutdownNow(); // 结束未开始的线程，并关闭线程池
@@ -706,17 +742,15 @@ public class NetworkUtil {
 		 * 添加区块线程
 		 *
 		 * @param start 起始位
+		 * @param flip  断点位置,用于修正
 		 * @param end   结束位
 		 * @return 状态码
 		 */
-		@Contract(pure = true) protected int addPiece(long start, long end) {
-			if (infos.contains(start + "-" + end)) {
-				return HttpStatus.SC_PARTIAL_CONTENT;
-			}
-			int statusCode = writePiece(start, end);
+		@Contract(pure = true) protected int addPiece(long start, long flip, long end) {
+			int statusCode = writePiece(start, flip, end);
 			for (int i = 0; (URIUtils.statusIsTimeout(statusCode) || retryStatusCodes.contains(statusCode)) && (i < retry || unlimitedRetry); i++) {
 				MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP); // 程序等待
-				statusCode = writePiece(start, end);
+				statusCode = writePiece(start, flip, end);
 			}
 			return statusCode;
 		}
@@ -725,35 +759,37 @@ public class NetworkUtil {
 		 * 分块下载，下载获取文件区块信息并写入文件
 		 *
 		 * @param start 块起始位
+		 * @param flip  断点位置,用于修正
 		 * @param end   块结束位
 		 * @return 下载并写入是否成功(状态码)
 		 */
-		@Contract(pure = true) protected int writePiece(long start, long end) {
-			org.haic.often.Network.Response piece = JsoupUtil.connect(url).proxy(proxy).headers(headers).header("range", "bytes=" + start + "-" + end)
+		@Contract(pure = true) protected int writePiece(long start, long flip, long end) {
+			org.haic.often.Network.Response piece = JsoupUtil.connect(url).proxy(proxy).headers(headers).header("range", "bytes=" + flip + "-" + end)
 					.cookies(cookies).execute();
-			return URIUtils.statusIsOK(piece.statusCode()) ? writePiece(start, end, piece) : piece.statusCode();
+			return URIUtils.statusIsOK(piece.statusCode()) ? writePiece(start, flip, end, piece) : piece.statusCode();
 		}
 
 		/**
 		 * 下载获取文件区块信息并写入文件
 		 *
 		 * @param start 块起始位
+		 * @param flip  断点位置,用于修正
 		 * @param end   块结束位
 		 * @param piece 块Response对象
 		 * @return 下载并写入是否成功(状态码)
 		 */
-		@Contract(pure = true) protected int writePiece(long start, long end, org.haic.often.Network.Response piece) {
+		@Contract(pure = true) protected int writePiece(long start, long flip, long end, org.haic.often.Network.Response piece) {
 			try (InputStream inputStream = piece.bodyStream(); RandomAccessFile output = new RandomAccessFile(storage, "rw")) {
-				output.seek(start);
+				output.seek(flip);
 				byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
 				long count = 0;
-				for (int len; !Judge.isMinusOne(len = inputStream.read(buffer)); count += len) {
+				for (int len; !Judge.isMinusOne(len = inputStream.read(buffer)); count += len, status.put(start, flip + count), schedule.addAndGet(len)) {
 					output.write(buffer, 0, len);
 				}
-				if (end - start + 1 == count) {
-					ReadWriteUtils.orgin(session).text(start + "-" + end);
+				if (end - flip + 1 == count) {
 					return HttpStatus.SC_PARTIAL_CONTENT;
 				}
+
 			} catch (IOException e) {
 				// e.printStackTrace();
 			}

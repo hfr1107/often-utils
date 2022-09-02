@@ -62,7 +62,7 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils {
 	 * @param str 源字符串
 	 * @return Map - String String
 	 */
-	@Contract(pure = true) public static Map<String, String> jsonToMap(@NotNull String str) {
+	@Contract(pure = true) public static <T> Map<T, T> jsonToMap(@NotNull String str) {
 		return JSONObject.parseObject(str, new TypeReference<>() {
 		});
 	}
