@@ -556,7 +556,7 @@ public class NetworkUtil {
 							status.putAll(StringUtils.jsonToMap(renew.getString("status")));
 						}
 					}
-					fileInfo.remove("status");
+					fileInfo.remove("renew");
 				} else { // 配置文件不存在，抛出异常
 					if (errorExit) {
 						throw new RuntimeException("Not found or not is file " + session);
