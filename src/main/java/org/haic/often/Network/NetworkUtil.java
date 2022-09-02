@@ -651,7 +651,7 @@ public class NetworkUtil {
 						errorText = "Server file is corrupt";
 					} else {
 						lastHash = md5;
-						return method(Method.FILE).download(folder);
+						return download(folder, Method.FILE);
 					}
 				} else {
 					errorText = "File verification is not accurate";
