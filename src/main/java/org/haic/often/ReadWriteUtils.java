@@ -10,7 +10,9 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * @author haicdust
@@ -133,13 +135,14 @@ public class ReadWriteUtils {
 		if (!Judge.isNull(parent)) {
 			FilesUtils.createFolder(parent);
 		}
-		try (BufferedWriter outStream = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(source, append), charset), DEFAULT_BUFFER_SIZE)) {
-			outStream.write(s); // 文件输出流用于将数据写入文件
-			outStream.flush();
+		try (BufferedWriter output = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(source, append), charset), DEFAULT_BUFFER_SIZE)) {
+			output.write(s); // 文件输出流用于将数据写入文件
+			output.flush();
 			return true;
 		} catch (IOException e) {
-			return false;
+			e.printStackTrace();
 		}
+		return false;
 	}
 
 	/**
@@ -153,13 +156,14 @@ public class ReadWriteUtils {
 		if (!Judge.isNull(parent)) {
 			FilesUtils.createFolder(parent);
 		}
-		try (FileOutputStream outStream = new FileOutputStream(source, append)) {
-			outStream.write(b); // 文件输出流用于将数据写入文件
-			outStream.flush();
+		try (FileOutputStream output = new FileOutputStream(source, append)) {
+			output.write(b); // 文件输出流用于将数据写入文件
+			output.flush();
 			return true;
 		} catch (IOException e) {
-			return false;
+			e.printStackTrace();
 		}
+		return false;
 	}
 
 	/**
@@ -188,8 +192,9 @@ public class ReadWriteUtils {
 			outStream.flush();
 			return true;
 		} catch (IOException e) {
-			return false;
+			e.printStackTrace();
 		}
+		return false;
 	}
 
 	/**
@@ -207,8 +212,9 @@ public class ReadWriteUtils {
 			channel.write(charset.encode(s));
 			return true;
 		} catch (IOException e) {
-			return false;
+			e.printStackTrace();
 		}
+		return false;
 	}
 
 	/**
@@ -229,8 +235,9 @@ public class ReadWriteUtils {
 			randomAccess.write(s.getBytes(charset));
 			return true;
 		} catch (IOException e) {
-			return false;
+			e.printStackTrace();
 		}
+		return false;
 	}
 
 	/**
@@ -251,8 +258,9 @@ public class ReadWriteUtils {
 			fileChannel.map(FileChannel.MapMode.READ_WRITE, append ? source.length() : 0, params.length).put(params);
 			return true;
 		} catch (IOException e) {
-			return false;
+			e.printStackTrace();
 		}
+		return false;
 	}
 
 	/**
@@ -280,8 +288,9 @@ public class ReadWriteUtils {
 			input.transferTo(output);
 			return true;
 		} catch (IOException e) {
-			return false;
+			e.printStackTrace();
 		}
+		return false;
 	}
 
 	/**
@@ -305,16 +314,17 @@ public class ReadWriteUtils {
 		if (!Judge.isNull(parent)) {
 			FilesUtils.createFolder(parent);
 		}
-		try (RandomAccessFile inputRandomAccess = new RandomAccessFile(source, "r"); RandomAccessFile outputRandomAccess = new RandomAccessFile(out, "rw")) {
+		try (RandomAccessFile input = new RandomAccessFile(source, "r"); RandomAccessFile output = new RandomAccessFile(out, "rw")) {
 			byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
 			int length;
-			while (!Judge.isMinusOne(length = inputRandomAccess.read(buffer))) {
-				outputRandomAccess.write(buffer, 0, length);
+			while (!Judge.isMinusOne(length = input.read(buffer))) {
+				output.write(buffer, 0, length);
 			}
 			return true;
 		} catch (IOException e) {
-			return false;
+			e.printStackTrace();
 		}
+		return false;
 	}
 
 	/**
@@ -338,17 +348,18 @@ public class ReadWriteUtils {
 		if (!Judge.isNull(parent)) {
 			FilesUtils.createFolder(parent);
 		}
-		try (FileChannel inputChannel = new FileInputStream(source).getChannel(); FileChannel outputChannel = new FileOutputStream(out).getChannel()) {
+		try (FileChannel input = new FileInputStream(source).getChannel(); FileChannel output = new FileOutputStream(out).getChannel()) {
 			int count = 0;
-			long size = inputChannel.size();
+			long size = input.size();
 			while (count < size) { // 循环支持2G以上文件
 				int position = count;
-				count += outputChannel.transferFrom(inputChannel, position, size - position);
+				count += output.transferFrom(input, position, size - position);
 			}
 			return true;
 		} catch (IOException e) {
-			return false;
+			e.printStackTrace();
 		}
+		return false;
 	}
 
 	@Contract(pure = true) public boolean mappedCopy(String out) {
@@ -366,17 +377,17 @@ public class ReadWriteUtils {
 		if (!Judge.isNull(parent)) {
 			FilesUtils.createFolder(parent);
 		}
-		try (FileChannel inputChannel = new FileInputStream(source).getChannel(); FileChannel outputChannel = new RandomAccessFile(out, "rw").getChannel()) {
-			long size = inputChannel.size();
+		try (FileChannel input = new FileInputStream(source).getChannel(); FileChannel output = new RandomAccessFile(out, "rw").getChannel()) {
+			long size = input.size();
 			for (long i = 0; i < size; i += Integer.MAX_VALUE) {
 				long position = Integer.MAX_VALUE * i;
-				outputChannel.map(FileChannel.MapMode.READ_WRITE, position, size - position)
-						.put(inputChannel.map(FileChannel.MapMode.READ_ONLY, position, size - position));
+				output.map(FileChannel.MapMode.READ_WRITE, position, size - position).put(input.map(FileChannel.MapMode.READ_ONLY, position, size - position));
 			}
 			return true;
 		} catch (IOException e) {
-			return false;
+			e.printStackTrace();
 		}
+		return false;
 	}
 	// ================================================== ReadUtils ==================================================
 
@@ -386,13 +397,18 @@ public class ReadWriteUtils {
 	 * @return 文本信息列表
 	 */
 	@Contract(pure = true) public List<String> readAsLine() {
-		List<String> result = null;
-		try (InputStream in = new FileInputStream(source)) {
-			result = StreamUtils.stream(in).charset(charset).readAsLine();
-		} catch (IOException e) {
-			// e.printStackTrace();
-		}
-		return result;
+		Function<File, List<String>> read = file -> {
+			List<String> result = null;
+			try (InputStream in = new FileInputStream(file)) {
+				result = StreamUtils.stream(in).charset(charset).readAsLine();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			return result;
+		};
+		return source.isDirectory() ?
+				FilesUtils.iterateFiles(source).stream().map(read).collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll) :
+				read.apply(source);
 	}
 
 	/**
@@ -402,10 +418,10 @@ public class ReadWriteUtils {
 	 */
 	@Contract(pure = true) public String read() {
 		String result = null;
-		try (InputStream inputStream = new FileInputStream(source)) {
-			result = StreamUtils.stream(inputStream).charset(charset).read();
+		try (InputStream in = new FileInputStream(source)) {
+			result = StreamUtils.stream(in).charset(charset).read();
 		} catch (IOException e) {
-			// e.printStackTrace();
+			e.printStackTrace();
 		}
 		return result;
 	}
@@ -417,10 +433,10 @@ public class ReadWriteUtils {
 	 */
 	@Contract(pure = true) public byte[] readBytes() {
 		byte[] result = null;
-		try (InputStream inputStream = new FileInputStream(source)) {
-			result = StreamUtils.stream(inputStream).charset(charset).toByteArray();
+		try (InputStream in = new FileInputStream(source)) {
+			result = StreamUtils.stream(in).charset(charset).toByteArray();
 		} catch (IOException e) {
-			// e.printStackTrace();
+			e.printStackTrace();
 		}
 		return result;
 	}
@@ -444,7 +460,7 @@ public class ReadWriteUtils {
 	}
 
 	/**
-	 * RandomAccessFile 随机存储读取
+	 * RandomAccessFile 随机存储读取文件
 	 *
 	 * @return 文本
 	 */
