@@ -535,7 +535,7 @@ public class NetworkUtil {
 			switch (method) { // 配置信息
 			case FILE -> {
 				if (session.isFile()) { // 如果设置配置文件下载，并且配置文件存在，获取信息
-					fileInfo.putAll(JSONObject.parseObject(ReadWriteUtils.orgin(session).text()));
+					fileInfo.putAll(JSONObject.parseObject(ReadWriteUtils.orgin(session).read()));
 					url = fileInfo.getString("URL");
 					fileName = fileInfo.getString("fileName");
 					if (Judge.isEmpty(url) || Judge.isEmpty(fileName)) {
@@ -612,14 +612,14 @@ public class NetworkUtil {
 				fileInfo.put("method", method.name());
 				fileInfo.put("header", JSONObject.toJSONString(headers));
 				fileInfo.put("cookie", JSONObject.toJSONString(cookies));
-				ReadWriteUtils.orgin(session).text(fileInfo.toJSONString());
+				ReadWriteUtils.orgin(session).write(fileInfo.toJSONString());
 			}
 			default -> throw new RuntimeException("Unknown mode");
 			}
 
-			Runtime.getRuntime().addShutdownHook(abnormal = new Thread(() -> { // 异常退出时写入断电续传配置
+			Runtime.getRuntime().addShutdownHook(abnormal = new Thread(() -> { // 异常退出时写入断点续传配置
 				ReadWriteUtils.orgin(session).append(false)
-						.text(fileInfo.fluentPut("renew", new JSONObject().fluentPut("completed", MAX_COMPLETED).fluentPut("status", status)).toJSONString());
+						.write(fileInfo.fluentPut("renew", new JSONObject().fluentPut("completed", MAX_COMPLETED).fluentPut("status", status)).toJSONString());
 			}));
 			FilesUtils.createFolder(folder); // 创建文件夹
 			int statusCode = 0;
@@ -644,7 +644,7 @@ public class NetworkUtil {
 			String md5;
 			if (!Judge.isEmpty(hash) && !(md5 = FilesUtils.getMD5(storage)).equals(hash)) {
 				storage.delete(); // 删除下载错误的文件
-				ReadWriteUtils.orgin(session).append(false).text(fileInfo.toJSONString()); // 重置信息文件
+				ReadWriteUtils.orgin(session).append(false).write(fileInfo.toJSONString()); // 重置信息文件
 				String errorText;
 				if (unlimitedRetry) {
 					if (md5.equals(lastHash)) {
@@ -663,7 +663,7 @@ public class NetworkUtil {
 				}
 			}
 
-			session.delete(); // 删除信息文件
+			session.delete(); // 删除会话信息文件
 			return new HttpResponse(this, request.statusCode(HttpStatus.SC_OK));
 		}
 

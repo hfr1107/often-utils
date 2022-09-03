@@ -336,11 +336,11 @@ public class ZipUtils {
 			throw new RuntimeException("Not found " + origin);
 		}
 		return origin.isFile() ?
-				Map.of(includeRoot ? origin.getParentFile().getName() + "/" : "" + origin.getName(), ReadWriteUtils.orgin(origin).array()) :
+				Map.of(includeRoot ? origin.getParentFile().getName() + "/" : "" + origin.getName(), ReadWriteUtils.orgin(origin).readBytes()) :
 				FilesUtils.iterateFiles(origin).parallelStream().collect(Collectors.toMap(file -> includeRoot ?
 								origin.getName() + "/" :
 								"" + file.getAbsolutePath().substring(origin.getAbsolutePath().length() + 1).replaceAll("\\\\", "/"),
-						file -> ReadWriteUtils.orgin(file).array()));
+						file -> ReadWriteUtils.orgin(file).readBytes()));
 	}
 
 }

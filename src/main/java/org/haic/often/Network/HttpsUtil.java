@@ -485,7 +485,7 @@ public class HttpsUtil {
 									encoding.equals("deflate") ?
 											new InflaterInputStream(in, new Inflater(true)) :
 											encoding.equals("br") ? new BrotliInputStream(in) : in) {
-				result = StreamUtils.stream(body).charset(charset).getString();
+				result = StreamUtils.stream(body).charset(charset).read();
 			} catch (IOException e) {
 				return null;
 			}

@@ -105,11 +105,11 @@ Document doc = JsoupUtil.connect("https://www.baidu.com")
 ### 简单示例:
 
 ```
-String str = ReadWriteUtils.orgin(filePath).text(); //读取文件文本  
+String str = ReadWriteUtils.orgin(filePath).read(); //读取文件文本  
 
-List<String> lists = ReadWriteUtils.orgin(filePath).list(); //按行读取文件文本  
+List<String> lists = ReadWriteUtils.orgin(filePath).readAsLine(); //按行读取文件文本  
 
-ReadWriteUtils.orgin(filePath).text(str); //字符串按行写入文本  
+ReadWriteUtils.orgin(filePath).write(str); //字符串按行写入文本  
 
 ReadWriteUtils.orgin(file).copy(out); // 文件复制
 ```

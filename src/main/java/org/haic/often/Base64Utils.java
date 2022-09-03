@@ -55,7 +55,7 @@ public class Base64Utils {
 	 * @return Base64编码格式的字符串
 	 */
 	@NotNull @Contract(pure = true) public static String encryptToBase64ByFile(@NotNull File file) {
-		return Base64.getEncoder().encodeToString(ReadWriteUtils.orgin(file).bytes());
+		return Base64.getEncoder().encodeToString(ReadWriteUtils.orgin(file).readBytes());
 	}
 
 	/**
@@ -77,7 +77,7 @@ public class Base64Utils {
 	 * @return 写入是否成功
 	 */
 	@Contract(pure = true) public static boolean decryptByBase64ToFile(byte[] base64, @NotNull File file) {
-		return ReadWriteUtils.orgin(file).bytes(decryptByBase64(base64));
+		return ReadWriteUtils.orgin(file).write(decryptByBase64(base64));
 	}
 
 	/**

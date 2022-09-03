@@ -73,7 +73,7 @@ public class LocalCookies {
 	 * @return encryptedKey
 	 */
 	protected static String getEncryptedKey(File userHome) {
-		return JSONObject.parseObject(JSONObject.parseObject(ReadWriteUtils.orgin(new File(userHome, "Local State")).text()).getString("os_crypt"))
+		return JSONObject.parseObject(JSONObject.parseObject(ReadWriteUtils.orgin(new File(userHome, "Local State")).read()).getString("os_crypt"))
 				.getString("encrypted_key");
 	}
 

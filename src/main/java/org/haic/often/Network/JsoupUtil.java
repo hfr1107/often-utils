@@ -388,7 +388,7 @@ public class JsoupUtil {
 			String result;
 			String encoding = header("content-encoding");
 			try (InputStream in = bodyStream(); InputStream body = "br".equals(encoding) ? new BrotliInputStream(in) : in) {
-				result = StreamUtils.stream(body).charset(charset).getString();
+				result = StreamUtils.stream(body).charset(charset).read();
 			} catch (IOException e) {
 				return null;
 			}

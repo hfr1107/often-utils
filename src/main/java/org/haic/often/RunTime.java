@@ -169,7 +169,7 @@ public class RunTime {
 		String result = "";
 		Process process;
 		try (InputStream inputStream = (process = new ProcessBuilder(command).redirectErrorStream(true).directory(directory).start()).getInputStream()) {
-			result = StreamUtils.stream(inputStream).charset(charset).getString();
+			result = StreamUtils.stream(inputStream).charset(charset).read();
 			process.waitFor();
 			process.destroy();
 		} catch (IOException | InterruptedException e) {

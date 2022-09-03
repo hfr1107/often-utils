@@ -177,11 +177,11 @@ public class StreamUtils {
 	/**
 	 * 流工具类
 	 */
-	public abstract static class StreamUtil {
+	protected abstract static class InputStreamBuilder {
 
 		protected Charset charset = StandardCharsets.UTF_8;
 
-		protected StreamUtil() {
+		protected InputStreamBuilder() {
 		}
 
 		/**
@@ -190,7 +190,7 @@ public class StreamUtils {
 		 * @param charsetName 字符集编码名称
 		 * @return this
 		 */
-		@Contract(pure = true) public abstract StreamUtil charset(@NotNull String charsetName);
+		@Contract(pure = true) public abstract InputStreamBuilder charset(@NotNull String charsetName);
 
 		/**
 		 * 设置 字符集编码(默认UTF8)
@@ -198,21 +198,21 @@ public class StreamUtils {
 		 * @param charset 字符集编码
 		 * @return this
 		 */
-		@Contract(pure = true) public abstract StreamUtil charset(@NotNull Charset charset);
+		@Contract(pure = true) public abstract InputStreamBuilder charset(@NotNull Charset charset);
 
 		/**
 		 * 获取 Stream 中字符串信息
 		 *
 		 * @return 字符串文本
 		 */
-		@NotNull @Contract(pure = true) public abstract String getString() throws IOException;
+		@NotNull @Contract(pure = true) public abstract String read() throws IOException;
 
 		/**
 		 * 获取 Stream 中字符串信息
 		 *
 		 * @return 按行分割的字符串列表
 		 */
-		@NotNull @Contract(pure = true) public abstract List<String> getStringAsLine() throws IOException;
+		@NotNull @Contract(pure = true) public abstract List<String> readAsLine() throws IOException;
 
 		/**
 		 * 获取 Stream 中字符信息,转为 ByteArrayOutputStream
@@ -233,11 +233,11 @@ public class StreamUtils {
 	/**
 	 * InputStreamUtil 工具类
 	 */
-	public static class InputStreamUtil extends StreamUtil {
-		protected InputStream inputStream;
+	public static class InputStreamUtil extends InputStreamBuilder {
+		protected InputStream stream;
 
-		protected InputStreamUtil(@NotNull InputStream inputStream) {
-			this.inputStream = inputStream;
+		protected InputStreamUtil(@NotNull InputStream in) {
+			this.stream = in;
 		}
 
 		@Override @Contract(pure = true) public InputStreamUtil charset(@NotNull String charsetName) {
@@ -250,12 +250,12 @@ public class StreamUtils {
 			return this;
 		}
 
-		@NotNull @Contract(pure = true) public String getString() throws IOException {
+		@NotNull @Contract(pure = true) public String read() throws IOException {
 			return toByteArrayOutputStream().toString(charset);
 		}
 
-		@NotNull @Contract(pure = true) public List<String> getStringAsLine() throws IOException {
-			return stream(new InputStreamReader(inputStream, charset)).getStringAsLine();
+		@NotNull @Contract(pure = true) public List<String> readAsLine() throws IOException {
+			return stream(new InputStreamReader(stream, charset)).readAsLine();
 		}
 
 		@Contract(pure = true) public byte[] toByteArray() throws IOException {
@@ -264,7 +264,7 @@ public class StreamUtils {
 
 		@NotNull @Contract(pure = true) public ByteArrayOutputStream toByteArrayOutputStream() throws IOException {
 			ByteArrayOutputStream result = new ByteArrayOutputStream();
-			inputStream.transferTo(result);
+			stream.transferTo(result);
 			return result;
 		}
 
@@ -273,11 +273,11 @@ public class StreamUtils {
 	/**
 	 * BufferedInputStreamUtil 工具类
 	 */
-	public static class BufferedInputStreamUtil extends StreamUtil {
-		protected BufferedInputStream inputStream;
+	public static class BufferedInputStreamUtil extends InputStreamBuilder {
+		protected BufferedInputStream stream;
 
-		protected BufferedInputStreamUtil(BufferedInputStream inputStream) {
-			this.inputStream = inputStream;
+		protected BufferedInputStreamUtil(BufferedInputStream in) {
+			this.stream = in;
 		}
 
 		@Contract(pure = true) public BufferedInputStreamUtil charset(@NotNull String charsetName) {
@@ -290,17 +290,17 @@ public class StreamUtils {
 			return this;
 		}
 
-		@NotNull @Contract(pure = true) public String getString() throws IOException {
+		@NotNull @Contract(pure = true) public String read() throws IOException {
 			return toByteArrayOutputStream().toString(charset);
 		}
 
-		@NotNull @Contract(pure = true) public List<String> getStringAsLine() throws IOException {
-			return stream(new InputStreamReader(inputStream, charset)).getStringAsLine();
+		@NotNull @Contract(pure = true) public List<String> readAsLine() throws IOException {
+			return stream(new InputStreamReader(stream, charset)).readAsLine();
 		}
 
 		@NotNull @Contract(pure = true) public ByteArrayOutputStream toByteArrayOutputStream() throws IOException {
 			ByteArrayOutputStream result = new ByteArrayOutputStream();
-			inputStream.transferTo(result);
+			stream.transferTo(result);
 			return result;
 		}
 
@@ -314,10 +314,10 @@ public class StreamUtils {
 	 * InputStreamReader 工具类
 	 */
 	public static class InputStreamReaderUtil {
-		protected InputStreamReader inputStream;
+		protected InputStreamReader stream;
 
-		protected InputStreamReaderUtil(@NotNull InputStreamReader inputStream) {
-			this.inputStream = inputStream;
+		protected InputStreamReaderUtil(@NotNull InputStreamReader in) {
+			this.stream = in;
 		}
 
 		/**
@@ -325,9 +325,9 @@ public class StreamUtils {
 		 *
 		 * @return 字符串文本
 		 */
-		@NotNull @Contract(pure = true) public String getString() throws IOException {
+		@NotNull @Contract(pure = true) public String read() throws IOException {
 			StringWriter result = new StringWriter();
-			inputStream.transferTo(result);
+			stream.transferTo(result);
 			return String.valueOf(result);
 		}
 
@@ -336,14 +336,72 @@ public class StreamUtils {
 		 *
 		 * @return 按行分割的字符串列表
 		 */
-		@NotNull @Contract(pure = true) public List<String> getStringAsLine() throws IOException {
+		@NotNull @Contract(pure = true) public List<String> readAsLine() throws IOException {
 			List<String> result = new ArrayList<>();
-			BufferedReader bufferedReader = new BufferedReader(inputStream);
+			BufferedReader bufferedReader = new BufferedReader(stream);
 			String line;
 			while (!Judge.isNull(line = bufferedReader.readLine())) {
 				result.add(line);
 			}
 			return result;
+		}
+
+	}
+
+	protected abstract static class OutputStreamBuilder {
+
+		protected Charset charset = StandardCharsets.UTF_8;
+
+		protected OutputStreamBuilder() {
+		}
+
+		/**
+		 * 设置 字符集编码(默认UTF8)
+		 *
+		 * @param charsetName 字符集编码名称
+		 * @return this
+		 */
+		@Contract(pure = true) public abstract OutputStreamBuilder charset(@NotNull String charsetName);
+
+		/**
+		 * 设置 字符集编码(默认UTF8)
+		 *
+		 * @param charset 字符集编码
+		 * @return this
+		 */
+		@Contract(pure = true) public abstract OutputStreamBuilder charset(@NotNull Charset charset);
+
+	}
+
+	public static class OutputStreamUtil extends OutputStreamBuilder {
+
+		protected int DEFAULT_BUFFER_SIZE = 8192;
+
+		protected FileOutputStream stream;
+
+		protected OutputStreamUtil(@NotNull FileOutputStream stream) {
+			this.stream = stream;
+		}
+
+		@Contract(pure = true) public OutputStreamUtil charset(@NotNull String charsetName) {
+			this.charset = Charset.forName(charsetName);
+			return this;
+		}
+
+		@Contract(pure = true) public OutputStreamUtil charset(@NotNull Charset charset) {
+			this.charset = charset;
+			return this;
+		}
+
+		/**
+		 * 使用BufferedWriter方式向输出流内写入字符数据
+		 *
+		 * @param s 字符数据
+		 */
+		@Contract(pure = true) public void write(String s) throws IOException {
+			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(stream, charset), DEFAULT_BUFFER_SIZE);
+			out.write(s); // 文件输出流用于将数据写入文件
+			out.flush();
 		}
 
 	}
