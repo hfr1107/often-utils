@@ -42,10 +42,10 @@ public class HttpsUtil {
 	}
 
 	/**
-	 * 公共静态连接连接（ 字符串 网址）<br/>
-	 * 使用定义的请求 URL 创建一个新的Connection （会话），用于获取和解析 HTML 页面
+	 * 公共静态连接连接（ 字符串 网址）<br/> 使用定义的请求 URL 创建一个新的Connection （会话），用于获取和解析 HTML 页面
 	 *
-	 * @param url 要连接的 URL
+	 * @param url
+	 * 		要连接的 URL
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public static Connection connect(@NotNull String url) {
@@ -342,9 +342,11 @@ public class HttpsUtil {
 		/**
 		 * 创建HttpURLConnection实例
 		 *
-		 * @param url url链接
+		 * @param url
+		 * 		url链接
 		 * @return HttpURLConnection实例
-		 * @throws IOException 如果发生 I/O 异常
+		 * @throws IOException
+		 * 		如果发生 I/O 异常
 		 */
 		protected HttpURLConnection connection(@NotNull String url) throws IOException {
 			HttpURLConnection conn = (HttpURLConnection) URIUtils.getURL(url).openConnection(proxy);
@@ -441,9 +443,9 @@ public class HttpsUtil {
 
 		@Contract(pure = true) public Map<String, String> cookies() {
 			List<String> cookies = conn.getHeaderFields().get("Set-Cookie");
-			return Judge.isNull(cookies) ?
-					new HashMap<>() :
-					cookies.stream().map(l -> l.substring(0, l.indexOf(";")))
+			return Judge.isNull(cookies)
+					? new HashMap<>()
+					: cookies.stream().filter(l -> !l.equals("-")).map(l -> l.substring(0, l.indexOf(";")))
 							.collect(Collectors.toMap(l -> l.substring(0, l.indexOf("=")), l -> l.substring(l.indexOf("=") + 1), (e1, e2) -> e2));
 		}
 
@@ -478,13 +480,11 @@ public class HttpsUtil {
 			String result;
 			String encoding = header("content-encoding");
 			try (InputStream in = bodyStream();
-					InputStream body = Judge.isNull(encoding) ?
-							in :
-							encoding.equals("gzip") ?
-									new GZIPInputStream(in) :
-									encoding.equals("deflate") ?
-											new InflaterInputStream(in, new Inflater(true)) :
-											encoding.equals("br") ? new BrotliInputStream(in) : in) {
+					InputStream body = Judge.isNull(encoding)
+							? in
+							: encoding.equals("gzip")
+									? new GZIPInputStream(in)
+									: encoding.equals("deflate") ? new InflaterInputStream(in, new Inflater(true)) : encoding.equals("br") ? new BrotliInputStream(in) : in) {
 				result = StreamUtils.stream(body).charset(charset).read();
 			} catch (IOException e) {
 				return null;
