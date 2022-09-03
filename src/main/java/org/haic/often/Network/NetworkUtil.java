@@ -49,8 +49,7 @@ public class NetworkUtil {
 	}
 
 	/**
-	 * 公共静态连接连接（ 字符串 网址）<br/>
-	 * 使用定义的请求 URL 创建一个新的Connection （会话），用于获取和解析 HTML 页面
+	 * 公共静态连接连接（ 字符串 网址）<br/> 使用定义的请求 URL 创建一个新的Connection （会话），用于获取和解析 HTML 页面
 	 *
 	 * @param url 要连接的 URL
 	 * @return 此连接，用于链接
@@ -60,8 +59,7 @@ public class NetworkUtil {
 	}
 
 	/**
-	 * 获取新的NetworkFileUtil对象并设置配置文件<br/>
-	 * 配置文件 -> 包含待下载文件的下载信息的文件
+	 * 获取新的NetworkFileUtil对象并设置配置文件<br/> 配置文件 -> 包含待下载文件的下载信息的文件
 	 *
 	 * @param path session文件路径
 	 * @return 此连接，用于链接
@@ -71,8 +69,7 @@ public class NetworkUtil {
 	}
 
 	/**
-	 * 获取新的NetworkFileUtil对象并设置配置文件<br/>
-	 * 配置文件 -> 包含待下载文件的下载信息的文件
+	 * 获取新的NetworkFileUtil对象并设置配置文件<br/> 配置文件 -> 包含待下载文件的下载信息的文件
 	 *
 	 * @param file session文件
 	 * @return 此连接，用于链接
@@ -82,12 +79,7 @@ public class NetworkUtil {
 	}
 
 	/**
-	 * 下载方法枚举<br/>
-	 * FILE - 配置文件下载<br/>
-	 * FULL - 全量下载模式<br/>
-	 * MULTITHREAD - 多线程模式<br/>
-	 * MANDATORY - 强制多线程模式<br/>
-	 * 如果下载文件的配置文件存在,将会自动跳转FILE模式,配置信息将会被文件中的配置覆盖
+	 * 下载方法枚举<br/> FILE - 配置文件下载<br/> FULL - 全量下载模式<br/> MULTITHREAD - 多线程模式<br/> MANDATORY - 强制多线程模式<br/> 如果下载文件的配置文件存在,将会自动跳转FILE模式,配置信息将会被文件中的配置覆盖
 	 */
 	public enum Method {
 		/**
@@ -99,18 +91,15 @@ public class NetworkUtil {
 		 */
 		FULL(true),
 		/**
-		 * 分块多线程模式,按照pieceSize大小分块下载<br/>
-		 * 如pieceSize大小为1M,文件大小为100M,那么文件将会被分为100个块下载
+		 * 分块多线程模式,按照pieceSize大小分块下载<br/> 如pieceSize大小为1M,文件大小为100M,那么文件将会被分为100个块下载
 		 */
 		PIECE(true),
 		/**
-		 * 经典多线程模式,按照pieceSize大小进行最小分块<br/>
-		 * 如pieceSize大小为1M,线程为10,不到1M大小文件一个线程,那么跑满线程文件就需不低于10M
+		 * 经典多线程模式,按照pieceSize大小进行最小分块<br/> 如pieceSize大小为1M,线程为10,不到1M大小文件一个线程,那么跑满线程文件就需不低于10M
 		 */
 		MULTITHREAD(true),
 		/**
-		 * 强制多线程模式,不受pieceSize大小影响,无论文件大小,都将以满线程下载<br/>
-		 * 极端条件下,如果文件大小过小(文件字节大小小于线程),会发生错误
+		 * 强制多线程模式,不受pieceSize大小影响,无论文件大小,都将以满线程下载<br/> 极端条件下,如果文件大小过小(文件字节大小小于线程),会发生错误
 		 */
 		MANDATORY(true);
 
@@ -602,7 +591,7 @@ public class NetworkUtil {
 				String contentLength = res.header("content-length"); // 获取文件大小
 				request.setFileSize(fileSize = Judge.isNull(contentLength) ? fileSize : Long.parseLong(contentLength));
 				method = Judge.isEmpty(fileSize) ? Method.FULL : method;// 如果文件大小获取失败或线程为1，使用全量下载模式
-				request.setHash(hash = Judge.isEmpty(hash) ? res.header("x-cos-meta-md5") : hash); // 获取文件MD5
+				request.setHash(hash = Judge.isEmpty(hash) ? URIUtils.getMd5(request.headers()) : hash); // 获取文件md5
 				// 创建并写入文件配置信息
 				fileInfo.put("URL", url);
 				fileInfo.put("fileName", fileName);
@@ -832,8 +821,7 @@ public class NetworkUtil {
 		@Contract(pure = true) public abstract Connection newUrl(@NotNull String url);
 
 		/**
-		 * 连接用户代理（ 字符串 用户代理）<br/>
-		 * 设置请求用户代理标头
+		 * 连接用户代理（ 字符串 用户代理）<br/> 设置请求用户代理标头
 		 *
 		 * @param userAgent 要使用的用户代理
 		 * @return 此连接，用于链接
@@ -841,8 +829,7 @@ public class NetworkUtil {
 		@Contract(pure = true) public abstract Connection userAgent(@NotNull String userAgent);
 
 		/**
-		 * 连接引荐来源网址（ 字符串 引荐来源网址）<br/>
-		 * 设置请求引荐来源网址（又名“引荐来源网址”）标头
+		 * 连接引荐来源网址（ 字符串 引荐来源网址）<br/> 设置请求引荐来源网址（又名“引荐来源网址”）标头
 		 *
 		 * @param referrer 要使用的来源网址
 		 * @return 此连接，用于链接
@@ -850,8 +837,7 @@ public class NetworkUtil {
 		@Contract(pure = true) public abstract Connection referrer(@NotNull String referrer);
 
 		/**
-		 * 连接头（ 字符串 名称， 字符串 值）<br/>
-		 * 设置请求标头
+		 * 连接头（ 字符串 名称， 字符串 值）<br/> 设置请求标头
 		 *
 		 * @param name  标题名称
 		 * @param value 标头值
@@ -860,8 +846,7 @@ public class NetworkUtil {
 		@Contract(pure = true) public abstract Connection header(@NotNull String name, @NotNull String value);
 
 		/**
-		 * 连接头（ Map  < String  , String  > 头）<br/>
-		 * 将每个提供的标头添加到请求中
+		 * 连接头（ Map  < String  , String  > 头）<br/> 将每个提供的标头添加到请求中
 		 *
 		 * @param headers 标头名称映射 -> 值对
 		 * @return 此连接，用于链接
@@ -878,8 +863,7 @@ public class NetworkUtil {
 		@Contract(pure = true) public abstract Connection cookie(@NotNull String name, @NotNull String value);
 
 		/**
-		 * 连接 cookies （ Map < String  , String  >cookies）<br/>
-		 * 将每个提供的 cookie 添加到请求中
+		 * 连接 cookies （ Map < String  , String  >cookies）<br/> 将每个提供的 cookie 添加到请求中
 		 *
 		 * @param cookies 名称映射 -> 值对
 		 * @return 此连接，用于链接
@@ -887,9 +871,7 @@ public class NetworkUtil {
 		@Contract(pure = true) public abstract Connection cookies(@NotNull Map<String, String> cookies);
 
 		/**
-		 * 设置授权码或身份识别标识<br/>
-		 * 有些服务器不使用cookie验证身份,使用authorization进行验证<br/>
-		 * 一般信息在cookie或local Storage中存储
+		 * 设置授权码或身份识别标识<br/> 有些服务器不使用cookie验证身份,使用authorization进行验证<br/> 一般信息在cookie或local Storage中存储
 		 *
 		 * @param auth 授权码或身份识别标识
 		 * @return 此连接，用于链接
@@ -949,8 +931,7 @@ public class NetworkUtil {
 		@Contract(pure = true) public abstract Connection proxy(@NotNull String host, int port);
 
 		/**
-		 * 连接代理（ @NotNull  Proxy 代理）<br/>
-		 * 设置用于此请求的代理
+		 * 连接代理（ @NotNull  Proxy 代理）<br/> 设置用于此请求的代理
 		 *
 		 * @param proxy 要使用的代理
 		 * @return 此连接，用于链接
@@ -958,8 +939,7 @@ public class NetworkUtil {
 		@Contract(pure = true) public abstract Connection proxy(@NotNull Proxy proxy);
 
 		/**
-		 * 在状态码不为200+或300+时，抛出执行异常，并获取一些参数，一般用于调试<br/>
-		 * 默认情况下为false
+		 * 在状态码不为200+或300+时，抛出执行异常，并获取一些参数，一般用于调试<br/> 默认情况下为false
 		 *
 		 * @param errorExit 启用错误退出
 		 * @return 此连接，用于链接
@@ -1025,9 +1005,7 @@ public class NetworkUtil {
 		@Contract(pure = true) public abstract Connection bufferSize(int bufferSize);
 
 		/**
-		 * 设置md5效验值进行文件完整性效验<br/>
-		 * 如果效验不正确会在下载完成后删除文件并重置配置文件<br/>
-		 * 抛出异常信息
+		 * 设置md5效验值进行文件完整性效验<br/> 如果效验不正确会在下载完成后删除文件并重置配置文件<br/> 抛出异常信息
 		 *
 		 * @param hash 文件md5值
 		 * @return 此连接，用于链接

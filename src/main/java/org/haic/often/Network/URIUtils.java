@@ -31,10 +31,7 @@ public class URIUtils {
 	 *
 	 * @param key      数据键（表单项名称）
 	 * @param fileName 要呈现给删除服务器的文件的名称。通常只是名称，而不是路径，组件
-	 * @return ThreeTuple ( String, String, String )<br/>
-	 * first - boundary<br/>
-	 * second - 表单body头部数据<br/>
-	 * third - 表单body尾部数据
+	 * @return ThreeTuple ( String, String, String )<br/> first - boundary<br/> second - 表单body头部数据<br/> third - 表单body尾部数据
 	 */
 	@Contract(pure = true) public static ThreeTuple<String, String, String> getFormData(@NotNull String key, @NotNull String fileName) {
 		String boundary = UUID.randomUUID().toString();
@@ -225,6 +222,17 @@ public class URIUtils {
 		filename = filename.substring(filename.indexOf("=") + 1).replaceAll("\"", "");
 		filename = filename.contains("'") ? filename.substring(filename.lastIndexOf("'") + 1) : filename;
 		return StringUtils.decodeByURL(filename);
+	}
+
+	/**
+	 * 由于不同网站请求头中的md5键不一致,使用可能的的键从请求头中获取md5,注意返回值可能是null
+	 *
+	 * @param headers 请求头
+	 * @return md5值
+	 */
+	@Contract(pure = true) public static String getMd5(@NotNull Map<String, String> headers) {
+		String md5 = headers.get("x-cos-meta-md5");
+		return Judge.isNull(md5) ? headers.get("content-md5") : md5;
 	}
 
 	/**
