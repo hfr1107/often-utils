@@ -33,7 +33,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件名的字符长度
 	 *
-	 * @param fileName 文件名
+	 * @param fileName
+	 * 		文件名
 	 * @return 文件名的字符长度
 	 */
 	@Contract(pure = true) public static int nameLength(@NotNull String fileName) {
@@ -43,7 +44,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件名的字符长度
 	 *
-	 * @param file 文件对象
+	 * @param file
+	 * 		文件对象
 	 * @return 文件名的字符长度
 	 */
 	@Contract(pure = true) public static int nameLength(@NotNull File file) {
@@ -53,8 +55,10 @@ public class FilesUtils {
 	/**
 	 * 文件hash效验, 支持 MD5, SHA1, SHA256, SHA384, SHA512
 	 *
-	 * @param filePath 文件路径
-	 * @param hash     待效验的值
+	 * @param filePath
+	 * 		文件路径
+	 * @param hash
+	 * 		待效验的值
 	 * @return 判断是否匹配, 如果格式不正确返回false
 	 */
 	@Contract(pure = true) public static boolean hashValidity(@NotNull String filePath, @NotNull String hash) {
@@ -64,8 +68,10 @@ public class FilesUtils {
 	/**
 	 * 文件效验, 支持 MD5, SHA1, SHA256, SHA384, SHA512
 	 *
-	 * @param file 文件
-	 * @param hash 待效验的值
+	 * @param file
+	 * 		文件
+	 * @param hash
+	 * 		待效验的值
 	 * @return 判断是否匹配, 如果格式不正确返回false
 	 */
 	@Contract(pure = true) public static boolean hashValidity(@NotNull File file, @NotNull String hash) {
@@ -133,19 +139,21 @@ public class FilesUtils {
 	/**
 	 * 获取 系统默认文件夹路径
 	 *
-	 * @param id 字符串项名称
+	 * @param id
+	 * 		字符串项名称
 	 * @return 文件夹路径
 	 */
 	@Contract(pure = true) private static String getSystemDefaultDirectory(String id) {
-		String[] value = RunTime.dos("REG", "QUERY", "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", "/v", id)
-				.readInfo().split(" ");
-		return value[value.length - 1];
+		String[] value = RunTime.dos("REG", "QUERY", "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", "/v", id).readInfo().split(" ");
+		String path = value[value.length - 1];
+		return path.startsWith("%USERPROFILE%") ? System.getenv("USERPROFILE") + path.substring(13) : path;
 	}
 
 	/**
 	 * 如果文件存在，删除文件
 	 *
-	 * @param filepath 文件路径
+	 * @param filepath
+	 * 		文件路径
 	 * @return 删除是否成功
 	 */
 	@Contract(pure = true) public static boolean deteleFile(String filepath) {
@@ -155,7 +163,8 @@ public class FilesUtils {
 	/**
 	 * 如果文件存在，删除文件
 	 *
-	 * @param file 文件
+	 * @param file
+	 * 		文件
 	 * @return 删除是否成功
 	 */
 	@Contract(pure = true) public static boolean deteleFile(File file) {
@@ -165,7 +174,8 @@ public class FilesUtils {
 	/**
 	 * 删除列表文件
 	 *
-	 * @param files 文件列表
+	 * @param files
+	 * 		文件列表
 	 * @return 删除的文件列表
 	 */
 	@Contract(pure = true) public static List<String> deteleFiles(List<File> files) {
@@ -175,7 +185,8 @@ public class FilesUtils {
 	/**
 	 * 打开资源管理器窗口
 	 *
-	 * @param folderPath 文件夹路径
+	 * @param folderPath
+	 * 		文件夹路径
 	 * @return 操作是否成功
 	 */
 	@Contract(pure = true) public static boolean openDesktop(@NotNull String folderPath) {
@@ -194,7 +205,8 @@ public class FilesUtils {
 	/**
 	 * 删除空文件夹
 	 *
-	 * @param filesPath 文件夹路径
+	 * @param filesPath
+	 * 		文件夹路径
 	 * @return 删除的空文件夹路径列表
 	 */
 	@NotNull @Contract(pure = true) public static List<String> deleteBlankDirectory(@NotNull String filesPath) {
@@ -204,21 +216,20 @@ public class FilesUtils {
 	/**
 	 * 删除空文件夹
 	 *
-	 * @param files 文件夹
+	 * @param files
+	 * 		文件夹
 	 * @return 删除的空文件夹路径列表
 	 */
 	@NotNull @Contract(pure = true) public static List<String> deleteBlankDirectory(@NotNull File files) {
-		return files.exists() && !files.isFile() ?
-				Arrays.stream(Objects.requireNonNull(files.listFiles())).parallel()
-						.flatMap(file -> isBlankDirectory(file) && file.delete() ? Stream.of(file.getPath()) : deleteBlankDirectory(file).stream())
-						.collect(Collectors.toList()) :
-				new ArrayList<>();
+		return files.exists() && !files.isFile() ? Arrays.stream(Objects.requireNonNull(files.listFiles())).parallel()
+				.flatMap(file -> isBlankDirectory(file) && file.delete() ? Stream.of(file.getPath()) : deleteBlankDirectory(file).stream()).collect(Collectors.toList()) : new ArrayList<>();
 	}
 
 	/**
 	 * 判断是否为空文件夹
 	 *
-	 * @param folderPath 需要判断的文件夹路径
+	 * @param folderPath
+	 * 		需要判断的文件夹路径
 	 * @return 判断结果
 	 */
 	@Contract(pure = true) public static boolean isBlankDirectory(@NotNull String folderPath) {
@@ -228,7 +239,8 @@ public class FilesUtils {
 	/**
 	 * 判断是否为空文件夹
 	 *
-	 * @param folder 需要判断的文件夹
+	 * @param folder
+	 * 		需要判断的文件夹
 	 * @return 判断结果
 	 */
 	@Contract(pure = true) public static boolean isBlankDirectory(@NotNull File folder) {
@@ -238,7 +250,8 @@ public class FilesUtils {
 	/**
 	 * 删除文件夹
 	 *
-	 * @param folderPath 文件夹路径
+	 * @param folderPath
+	 * 		文件夹路径
 	 * @return 删除文件夹是否成功
 	 */
 	@Contract(pure = true) public static boolean deleteDirectory(@NotNull String folderPath) {
@@ -248,19 +261,22 @@ public class FilesUtils {
 	/**
 	 * 删除文件夹
 	 *
-	 * @param folder 文件夹
+	 * @param folder
+	 * 		文件夹
 	 * @return 删除文件夹是否成功
 	 */
 	@Contract(pure = true) public static boolean deleteDirectory(@NotNull File folder) {
-		return folder.exists() && !Arrays.stream(Objects.requireNonNull(folder.listFiles())).parallel()
-				.map(file -> file.isDirectory() ? deleteDirectory(file) : file.delete()).toList().contains(false) && folder.delete();
+		return folder.exists() && !Arrays.stream(Objects.requireNonNull(folder.listFiles())).parallel().map(file -> file.isDirectory() ? deleteDirectory(file) : file.delete()).toList().contains(false)
+				&& folder.delete();
 	}
 
 	/**
 	 * 删除文件夹内指定后缀文件
 	 *
-	 * @param folderPath 文件夹路径
-	 * @param suffix     后缀
+	 * @param folderPath
+	 * 		文件夹路径
+	 * @param suffix
+	 * 		后缀
 	 * @return 删除的文件路径列表
 	 */
 	@NotNull @Contract(pure = true) public static List<String> deleteSuffixFiles(@NotNull String folderPath, @NotNull String suffix) {
@@ -270,8 +286,10 @@ public class FilesUtils {
 	/**
 	 * 删除文件夹内指定后缀文件
 	 *
-	 * @param files  文件夹对象
-	 * @param suffix 后缀
+	 * @param files
+	 * 		文件夹对象
+	 * @param suffix
+	 * 		后缀
 	 * @return 删除的文件路径列表
 	 */
 	@NotNull @Contract(pure = true) public static List<String> deleteSuffixFiles(@NotNull File files, @NotNull String suffix) {
@@ -281,8 +299,10 @@ public class FilesUtils {
 	/**
 	 * 判断是否为指定后缀
 	 *
-	 * @param filePath 文件路径
-	 * @param suffix   后缀
+	 * @param filePath
+	 * 		文件路径
+	 * @param suffix
+	 * 		后缀
 	 * @return boolean
 	 */
 	@Contract(pure = true) public static boolean isSuffixFile(@NotNull String filePath, @NotNull String suffix) {
@@ -292,8 +312,10 @@ public class FilesUtils {
 	/**
 	 * 判断是否为指定后缀
 	 *
-	 * @param file   文件对象
-	 * @param suffix 后缀
+	 * @param file
+	 * 		文件对象
+	 * @param suffix
+	 * 		后缀
 	 * @return boolean
 	 */
 	@Contract(pure = true) public static boolean isSuffixFile(@NotNull File file, @NotNull String suffix) {
@@ -303,7 +325,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件后缀
 	 *
-	 * @param fileName 文件名
+	 * @param fileName
+	 * 		文件名
 	 * @return 文件后缀
 	 */
 	@Contract(pure = true) public static String getFileSuffix(@NotNull String fileName) {
@@ -313,7 +336,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件后缀
 	 *
-	 * @param file 文件对象
+	 * @param file
+	 * 		文件对象
 	 * @return 文件后缀
 	 */
 	@Contract(pure = true) public static String getFileSuffix(@NotNull File file) {
@@ -323,8 +347,10 @@ public class FilesUtils {
 	/**
 	 * 修改文件后缀
 	 *
-	 * @param file   文件对象
-	 * @param suffix 后缀
+	 * @param file
+	 * 		文件对象
+	 * @param suffix
+	 * 		后缀
 	 * @return 修改后缀是否成功
 	 */
 	@Contract(pure = true) public static boolean afterFileSuffix(@NotNull File file, @NotNull String suffix) {
@@ -341,8 +367,10 @@ public class FilesUtils {
 	/**
 	 * 修改文件后缀
 	 *
-	 * @param filePath 文件路径
-	 * @param suffix   后缀
+	 * @param filePath
+	 * 		文件路径
+	 * @param suffix
+	 * 		后缀
 	 * @return 修改后缀是否成功
 	 */
 	@Contract(pure = true) public static boolean afterFileSuffix(@NotNull String filePath, @NotNull String suffix) {
@@ -352,8 +380,10 @@ public class FilesUtils {
 	/**
 	 * 重命名文件
 	 *
-	 * @param file     文件对象
-	 * @param fileName 文件名
+	 * @param file
+	 * 		文件对象
+	 * @param fileName
+	 * 		文件名
 	 * @return 重命名是否成功
 	 */
 	@Contract(pure = true) public static boolean afterFileName(@NotNull File file, @NotNull String fileName) {
@@ -364,8 +394,10 @@ public class FilesUtils {
 	/**
 	 * 重命名文件
 	 *
-	 * @param filePath 文件路径
-	 * @param fileName 新的文件名
+	 * @param filePath
+	 * 		文件路径
+	 * @param fileName
+	 * 		新的文件名
 	 * @return 重命名是否成功
 	 */
 	@Contract(pure = true) public static boolean afterFileName(@NotNull String filePath, @NotNull String fileName) {
@@ -375,7 +407,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件夹所有文件对象列表
 	 *
-	 * @param filePath 文件夹或文件路径
+	 * @param filePath
+	 * 		文件夹或文件路径
 	 * @return 文件对象列表
 	 */
 	@NotNull @Contract(pure = true) public static List<File> iterateFiles(@NotNull String filePath) {
@@ -385,22 +418,23 @@ public class FilesUtils {
 	/**
 	 * 获取文件夹所有文件对象列表
 	 *
-	 * @param file 文件夹或文件对象
+	 * @param file
+	 * 		文件夹或文件对象
 	 * @return 文件对象列表
 	 */
 	@NotNull @Contract(pure = true) public static List<File> iterateFiles(@NotNull File file) {
-		return file.exists() ?
-				file.isFile() ?
-						Collections.singletonList(file) :
-						Arrays.stream(Objects.requireNonNull(file.listFiles())).parallel().flatMap(f -> iterateFiles(f).stream()).collect(Collectors.toList()) :
-				new ArrayList<>();
+		return file.exists() ? file.isFile()
+				? Collections.singletonList(file)
+				: Arrays.stream(Objects.requireNonNull(file.listFiles())).parallel().flatMap(f -> iterateFiles(f).stream()).collect(Collectors.toList()) : new ArrayList<>();
 	}
 
 	/**
 	 * 获取文件夹所有指定后缀的文件路径列表
 	 *
-	 * @param filePath 文件夹或文件路径
-	 * @param suffix   文件后缀名
+	 * @param filePath
+	 * 		文件夹或文件路径
+	 * @param suffix
+	 * 		文件后缀名
 	 * @return 文件对象列表
 	 */
 	@NotNull @Contract(pure = true) public static List<File> iterateFilesAsSuffix(@NotNull String filePath, @NotNull String suffix) {
@@ -410,8 +444,10 @@ public class FilesUtils {
 	/**
 	 * 获取文件夹所有指定后缀的文件路径列表
 	 *
-	 * @param file   文件夹或文件对象
-	 * @param suffix 文件后缀名
+	 * @param file
+	 * 		文件夹或文件对象
+	 * @param suffix
+	 * 		文件后缀名
 	 * @return 文件对象列表
 	 */
 	@NotNull @Contract(pure = true) public static List<File> iterateFilesAsSuffix(@NotNull File file, @NotNull String suffix) {
@@ -421,7 +457,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件夹所有文件路径列表
 	 *
-	 * @param filePath 文件夹或文件路径
+	 * @param filePath
+	 * 		文件夹或文件路径
 	 * @return 文件路径列表
 	 */
 	@NotNull @Contract(pure = true) public static List<String> iterateFilesPath(@NotNull String filePath) {
@@ -431,7 +468,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件夹所有文件路径列表
 	 *
-	 * @param file 文件夹或文件对象
+	 * @param file
+	 * 		文件夹或文件对象
 	 * @return 文件路径列表
 	 */
 	@NotNull @Contract(pure = true) public static List<String> iterateFilesPath(@NotNull File file) {
@@ -441,8 +479,10 @@ public class FilesUtils {
 	/**
 	 * 获取文件夹所有指定后缀的文件路径列表
 	 *
-	 * @param filePath 文件夹或文件路径
-	 * @param suffix   文件后缀名
+	 * @param filePath
+	 * 		文件夹或文件路径
+	 * @param suffix
+	 * 		文件后缀名
 	 * @return 文件路径列表
 	 */
 	@NotNull @Contract(pure = true) public static List<String> iterateFilesPathAsSuffix(@NotNull String filePath, @NotNull String suffix) {
@@ -452,8 +492,10 @@ public class FilesUtils {
 	/**
 	 * 获取文件夹所有指定后缀的文件路径列表
 	 *
-	 * @param file   文件夹或文件对象
-	 * @param suffix 文件后缀名
+	 * @param file
+	 * 		文件夹或文件对象
+	 * @param suffix
+	 * 		文件后缀名
 	 * @return 文件路径列表
 	 */
 	@NotNull @Contract(pure = true) public static List<String> iterateFilesPathAsSuffix(@NotNull File file, @NotNull String suffix) {
@@ -481,7 +523,8 @@ public class FilesUtils {
 	/**
 	 * 创建文件
 	 *
-	 * @param filePath 文件路径
+	 * @param filePath
+	 * 		文件路径
 	 */
 	@Contract(pure = true) public static void createFile(@NotNull String filePath) {
 		createFile(new File(filePath));
@@ -490,7 +533,8 @@ public class FilesUtils {
 	/**
 	 * 创建文件
 	 *
-	 * @param file 文件
+	 * @param file
+	 * 		文件
 	 */
 	@Contract(pure = true) public static void createFile(@NotNull File file) {
 		if (!file.exists()) { // 文件不存在则创建文件，先创建目录
@@ -506,7 +550,8 @@ public class FilesUtils {
 	/**
 	 * 创建文件夹
 	 *
-	 * @param folderPath 文件夹路径
+	 * @param folderPath
+	 * 		文件夹路径
 	 */
 	@Contract(pure = true) public static boolean createFolder(@NotNull String folderPath) {
 		return createFolder(new File(folderPath));
@@ -515,7 +560,8 @@ public class FilesUtils {
 	/**
 	 * 创建文件夹
 	 *
-	 * @param folder 文件夹对象
+	 * @param folder
+	 * 		文件夹对象
 	 * @return 创建文件是否成功
 	 */
 	@Contract(pure = true) public static boolean createFolder(@NotNull File folder) {
@@ -525,7 +571,8 @@ public class FilesUtils {
 	/**
 	 * 修改非法的Windows文件名
 	 *
-	 * @param fileName 文件名
+	 * @param fileName
+	 * 		文件名
 	 * @return 正常的Windows文件名
 	 */
 	@NotNull @Contract(pure = true) public static String illegalFileName(@NotNull String fileName) {
@@ -535,7 +582,8 @@ public class FilesUtils {
 	/**
 	 * 传入路径，返回是否是绝对路径，是绝对路径返回true，反之
 	 *
-	 * @param path 路径
+	 * @param path
+	 * 		路径
 	 * @return 判断结果
 	 */
 	@Contract(pure = true) public static boolean isAbsolutePath(@NotNull String path) {
@@ -545,7 +593,8 @@ public class FilesUtils {
 	/**
 	 * 传入路径，返回绝对路径
 	 *
-	 * @param path 路径
+	 * @param path
+	 * 		路径
 	 * @return 绝对路径
 	 */
 	@NotNull @Contract(pure = true) public static String getAbsolutePath(@NotNull String path) {
@@ -555,7 +604,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件MD5值
 	 *
-	 * @param filePath 文件路径
+	 * @param filePath
+	 * 		文件路径
 	 * @return MD5值
 	 */
 	@NotNull @Contract(pure = true) public static String getMD5(@NotNull String filePath) {
@@ -565,7 +615,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件 MD5 值
 	 *
-	 * @param file 文件
+	 * @param file
+	 * 		文件
 	 * @return MD5 值
 	 */
 	@NotNull @Contract(pure = true) public static String getMD5(@NotNull File file) {
@@ -579,7 +630,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件 SHA1 值
 	 *
-	 * @param filePath 文件路径
+	 * @param filePath
+	 * 		文件路径
 	 * @return SHA1 值
 	 */
 	@NotNull @Contract(pure = true) public static String getSHA1(@NotNull String filePath) {
@@ -589,7 +641,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件 SHA1 值
 	 *
-	 * @param file 文件
+	 * @param file
+	 * 		文件
 	 * @return SHA1 值
 	 */
 	@NotNull @Contract(pure = true) public static String getSHA1(@NotNull File file) {
@@ -603,7 +656,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件 SHA256 值
 	 *
-	 * @param filePath 文件路径
+	 * @param filePath
+	 * 		文件路径
 	 * @return SHA256 值
 	 */
 	@NotNull @Contract(pure = true) public static String getSHA256(@NotNull String filePath) {
@@ -613,7 +667,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件 SHA256 值
 	 *
-	 * @param file 文件
+	 * @param file
+	 * 		文件
 	 * @return SHA256 值
 	 */
 	@NotNull @Contract(pure = true) public static String getSHA256(@NotNull File file) {
@@ -627,7 +682,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件 SHA384 值
 	 *
-	 * @param filePath 文件路径
+	 * @param filePath
+	 * 		文件路径
 	 * @return SHA384 值
 	 */
 	@NotNull @Contract(pure = true) public static String getSHA384(@NotNull String filePath) {
@@ -637,7 +693,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件 SHA384 值
 	 *
-	 * @param file 文件
+	 * @param file
+	 * 		文件
 	 * @return SHA384 值
 	 */
 	@NotNull @Contract(pure = true) public static String getSHA384(@NotNull File file) {
@@ -651,7 +708,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件 SHA512 值
 	 *
-	 * @param filePath 文件路径
+	 * @param filePath
+	 * 		文件路径
 	 * @return SHA512 值
 	 */
 	@NotNull @Contract(pure = true) public static String getSHA512(@NotNull String filePath) {
@@ -661,7 +719,8 @@ public class FilesUtils {
 	/**
 	 * 获取文件 SHA512 值
 	 *
-	 * @param file 文件
+	 * @param file
+	 * 		文件
 	 * @return SHA512 值
 	 */
 	@NotNull @Contract(pure = true) public static String getSHA512(@NotNull File file) {
@@ -675,8 +734,10 @@ public class FilesUtils {
 	/**
 	 * 复制文件
 	 *
-	 * @param input  来源文件
-	 * @param output 输出路径
+	 * @param input
+	 * 		来源文件
+	 * @param output
+	 * 		输出路径
 	 * @return 复制是否成功
 	 */
 	@Contract(pure = true) public static boolean copyFile(@NotNull File input, @NotNull File output) {
@@ -686,8 +747,10 @@ public class FilesUtils {
 	/**
 	 * 复制文件夹
 	 *
-	 * @param input  来源文件夹
-	 * @param output 输出目录
+	 * @param input
+	 * 		来源文件夹
+	 * @param output
+	 * 		输出目录
 	 * @return 复制是否成功
 	 */
 	@Contract(pure = true) public static boolean copyDirectory(@NotNull File input, @NotNull File output) {
@@ -707,16 +770,17 @@ public class FilesUtils {
 	/**
 	 * 合并音频和视频文件
 	 *
-	 * @param audio  音频文件路径
-	 * @param video  视频文件路径
-	 * @param output 输出路径
+	 * @param audio
+	 * 		音频文件路径
+	 * @param video
+	 * 		视频文件路径
+	 * @param output
+	 * 		输出路径
 	 * @return 操作是否成功
 	 */
 	@Contract(pure = true) public static boolean audioVideoMerge(@NotNull String audio, @NotNull String video, @NotNull String output) {
 		boolean success = false;
-		try (FileOutputStream fos = new FileOutputStream(output);
-				DataSource videoDataSource = new FileDataSourceImpl(video);
-				DataSource audioDataSource = new FileDataSourceImpl(audio)) {
+		try (FileOutputStream fos = new FileOutputStream(output); DataSource videoDataSource = new FileDataSourceImpl(video); DataSource audioDataSource = new FileDataSourceImpl(audio)) {
 			Movie countVideo = MovieCreator.build(videoDataSource);
 			Track audioTrack = MovieCreator.build(audioDataSource).getTracks().get(0);
 			countVideo.addTrack(audioTrack);
