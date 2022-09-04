@@ -15,10 +15,10 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -607,8 +607,11 @@ public class NetworkUtil {
 			}
 
 			Runtime.getRuntime().addShutdownHook(abnormal = new Thread(() -> { // 异常退出时写入断点续传配置
-				ReadWriteUtils.orgin(session).append(false)
-						.write(fileInfo.fluentPut("renew", new JSONObject().fluentPut("completed", MAX_COMPLETED).fluentPut("status", status)).toJSONString());
+				JSONObject renew = new JSONObject();
+				renew.put("completed", MAX_COMPLETED);
+				renew.put("status", status);
+				fileInfo.put("renew", renew);
+				ReadWriteUtils.orgin(session).append(false).write(fileInfo.toJSONString());
 			}));
 			FilesUtils.createFolder(folder); // 创建文件夹
 			int statusCode = 0;
@@ -698,7 +701,7 @@ public class NetworkUtil {
 		}
 
 		@Contract(pure = true) protected int MULTITHREAD(int PIECE_COUNT, long PIECE_SIZE) {
-			List<Integer> statusCodes = new CopyOnWriteArrayList<>();
+			AtomicInteger statusCodes = new AtomicInteger(HttpStatus.SC_OK);
 			executorService = Executors.newFixedThreadPool(MAX_THREADS); // 限制多线程;
 			AtomicBoolean addCompleted = new AtomicBoolean(true);
 			for (long i = MAX_COMPLETED / PIECE_SIZE; i < PIECE_COUNT; i++) {//PIECE_COUNT
@@ -717,14 +720,14 @@ public class NetworkUtil {
 						}
 						addCompleted.set(true);
 					}
-					statusCodes.add(statusCode);
 					if (!URIUtils.statusIsOK(statusCode)) {
+						statusCodes.set(statusCode);
 						executorService.shutdownNow(); // 结束未开始的线程，并关闭线程池
 					}
 				}));
 			}
 			MultiThreadUtils.WaitForEnd(executorService); // 等待线程结束
-			return statusCodes.stream().filter(s -> !URIUtils.statusIsOK(s)).findFirst().orElse(HttpStatus.SC_OK);
+			return statusCodes.get();
 		}
 
 		/**
