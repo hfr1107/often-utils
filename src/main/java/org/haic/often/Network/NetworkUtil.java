@@ -55,7 +55,7 @@ public class NetworkUtil {
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public static Connection connect(@NotNull String url) {
-		return new HttpConnection().url(url);
+		return new HttpConnection().alterUrl(url);
 	}
 
 	/**
@@ -75,7 +75,7 @@ public class NetworkUtil {
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public static Connection file(@NotNull File file) {
-		return new HttpConnection().setConf(file);
+		return new HttpConnection().session(file);
 	}
 
 	/**
@@ -327,6 +327,7 @@ public class NetworkUtil {
 		protected Method method = Method.MULTITHREAD;// 下载模式
 
 		protected Request request = new Request();
+		protected JSONObject fileInfo = new JSONObject();
 		protected Thread abnormal;
 		protected long MAX_COMPLETED;
 		protected AtomicLong schedule = new AtomicLong(0);
@@ -336,20 +337,35 @@ public class NetworkUtil {
 		}
 
 		@Contract(pure = true) public Connection url(@NotNull String url) {
+			request.setHash(this.hash = null);
+			this.fileName = null;
+			method = method == Method.FILE ? Method.MULTITHREAD : method;
+			return alterUrl(url);
+		}
+
+		@Contract(pure = true) public Connection alterUrl(@NotNull String url) {
+			fileInfo.put("url", url);
 			request.setUrl(this.url = url);
 			return this;
 		}
 
-		@Contract(pure = true) public Connection newUrl(@NotNull String url) {
-			request.setHash(this.hash = null);
-			this.fileName = null;
-			method = method == Method.FILE ? Method.MULTITHREAD : method;
-			return url(url);
-		}
-
-		@Contract(pure = true) protected Connection setConf(@NotNull File session) {
+		@Contract(pure = true) protected Connection session(@NotNull File session) {
 			if (!session.getName().endsWith(SESSION_SUFFIX)) {
 				throw new RuntimeException("Not is session file: " + session);
+			} else if (session.isFile()) { // 如果设置配置文件下载，并且配置文件存在，获取信息
+				fileInfo.putAll(JSONObject.parseObject(ReadWriteUtils.orgin(session).read()));
+				url = fileInfo.getString("URL");
+				fileName = fileInfo.getString("fileName");
+				if (Judge.isEmpty(url) || Judge.isEmpty(fileName)) {
+					throw new RuntimeException("Info is error -> " + session);
+				}
+				request.setHash(hash = fileInfo.getString("md5"));
+				fileSize = fileInfo.getLong("fileSize");
+				MAX_THREADS = fileInfo.getInteger("threads");
+				headers = StringUtils.jsonToMap(fileInfo.getString("header"));
+				cookies = StringUtils.jsonToMap(fileInfo.getString("cookie"));
+			} else { // 配置文件不存在，抛出异常
+				throw new RuntimeException("Not found or not is file " + session);
 			}
 			this.method = Method.FILE;
 			this.session = session;
@@ -520,42 +536,21 @@ public class NetworkUtil {
 		@Contract(pure = true) protected Response download(@NotNull File folder, @NotNull Method method) {
 			initializationStatus(); // 初始化
 			org.haic.often.Network.Response res = null;
-			JSONObject fileInfo = new JSONObject();
 			switch (method) { // 配置信息
 			case FILE -> {
-				if (session.isFile()) { // 如果设置配置文件下载，并且配置文件存在，获取信息
-					fileInfo.putAll(JSONObject.parseObject(ReadWriteUtils.orgin(session).read()));
-					url = fileInfo.getString("URL");
-					fileName = fileInfo.getString("fileName");
-					if (Judge.isEmpty(url) || Judge.isEmpty(fileName)) {
-						throw new RuntimeException("Info is error -> " + session);
-					}
-					request.setHash(hash = fileInfo.getString("md5"));
-					fileSize = fileInfo.getLong("fileSize");
-					MAX_THREADS = fileInfo.getInteger("threads");
-					method = Method.valueOf(fileInfo.getString("method"));
-					headers = StringUtils.jsonToMap(fileInfo.getString("header"));
-					cookies = StringUtils.jsonToMap(fileInfo.getString("cookie"));
-					storage = new File(folder, fileName); // 获取其file对象
-					JSONObject renew = fileInfo.getJSONObject("renew");
-					if (storage.exists() && !Judge.isNull(renew)) {
-						schedule.set(MAX_COMPLETED = renew.getLong("completed"));
-						String statusJson = renew.getString("status");
-						if (!Judge.isNull(statusJson)) {
-							status.putAll(StringUtils.jsonToMap(renew.getString("status")));
-						}
-					}
-					fileInfo.remove("renew");
-				} else { // 配置文件不存在，抛出异常
-					if (errorExit) {
-						throw new RuntimeException("Not found or not is file " + session);
-					} else {
-						return new HttpResponse(this, request.statusCode(0));
+				method = Method.valueOf(fileInfo.getString("method"));
+				storage = new File(folder, fileName); // 获取其file对象
+				JSONObject renew = fileInfo.getJSONObject("renew");
+				if (storage.exists() && !Judge.isNull(renew)) {
+					schedule.set(MAX_COMPLETED = renew.getLong("completed"));
+					String statusJson = renew.getString("status");
+					if (!Judge.isNull(statusJson)) {
+						status.putAll(StringUtils.jsonToMap(renew.getString("status")));
 					}
 				}
+				fileInfo.remove("renew");
 			}
-			case FULL, PIECE, MULTITHREAD, MANDATORY -> {
-				// 获取文件信息
+			case FULL, PIECE, MULTITHREAD, MANDATORY -> {    // 获取文件信息
 				res = JsoupUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies).retry(retry, MILLISECONDS_SLEEP).retry(unlimitedRetry)
 						.retryStatusCodes(retryStatusCodes).errorExit(errorExit).execute();
 				// 获取URL连接状态
@@ -583,6 +578,7 @@ public class NetworkUtil {
 				session = new File(storage + SESSION_SUFFIX); // 配置信息文件后缀
 
 				if (session.exists()) { // 转为会话配置
+					session(session);
 					return download(folder, Method.FILE);
 				} else if (storage.exists()) { // 文件已存在,返回完成
 					return new HttpResponse(this, request.statusCode(HttpStatus.SC_OK));
@@ -595,7 +591,7 @@ public class NetworkUtil {
 				// 创建并写入文件配置信息
 				fileInfo.put("URL", url);
 				fileInfo.put("fileName", fileName);
-				fileInfo.put("fileSize", String.valueOf(fileSize));
+				fileInfo.put("fileSize", fileSize);
 				fileInfo.put("md5", hash);
 				fileInfo.put("threads", MAX_THREADS);
 				fileInfo.put("method", method.name());
@@ -610,11 +606,10 @@ public class NetworkUtil {
 				JSONObject renew = new JSONObject();
 				renew.put("completed", MAX_COMPLETED);
 				renew.put("status", status);
-				fileInfo.put("renew", renew);
-				ReadWriteUtils.orgin(session).append(false).write(fileInfo.toJSONString());
+				ReadWriteUtils.orgin(session).append(false).write(fileInfo.fluentPut("renew", renew).toJSONString());
 			}));
 			FilesUtils.createFolder(folder); // 创建文件夹
-			int statusCode = 0;
+			int statusCode;
 			switch (method) {  // 开始下载
 			case FULL -> statusCode = Judge.isNull(res) ? FULL() : FULL(res);
 			case PIECE -> statusCode = MULTITHREAD((int) Math.ceil((double) fileSize / (double) PIECE_MAX_SIZE), PIECE_MAX_SIZE);
@@ -623,6 +618,7 @@ public class NetworkUtil {
 				statusCode = MULTITHREAD(PIECE_COUNT, (long) Math.ceil((double) fileSize / (double) PIECE_COUNT));
 			}
 			case MANDATORY -> statusCode = MULTITHREAD(MAX_THREADS, (long) Math.ceil((double) fileSize / (double) MAX_THREADS));
+			default -> throw new RuntimeException("Unknown mode");
 			}
 			if (!URIUtils.statusIsOK(statusCode)) { // 验证下载状态
 				if (errorExit) {
@@ -802,18 +798,6 @@ public class NetworkUtil {
 	public abstract static class Connection {
 
 		/**
-		 * 设置要下载文件的 URL，协议必须是 HTTP 或 HTTPS
-		 * <p>
-		 * 此方法仅用于初始化设置或特殊情况下修改同一文件的 URL
-		 * <p>
-		 * 不同的下载链接不应复用类，内部被改变的 fileName 和 hash 参数会导致致命的下载错误，如果复用，应该同步修改或置空上述两个参数，建议使用 newUrl() 方法
-		 *
-		 * @param url 要连接的 URL
-		 * @return 此连接，用于链接
-		 */
-		@Contract(pure = true) public abstract Connection url(@NotNull String url);
-
-		/**
 		 * 设置新的要下载文件的 URL，协议必须是 HTTP 或 HTTPS
 		 * <p>
 		 * 在修改 URL 时，同步置空 fileName 和 hash 而不会修改其它参数，适用于相同域名或来源的下载
@@ -821,7 +805,19 @@ public class NetworkUtil {
 		 * @param url 要连接的 URL
 		 * @return 此连接，用于链接
 		 */
-		@Contract(pure = true) public abstract Connection newUrl(@NotNull String url);
+		@Contract(pure = true) public abstract Connection url(@NotNull String url);
+
+		/**
+		 * 设置要下载文件的 URL，协议必须是 HTTP 或 HTTPS
+		 * <p>
+		 * 此方法仅用于初始化设置或特殊情况下修改同一文件的 URL
+		 * <p>
+		 * 不同的下载链接不应复用类，内部被改变的 fileName 和 hash 参数会导致致命的下载错误，如果复用，应该同步修改或置空上述两个参数，建议使用 url() 方法
+		 *
+		 * @param url 要连接的 URL
+		 * @return 此连接，用于链接
+		 */
+		@Contract(pure = true) public abstract Connection alterUrl(@NotNull String url);
 
 		/**
 		 * 连接用户代理（ 字符串 用户代理）<br/> 设置请求用户代理标头
@@ -969,19 +965,19 @@ public class NetworkUtil {
 		/**
 		 * 在请求超时或者指定状态码发生时，无限进行重试，直至状态码正常返回
 		 *
-		 * @param unlimitedRetry 启用无限重试, 默认false
+		 * @param unlimit 启用无限重试, 默认false
 		 * @return 此连接，用于链接
 		 */
-		@Contract(pure = true) public abstract Connection retry(boolean unlimitedRetry);
+		@Contract(pure = true) public abstract Connection retry(boolean unlimit);
 
 		/**
 		 * 在请求超时或者指定状态码发生时，无限进行重试，直至状态码正常返回
 		 *
-		 * @param unlimitedRetry 启用无限重试, 默认false
-		 * @param millis         重试等待时间(毫秒)
+		 * @param unlimit 启用无限重试, 默认false
+		 * @param millis  重试等待时间(毫秒)
 		 * @return 此连接，用于链接
 		 */
-		@Contract(pure = true) public abstract Connection retry(boolean unlimitedRetry, int millis);
+		@Contract(pure = true) public abstract Connection retry(boolean unlimit, int millis);
 
 		/**
 		 * 额外指定错误状态码码，在指定状态发生时，也进行重试，可指定多个
