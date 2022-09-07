@@ -64,8 +64,8 @@ public class NetworkUtil {
 	 * @param path session文件路径
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public static Connection file(@NotNull String path) {
-		return file(new File(path));
+	@Contract(pure = true) public static Connection session(@NotNull String path) {
+		return session(new File(path));
 	}
 
 	/**
@@ -74,7 +74,7 @@ public class NetworkUtil {
 	 * @param file session文件
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public static Connection file(@NotNull File file) {
+	@Contract(pure = true) public static Connection session(@NotNull File file) {
 		return new HttpConnection().session(file);
 	}
 
@@ -354,14 +354,13 @@ public class NetworkUtil {
 				throw new RuntimeException("Not is session file: " + session);
 			} else if (session.isFile()) { // 如果设置配置文件下载，并且配置文件存在，获取信息
 				fileInfo.putAll(JSONObject.parseObject(ReadWriteUtils.orgin(session).read()));
-				url = fileInfo.getString("URL");
+				url = fileInfo.getString("url");
 				fileName = fileInfo.getString("fileName");
 				if (Judge.isEmpty(url) || Judge.isEmpty(fileName)) {
 					throw new RuntimeException("Info is error -> " + session);
 				}
 				request.setHash(hash = fileInfo.getString("md5"));
 				fileSize = fileInfo.getLong("fileSize");
-				MAX_THREADS = fileInfo.getInteger("threads");
 				headers = StringUtils.jsonToMap(fileInfo.getString("header"));
 				cookies = StringUtils.jsonToMap(fileInfo.getString("cookie"));
 			} else { // 配置文件不存在，抛出异常
@@ -539,6 +538,7 @@ public class NetworkUtil {
 			switch (method) { // 配置信息
 			case FILE -> {
 				method = Method.valueOf(fileInfo.getString("method"));
+				MAX_THREADS = fileInfo.getInteger("threads");
 				storage = new File(folder, fileName); // 获取其file对象
 				JSONObject renew = fileInfo.getJSONObject("renew");
 				if (storage.exists() && !Judge.isNull(renew)) {
@@ -589,7 +589,6 @@ public class NetworkUtil {
 				method = Judge.isEmpty(fileSize) ? Method.FULL : method;// 如果文件大小获取失败或线程为1，使用全量下载模式
 				request.setHash(hash = Judge.isEmpty(hash) ? URIUtils.getMd5(request.headers()) : hash); // 获取文件md5
 				// 创建并写入文件配置信息
-				fileInfo.put("URL", url);
 				fileInfo.put("fileName", fileName);
 				fileInfo.put("fileSize", fileSize);
 				fileInfo.put("md5", hash);
