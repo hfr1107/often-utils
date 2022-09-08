@@ -61,11 +61,11 @@ public class NetworkUtil {
 	/**
 	 * 获取新的NetworkFileUtil对象并设置配置文件<br/> 配置文件 -> 包含待下载文件的下载信息的文件
 	 *
-	 * @param path session文件路径
+	 * @param src session文件路径
 	 * @return 此连接，用于链接
 	 */
-	@Contract(pure = true) public static Connection session(@NotNull String path) {
-		return session(new File(path));
+	@Contract(pure = true) public static Connection session(@NotNull String src) {
+		return session(new File(src));
 	}
 
 	/**
@@ -811,7 +811,7 @@ public class NetworkUtil {
 		 * <p>
 		 * 此方法仅用于初始化设置或特殊情况下修改同一文件的 URL
 		 * <p>
-		 * 不同的下载链接不应复用类，内部被改变的 fileName 和 hash 参数会导致致命的下载错误，如果复用，应该同步修改或置空上述两个参数，建议使用 url() 方法
+		 * 不同的下载链接不应复用类，内部被改变的 fileName 和 hash 参数会导致致命的下载错误，如果复用，应该同步修改或置空上述两个参数，建议使用 {@link #url} 方法
 		 *
 		 * @param url 要连接的 URL
 		 * @return 此连接，用于链接
