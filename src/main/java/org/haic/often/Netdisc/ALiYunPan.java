@@ -3,9 +3,7 @@ package org.haic.often.Netdisc;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.haic.often.Judge;
-import org.haic.often.Network.Connection;
-import org.haic.often.Network.HttpsUtil;
-import org.haic.often.Network.JsoupUtil;
+import org.haic.often.Network.*;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.nodes.Document;
@@ -97,7 +95,11 @@ public class ALiYunPan {
 
 		protected ALiYunPanAPI(@NotNull String auth) {
 			conn.auth(auth);
-			userInfo = JSONObject.parseObject(conn.url(userInfoUrl).requestBody(new JSONObject().toJSONString()).post().text());
+			Response res = conn.url(userInfoUrl).requestBody("{}").method(Method.POST).execute();
+			userInfo = JSONObject.parseObject(res.body());
+			if (!URIUtils.statusIsOK(res.statusCode())) {
+				throw new RuntimeException(userInfo.getString("message"));
+			}
 		}
 
 		/**

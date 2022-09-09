@@ -193,6 +193,9 @@ public class LanZouYunPan {
 
 		protected LanZouYunPanAPI(Map<String, String> cookies) {
 			conn.cookies(cookies);
+			if (Judge.isNull(conn.url(mydiskUrl).get().selectFirst("div[class='mydisk_bar']"))) {
+				throw new RuntimeException("登陆信息无效,请检查cookies");
+			}
 		}
 
 		/**

@@ -134,11 +134,16 @@ public class TianYiYunPan {
 		public static final String renameFolderUrl = "https://cloud.189.cn/api/open/file/renameFolder.action";
 		public static final String createFolderUrl = "https://cloud.189.cn/api/open/file/createFolder.action";
 		public static final String listRecycleBinFilesUrl = "https://cloud.189.cn/api/open/file/listRecycleBinFiles.action";
+		public static final String userInfoForPortalUrl = "https://cloud.189.cn/api/open/user/getUserInfoForPortal.action";
 
 		public Connection conn = HttpsUtil.newSession();
 
 		protected TianYiYunPanAPI(@NotNull Map<String, String> cookies) {
 			conn.cookies(cookies).header("accept", "application/json;charset=UTF-8");
+			Response res = conn.url(userInfoForPortalUrl).execute();
+			if (!URIUtils.statusIsOK(res.statusCode())) {
+				throw new RuntimeException(JSONObject.parseObject(res.body()).getString("errorMsg"));
+			}
 		}
 
 		/**

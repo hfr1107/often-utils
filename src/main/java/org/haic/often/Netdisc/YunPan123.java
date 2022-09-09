@@ -145,11 +145,16 @@ public class YunPan123 {
 		protected static final String fileDeleteUrl = "https://www.123pan.com/a/api/file/delete";
 		protected static final String trashDeleteAllUrl = "https://www.123pan.com/a/api/file/trash_delete_all";
 		protected static final String fileTrashUrl = "https://www.123pan.com/a/api/file/trash";
+		protected static final String userInfoUrl = "https://www.123pan.com/b/api/user/info";
 
 		protected Connection conn = HttpsUtil.newSession();
 
 		protected YunPan123API(@NotNull String auth) {
 			conn.auth(auth);
+			JSONObject status = JSONObject.parseObject(conn.url(userInfoUrl).execute().body());
+			if (!Judge.isEmpty(status.getInteger("code"))) {
+				throw new RuntimeException(status.getString("message"));
+			}
 		}
 
 		/**
