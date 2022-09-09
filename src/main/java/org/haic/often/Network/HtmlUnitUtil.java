@@ -42,8 +42,7 @@ public class HtmlUnitUtil {
 	 * <p>
 	 * 需要注意方法会构造一个新的WebClient,用于链接,由于启动缓慢,不会再执行后关闭,在所有请求完成后使用close()关闭WebClient
 	 *
-	 * @param url
-	 * 		要连接的 URL
+	 * @param url 要连接的 URL
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public static Connection connect(@NotNull String url) {
@@ -202,6 +201,7 @@ public class HtmlUnitUtil {
 		}
 
 		@Contract(pure = true) public Connection requestBody(@NotNull String body) {
+			method(Method.POST);
 			request.setRequestBody(body);
 			return URIUtils.isJson(body) ? contentType("application/json;charset=UTF-8") : contentType("application/x-www-form-urlencoded;charset=UTF-8");
 		}
@@ -294,8 +294,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 启用/禁用 CSS 支持。默认情况下，禁用此属性。如果禁用 HtmlUnit 将不会下载链接的 css 文件，也不会触发相关的 onload/onerror 事件
 		 *
-		 * @param enableCSS
-		 * 		true启用 CSS 支持
+		 * @param enableCSS true启用 CSS 支持
 		 * @return 此链接, 用于链接
 		 */
 		@Contract(pure = true) public Connection enableCSS(boolean enableCSS) {
@@ -362,7 +361,8 @@ public class HtmlUnitUtil {
 			cookies(response.cookies()); // 维护cookies
 
 			String redirectUrl; // 修复重定向
-			if (webClient.getOptions().isRedirectEnabled() && URIUtils.statusIsOK(response.statusCode()) && !Judge.isEmpty(redirectUrl = response.header("location"))) {
+			if (webClient.getOptions().isRedirectEnabled() && URIUtils.statusIsOK(response.statusCode()) && !Judge.isEmpty(
+					redirectUrl = response.header("location"))) {
 				url(redirectUrl);
 				response = executeProgram(request);
 			}
@@ -445,8 +445,8 @@ public class HtmlUnitUtil {
 		}
 
 		@Contract(pure = true) public Map<String, String> cookies() {
-			return page.getWebResponse().getResponseHeaders().stream().filter(l -> l.getName().equalsIgnoreCase("set-cookie")).filter(l -> !l.getValue().equals("-"))
-					.map(l -> l.getValue().substring(0, l.getValue().indexOf(";")))
+			return page.getWebResponse().getResponseHeaders().stream().filter(l -> l.getName().equalsIgnoreCase("set-cookie"))
+					.filter(l -> !l.getValue().equals("-")).map(l -> l.getValue().substring(0, l.getValue().indexOf(";")))
 					.collect(Collectors.toMap(l -> l.substring(0, l.indexOf("=")), l -> l.substring(l.indexOf("=") + 1), (e1, e2) -> e2));
 		}
 
@@ -474,7 +474,7 @@ public class HtmlUnitUtil {
 		}
 
 		@Contract(pure = true) public Document parse() {
-			return URIUtils.statusIsNormal(statusCode()) ? Jsoup.parse(body(), conn.parser) : null;
+			return URIUtils.statusIsTimeout(statusCode()) ? null : Jsoup.parse(body(), conn.parser);
 		}
 
 		@Contract(pure = true) public String body() {
@@ -515,8 +515,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 设置要获取的请求 URL，协议必须是 HTTP 或 HTTPS
 		 *
-		 * @param url
-		 * 		要连接的 URL
+		 * @param url 要连接的 URL
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection url(@NotNull String url);
@@ -531,8 +530,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 连接用户代理（ 字符串 用户代理）<br/> 设置请求用户代理标头
 		 *
-		 * @param userAgent
-		 * 		要使用的用户代理
+		 * @param userAgent 要使用的用户代理
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection userAgent(@NotNull String userAgent);
@@ -540,8 +538,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 添加请求头user-agent，以移动端方式访问页面
 		 *
-		 * @param isPhone
-		 * 		true or false
+		 * @param isPhone true or false
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection isPhone(boolean isPhone);
@@ -549,8 +546,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 连接followRedirects （布尔followRedirects）<br/> 将连接配置为（不）遵循服务器重定向，默认情况下这是true
 		 *
-		 * @param followRedirects
-		 * 		如果应该遵循服务器重定向，则为 true
+		 * @param followRedirects 如果应该遵循服务器重定向，则为 true
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection followRedirects(boolean followRedirects);
@@ -558,8 +554,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 连接引荐来源网址（ 字符串 引荐来源网址）<br/> 设置请求引荐来源网址（又名“引荐来源网址”）标头
 		 *
-		 * @param referrer
-		 * 		要使用的来源网址
+		 * @param referrer 要使用的来源网址
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection referrer(@NotNull String referrer);
@@ -573,8 +568,7 @@ public class HtmlUnitUtil {
 		 * <p>
 		 * 如果没有协议类型,默认使用Bearer
 		 *
-		 * @param auth
-		 * 		授权码或身份识别标识
+		 * @param auth 授权码或身份识别标识
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection auth(@NotNull String auth);
@@ -582,8 +576,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 设置总请求超时时间，连接超时（ int millis）<br/> 默认超时为 0，超时为零被视为无限超时<br/> 请注意，此超时指定连接时间的组合最大持续时间和读取完整响应的时间
 		 *
-		 * @param millis
-		 * 		超时连接或读取之前的毫秒数（千分之一秒）
+		 * @param millis 超时连接或读取之前的毫秒数（千分之一秒）
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection timeout(int millis);
@@ -596,8 +589,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 设置连接请求类型参数,用于服务器识别内容类型
 		 *
-		 * @param type
-		 * 		请求类型
+		 * @param type 请求类型
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection contentType(@NotNull String type);
@@ -605,10 +597,8 @@ public class HtmlUnitUtil {
 		/**
 		 * 连接头（ 字符串 名称， 字符串 值）<br/> 设置请求标头
 		 *
-		 * @param name
-		 * 		标题名称
-		 * @param value
-		 * 		标头值
+		 * @param name  标题名称
+		 * @param value 标头值
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection header(@NotNull String name, @NotNull String value);
@@ -616,8 +606,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 连接头（ Map  < String  , String  > 头）<br/> 将每个提供的标头添加到请求中
 		 *
-		 * @param headers
-		 * 		标头名称映射 -> 值对
+		 * @param headers 标头名称映射 -> 值对
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection headers(@NotNull Map<String, String> headers);
@@ -627,8 +616,7 @@ public class HtmlUnitUtil {
 		 * <p>
 		 * 将为连接设置全新的请求标头
 		 *
-		 * @param headers
-		 * 		标头名称映射 -> 值对
+		 * @param headers 标头名称映射 -> 值对
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection setHeaders(@NotNull Map<String, String> headers);
@@ -636,10 +624,8 @@ public class HtmlUnitUtil {
 		/**
 		 * 设置要在请求中发送的 cookie
 		 *
-		 * @param name
-		 * 		cookie 的名称
-		 * @param value
-		 * 		cookie 的值
+		 * @param name  cookie 的名称
+		 * @param value cookie 的值
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection cookie(@NotNull String name, @NotNull String value);
@@ -647,8 +633,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 连接 cookies （ Map < String  , String  >cookies）<br/> 将每个提供的 cookie 添加到请求中
 		 *
-		 * @param cookies
-		 * 		名称映射 -> 值对
+		 * @param cookies 名称映射 -> 值对
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection cookies(@NotNull Map<String, String> cookies);
@@ -658,8 +643,7 @@ public class HtmlUnitUtil {
 		 * <p>
 		 * 将为连接设置全新的 cookie
 		 *
-		 * @param cookies
-		 * 		名称映射 -> 值对
+		 * @param cookies 名称映射 -> 值对
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection setCookies(@NotNull Map<String, String> cookies);
@@ -667,10 +651,8 @@ public class HtmlUnitUtil {
 		/**
 		 * 连接数据（ 字符串 键、 字符串 值）<br/> 添加请求数据参数。请求参数在 GET 的请求查询字符串中发送，在 POST 的请求正文中发送。一个请求可能有多个同名的值。
 		 *
-		 * @param key
-		 * 		数据键
-		 * @param value
-		 * 		数据值
+		 * @param key   数据键
+		 * @param value 数据值
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection data(@NotNull String key, @NotNull String value);
@@ -678,8 +660,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 根据所有提供的数据设置全新的请求数据参数
 		 *
-		 * @param params
-		 * 		数据参数
+		 * @param params 数据参数
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection data(@NotNull Map<String, String> params);
@@ -687,8 +668,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 设置 POST（或 PUT）请求正文<br/> 当服务器需要一个普通的请求正文，而不是一组 URL 编码形式的键/值对时很有用<br/> 一般为JSON格式,若不是则作为普通数据发送
 		 *
-		 * @param body
-		 * 		请求正文
+		 * @param body 请求正文
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection requestBody(@NotNull String body);
@@ -696,10 +676,8 @@ public class HtmlUnitUtil {
 		/**
 		 * 设置用于此请求的 SOCKS 代理
 		 *
-		 * @param host
-		 * 		代理主机名
-		 * @param port
-		 * 		代理端口
+		 * @param host 代理主机名
+		 * @param port 代理端口
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection socks(@NotNull String host, int port);
@@ -707,14 +685,10 @@ public class HtmlUnitUtil {
 		/**
 		 * 设置用于此请求的 SOCKS 代理<br/> 需要验证的代理服务器<br/> 接口存在问题，SOCKS协议代理访问外网会失败，应使用Http协议代理
 		 *
-		 * @param host
-		 * 		代理URL
-		 * @param port
-		 * 		代理端口
-		 * @param username
-		 * 		代理用户名
-		 * @param password
-		 * 		代理用户密码
+		 * @param host     代理URL
+		 * @param port     代理端口
+		 * @param username 代理用户名
+		 * @param password 代理用户密码
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection socks(@NotNull String host, int port, @NotNull String username, @NotNull String password);
@@ -722,10 +696,8 @@ public class HtmlUnitUtil {
 		/**
 		 * 连接代理（ @NotNull  Proxy 代理）<br/> * 设置用于此请求的代理
 		 *
-		 * @param host
-		 * 		代理地址
-		 * @param port
-		 * 		代理端口
+		 * @param host 代理地址
+		 * @param port 代理端口
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection proxy(@NotNull String host, int port);
@@ -733,14 +705,10 @@ public class HtmlUnitUtil {
 		/**
 		 * 设置用于此请求的 HTTP 代理<br/> 需要验证的代理服务器
 		 *
-		 * @param host
-		 * 		代理URL
-		 * @param port
-		 * 		代理端口
-		 * @param username
-		 * 		代理用户名
-		 * @param password
-		 * 		代理用户密码
+		 * @param host     代理URL
+		 * @param port     代理端口
+		 * @param username 代理用户名
+		 * @param password 代理用户密码
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection proxy(@NotNull String host, int port, @NotNull String username, @NotNull String password);
@@ -748,8 +716,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 连接代理（ @NotNull  Proxy 代理）<br/> 设置用于此请求的代理
 		 *
-		 * @param proxy
-		 * 		要使用的代理
+		 * @param proxy 要使用的代理
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection proxy(@NotNull Proxy proxy);
@@ -757,8 +724,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 连接方法（ Connection.Method方法） 设置要使用的请求方法，GET 或 POST。默认为 GET。
 		 *
-		 * @param method
-		 * 		HTTP 请求方法
+		 * @param method HTTP 请求方法
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection method(@NotNull Method method);
@@ -766,8 +732,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 在请求超时或者指定状态码发生时，进行重试，重试超过次数或者状态码正常返回
 		 *
-		 * @param retry
-		 * 		重试次数
+		 * @param retry 重试次数
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection retry(int retry);
@@ -775,10 +740,8 @@ public class HtmlUnitUtil {
 		/**
 		 * 在请求超时或者指定状态码发生时，进行重试，重试超过次数或者状态码正常返回
 		 *
-		 * @param retry
-		 * 		重试次数
-		 * @param millis
-		 * 		重试等待时间(毫秒)
+		 * @param retry  重试次数
+		 * @param millis 重试等待时间(毫秒)
 		 * @return 此链接, 用于链接
 		 */
 		@Contract(pure = true) public abstract Connection retry(int retry, int millis);
@@ -786,8 +749,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 在请求超时或者指定状态码发生时，无限进行重试，直至状态码正常返回
 		 *
-		 * @param unlimit
-		 * 		启用无限重试, 默认false
+		 * @param unlimit 启用无限重试, 默认false
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection retry(boolean unlimit);
@@ -795,10 +757,8 @@ public class HtmlUnitUtil {
 		/**
 		 * 在请求超时或者指定状态码发生时，无限进行重试，直至状态码正常返回
 		 *
-		 * @param unlimit
-		 * 		启用无限重试, 默认false
-		 * @param millis
-		 * 		重试等待时间(毫秒)
+		 * @param unlimit 启用无限重试, 默认false
+		 * @param millis  重试等待时间(毫秒)
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection retry(boolean unlimit, int millis);
@@ -806,8 +766,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 额外指定错误状态码码，在指定状态发生时，也进行重试，可指定多个
 		 *
-		 * @param statusCode
-		 * 		状态码
+		 * @param statusCode 状态码
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection retryStatusCodes(int... statusCode);
@@ -815,8 +774,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 额外指定错误状态码码，在指定状态发生时，也进行重试，可指定多个
 		 *
-		 * @param retryStatusCodes
-		 * 		状态码列表
+		 * @param retryStatusCodes 状态码列表
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection retryStatusCodes(List<Integer> retryStatusCodes);
@@ -824,8 +782,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 在状态码不为200+或300+时，抛出执行异常，并获取一些参数，一般用于调试<br/> 默认情况下为false
 		 *
-		 * @param errorExit
-		 * 		启用错误退出
+		 * @param errorExit 启用错误退出
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection errorExit(boolean errorExit);
@@ -833,8 +790,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 启用/禁用 CSS 支持。默认情况下，禁用此属性。如果禁用 HtmlUnit 将不会下载链接的 css 文件，也不会触发相关的 onload/onerror 事件
 		 *
-		 * @param enableCSS
-		 * 		true启用 CSS 支持
+		 * @param enableCSS true启用 CSS 支持
 		 * @return 此链接, 用于链接
 		 */
 		@Contract(pure = true) public abstract Connection enableCSS(boolean enableCSS);
@@ -842,8 +798,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 设置 JavaScript 最大运行时间,默认1000毫秒.值为0则不加载JS
 		 *
-		 * @param millis
-		 * 		JS超时时间(毫秒)
+		 * @param millis JS超时时间(毫秒)
 		 * @return 此链接, 用于链接
 		 */
 		@Contract(pure = true) public abstract Connection waitJSTime(int millis);
@@ -946,10 +901,8 @@ public class HtmlUnitUtil {
 		/**
 		 * 在此请求/响应中设置 header。
 		 *
-		 * @param key
-		 * 		header的键
-		 * @param value
-		 * 		header的值
+		 * @param key   header的键
+		 * @param value header的值
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Response header(@NotNull String key, @NotNull String value);
@@ -957,8 +910,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 删除在此请求/响应中设置 header。
 		 *
-		 * @param key
-		 * 		header的键
+		 * @param key header的键
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Response removeHeader(@NotNull String key);
@@ -966,8 +918,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 获取 cookie
 		 *
-		 * @param name
-		 * 		cookie name
+		 * @param name cookie name
 		 * @return cookie value
 		 */
 		@Contract(pure = true) public abstract String cookie(@NotNull String name);
@@ -980,10 +931,8 @@ public class HtmlUnitUtil {
 		@Contract(pure = true) public abstract Map<String, String> cookies();
 
 		/**
-		 * @param name
-		 * 		cookie的名称
-		 * @param value
-		 * 		cookie的值
+		 * @param name  cookie的名称
+		 * @param value cookie的值
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Response cookie(@NotNull String name, @NotNull String value);
@@ -991,8 +940,7 @@ public class HtmlUnitUtil {
 		/**
 		 * 删除在此请求/响应中设置 cookie。
 		 *
-		 * @param name
-		 * 		cookie的名称
+		 * @param name cookie的名称
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Response removeCookie(@NotNull String name);
@@ -1000,8 +948,7 @@ public class HtmlUnitUtil {
 		/**
 		 * Response字符集（ 字符串 字符集）<br/> 设置/覆盖响应字符集。解析文档正文时，它将使用此字符集。
 		 *
-		 * @param charsetName
-		 * 		字符集格式名称
+		 * @param charsetName 字符集格式名称
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Response charset(@NotNull String charsetName);
@@ -1009,8 +956,7 @@ public class HtmlUnitUtil {
 		/**
 		 * Response字符集（ 字符串 字符集）<br/> 设置/覆盖响应字符集。解析文档正文时，它将使用此字符集。
 		 *
-		 * @param charset
-		 * 		字符集格式
+		 * @param charset 字符集格式
 		 * @return 此连接，用于链接
 		 */
 

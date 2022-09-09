@@ -63,8 +63,7 @@ public class HttpClientUtil {
 	/**
 	 * 公共静态连接连接（ 字符串 网址）<br/> 使用定义的请求 URL 创建一个新的Connection （会话），用于获取和解析 HTML 页面
 	 *
-	 * @param url
-	 * 		要连接的 URL
+	 * @param url 要连接的 URL
 	 * @return 此连接，用于链接
 	 */
 	@Contract(pure = true) public static Connection connect(@NotNull String url) {
@@ -407,8 +406,8 @@ public class HttpClientUtil {
 		}
 
 		public static PoolingHttpClientConnectionManager PoolingHttpClientConnectionManager() {
-			return new PoolingHttpClientConnectionManager(
-					RegistryBuilder.<ConnectionSocketFactory>create().register("http", new MyConnectionSocketFactory()).register("https", new MySSLConnectionSocketFactory()).build());
+			return new PoolingHttpClientConnectionManager(RegistryBuilder.<ConnectionSocketFactory>create().register("http", new MyConnectionSocketFactory())
+					.register("https", new MySSLConnectionSocketFactory()).build());
 		}
 
 		/**
@@ -506,9 +505,9 @@ public class HttpClientUtil {
 
 		@Contract(pure = true) public Map<String, String> cookies() {
 			Header[] cookies = res.getHeaders("Set-Cookie");
-			return Judge.isEmpty(cookies.length)
-					? new HashMap<>()
-					: Arrays.stream(cookies).filter(l -> !l.getValue().equals("-")).map(l -> l.getValue().substring(0, l.getValue().indexOf(";")))
+			return Judge.isEmpty(cookies.length) ?
+					new HashMap<>() :
+					Arrays.stream(cookies).filter(l -> !l.getValue().equals("-")).map(l -> l.getValue().substring(0, l.getValue().indexOf(";")))
 							.collect(Collectors.toMap(l -> l.substring(0, l.indexOf("=")), l -> l.substring(l.indexOf("=") + 1), (e1, e2) -> e2));
 		}
 
@@ -536,7 +535,7 @@ public class HttpClientUtil {
 		}
 
 		@Contract(pure = true) public Document parse() {
-			return URIUtils.statusIsNormal(statusCode()) ? Jsoup.parse(body(), conn.parser) : null;
+			return URIUtils.statusIsTimeout(statusCode()) ? null : Jsoup.parse(body(), conn.parser);
 		}
 
 		@Contract(pure = true) public String body() {

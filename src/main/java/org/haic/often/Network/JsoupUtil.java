@@ -381,7 +381,7 @@ public class JsoupUtil {
 		}
 
 		@Contract(pure = true) public Document parse() {
-			return URIUtils.statusIsNormal(statusCode()) ? Jsoup.parse(body(), conn.parser) : null;
+			return URIUtils.statusIsTimeout(statusCode()) ? null : Jsoup.parse(body(), conn.parser);
 		}
 
 		@Contract(pure = true) public String body() {

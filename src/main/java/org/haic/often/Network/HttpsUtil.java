@@ -380,7 +380,7 @@ public class HttpsUtil {
 	 */
 	protected static class HttpResponse extends Response {
 		protected HttpConnection connection;
-		protected HttpURLConnection conn;// HttpURLConnection
+		protected HttpURLConnection conn; // HttpURLConnection
 		protected Charset charset = StandardCharsets.UTF_8;
 
 		protected HttpResponse(HttpConnection connection, HttpURLConnection conn) {
@@ -470,7 +470,7 @@ public class HttpsUtil {
 		}
 
 		@Contract(pure = true) public Document parse() {
-			return URIUtils.statusIsNormal(statusCode()) ? Jsoup.parse(body(), connection.parser) : null;
+			return URIUtils.statusIsTimeout(statusCode()) ? null : Jsoup.parse(body(), connection.parser);
 		}
 
 		@Contract(pure = true) public String body() {
