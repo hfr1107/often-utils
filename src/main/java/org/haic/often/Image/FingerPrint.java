@@ -9,6 +9,10 @@ import java.util.function.Function;
 
 /**
  * 均值哈希实现图像指纹比较
+ *
+ * @author haicdust
+ * @version 1.0
+ * @since 2020/9/9 15:27
  */
 public final class FingerPrint {
 
