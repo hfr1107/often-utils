@@ -564,7 +564,7 @@ public class NetworkUtil {
 					String disposition = res.header("content-disposition");
 					if (Judge.isEmpty(disposition)) {
 						fileName = url.substring(url.lastIndexOf("/") + 1);
-						fileName = StringUtils.decodeByURL(url.contains("?") ? url.substring(0, url.indexOf("?")) : fileName);
+						fileName = StringUtils.decodeByURL(fileName.contains("?") ? fileName.substring(0, fileName.indexOf("?")) : fileName);
 						fileName = fileName.contains(".") ? fileName : fileName + MimeType.getMimeSuffix(res.header("content-type")); // 尝试修复后缀
 					} else {
 						fileName = URIUtils.getFileNameForDisposition(disposition);
