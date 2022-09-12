@@ -313,7 +313,8 @@ public class NetworkUtil {
 		protected int MAX_THREADS = 10; // 默认10线程下载
 
 		protected long PIECE_MAX_SIZE = 1048576; // 默认块大小，1M
-		protected boolean unlimitedRetry;// 请求异常无限重试
+		protected boolean valid = true; // MD5效验
+		protected boolean unlimit;// 请求异常无限重试
 		protected boolean errorExit; // 错误退出
 		protected Proxy proxy = Proxy.NO_PROXY; // 代理
 		protected File storage; // 本地存储文件
@@ -456,13 +457,13 @@ public class NetworkUtil {
 			return this;
 		}
 
-		@Contract(pure = true) public Connection retry(boolean unlimitedRetry) {
-			this.unlimitedRetry = unlimitedRetry;
+		@Contract(pure = true) public Connection retry(boolean unlimit) {
+			this.unlimit = unlimit;
 			return this;
 		}
 
-		@Contract(pure = true) public Connection retry(boolean unlimitedRetry, int millis) {
-			this.unlimitedRetry = unlimitedRetry;
+		@Contract(pure = true) public Connection retry(boolean unlimit, int millis) {
+			this.unlimit = unlimit;
 			this.MILLISECONDS_SLEEP = millis;
 			return this;
 		}
@@ -487,7 +488,12 @@ public class NetworkUtil {
 			return this;
 		}
 
-		@Contract(pure = true) public Connection pieceSize(long kb) {
+		@Contract(pure = true) public Connection valid(boolean valid) {
+			this.valid = valid;
+			return this;
+		}
+
+		public Connection pieceSize(long kb) {
 			PIECE_MAX_SIZE = kb * 1024;
 			return this;
 		}
@@ -512,7 +518,7 @@ public class NetworkUtil {
 			org.haic.often.Network.Response res;
 			try (InputStream in = new BufferedInputStream(new FileInputStream(file), DEFAULT_BUFFER_SIZE)) {
 				res = JsoupUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies).file(Judge.isEmpty(fileName) ? file.getName() : fileName, in)
-						.retry(retry, MILLISECONDS_SLEEP).retry(unlimitedRetry).errorExit(errorExit).method(org.haic.often.Network.Method.POST).execute();
+						.retry(retry, MILLISECONDS_SLEEP).retry(unlimit).errorExit(errorExit).method(org.haic.often.Network.Method.POST).execute();
 				request.headers(res.headers()).cookies(res.cookies());
 			} catch (IOException e) {
 				return new HttpResponse(this, request.statusCode(HttpStatus.SC_REQUEST_TIMEOUT));
@@ -551,7 +557,7 @@ public class NetworkUtil {
 				fileInfo.remove("renew");
 			}
 			case FULL, PIECE, MULTITHREAD, MANDATORY -> {    // 获取文件信息
-				res = JsoupUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies).retry(retry, MILLISECONDS_SLEEP).retry(unlimitedRetry)
+				res = JsoupUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies).retry(retry, MILLISECONDS_SLEEP).retry(unlimit)
 						.retryStatusCodes(retryStatusCodes).errorExit(errorExit).execute();
 				// 获取URL连接状态
 				int statusCode = res.statusCode();
@@ -610,7 +616,7 @@ public class NetworkUtil {
 			FilesUtils.createFolder(folder); // 创建文件夹
 			int statusCode;
 			switch (method) {  // 开始下载
-			case FULL -> statusCode = Judge.isNull(res) ? FULL() : FULL(res);
+			case FULL -> statusCode = Judge.isNull(res) ? FULL(retry) : FULL(res, retry);
 			case PIECE -> statusCode = MULTITHREAD((int) Math.ceil((double) fileSize / (double) PIECE_MAX_SIZE), PIECE_MAX_SIZE);
 			case MULTITHREAD -> {
 				int PIECE_COUNT = Math.min((int) Math.ceil((double) fileSize / (double) PIECE_MAX_SIZE), MAX_THREADS);
@@ -627,13 +633,12 @@ public class NetworkUtil {
 			}
 			Runtime.getRuntime().removeShutdownHook(abnormal);
 
-			// 效验文件完整性
-			String md5;
-			if (!Judge.isEmpty(hash) && !(md5 = FilesUtils.getMD5(storage)).equals(hash)) {
+			String md5; // 效验文件完整性
+			if (valid && !Judge.isEmpty(hash) && !(md5 = FilesUtils.getMD5(storage)).equals(hash)) {
 				storage.delete(); // 删除下载错误的文件
 				ReadWriteUtils.orgin(session).append(false).write(fileInfo.toJSONString()); // 重置信息文件
 				String errorText;
-				if (unlimitedRetry) {
+				if (unlimit) {
 					if (md5.equals(lastHash)) {
 						errorText = "Server file is corrupt";
 					} else {
@@ -666,20 +671,23 @@ public class NetworkUtil {
 		/**
 		 * 全量下载，下载获取文件信息并写入文件
 		 *
+		 * @param retry 重试次数
 		 * @return 下载并写入是否成功(状态码)
 		 */
-		@Contract(pure = true) protected int FULL() {
-			return FULL(JsoupUtil.connect(url).proxy(proxy).headers(headers).header("range", "bytes=" + MAX_COMPLETED + "-").cookies(cookies)
-					.retry(retry, MILLISECONDS_SLEEP).retry(unlimitedRetry).retryStatusCodes(retryStatusCodes).errorExit(errorExit).execute());
+		@Contract(pure = true) protected int FULL(int retry) {
+			org.haic.often.Network.Response piece = JsoupUtil.connect(url).proxy(proxy).headers(headers).header("range", "bytes=" + MAX_COMPLETED + "-")
+					.cookies(cookies).errorExit(errorExit).execute();
+			return URIUtils.statusIsOK(piece.statusCode()) ? FULL(piece, retry) : unlimit || retry > 0 ? FULL(retry - 1) : piece.statusCode();
 		}
 
 		/**
 		 * 全量下载，下载获取文件信息并写入文件
 		 *
 		 * @param response 网页Response对象
+		 * @param retry    重试次数
 		 * @return 下载并写入是否成功(状态码)
 		 */
-		@Contract(pure = true) protected int FULL(org.haic.often.Network.Response response) {
+		@Contract(pure = true) protected int FULL(org.haic.often.Network.Response response, int retry) {
 			try (InputStream in = response.bodyStream(); RandomAccessFile out = new RandomAccessFile(storage, "rw")) {
 				out.seek(MAX_COMPLETED);
 				byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
@@ -689,23 +697,26 @@ public class NetworkUtil {
 				if (fileSize == 0 || fileSize == MAX_COMPLETED) {
 					return HttpStatus.SC_OK;
 				}
-			} catch (Exception e) {
-				// e.printStackTrace();
+			} catch (IOException e) {
+				if (unlimit || retry > 0) {
+					MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP);
+					return FULL(retry - 1);
+				}
 			}
 			return HttpStatus.SC_REQUEST_TIMEOUT;
 		}
 
 		@Contract(pure = true) protected int MULTITHREAD(int PIECE_COUNT, long PIECE_SIZE) {
 			AtomicInteger statusCodes = new AtomicInteger(HttpStatus.SC_OK);
-			executorService = Executors.newFixedThreadPool(MAX_THREADS); // 限制多线程;
 			AtomicBoolean addCompleted = new AtomicBoolean(true);
+			executorService = Executors.newFixedThreadPool(MAX_THREADS); // 限制多线程;
 			for (long i = MAX_COMPLETED / PIECE_SIZE; i < PIECE_COUNT; i++) {//PIECE_COUNT
 				executorService.execute(new ParameterizedThread<>(i, (index) -> { // 执行多线程程
 					long start = index * PIECE_SIZE;
 					long end = (index + 1 == PIECE_COUNT ? fileSize : (index + 1) * PIECE_SIZE) - 1;
 					long flip = status.getOrDefault(start, start);
 					schedule.addAndGet(flip - start);
-					int statusCode = flip == end ? HttpStatus.SC_PARTIAL_CONTENT : addPiece(start, flip, end);
+					int statusCode = flip == end ? HttpStatus.SC_PARTIAL_CONTENT : writePiece(start, flip, end, retry);
 					if (addCompleted.get() && end > MAX_COMPLETED) {
 						addCompleted.set(false);
 						long completed;
@@ -726,34 +737,20 @@ public class NetworkUtil {
 		}
 
 		/**
-		 * 添加区块线程
-		 *
-		 * @param start 起始位
-		 * @param flip  断点位置,用于修正
-		 * @param end   结束位
-		 * @return 状态码
-		 */
-		@Contract(pure = true) protected int addPiece(long start, long flip, long end) {
-			int statusCode = writePiece(start, flip, end);
-			for (int i = 0; (URIUtils.statusIsTimeout(statusCode) || retryStatusCodes.contains(statusCode)) && (i < retry || unlimitedRetry); i++) {
-				MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP); // 程序等待
-				statusCode = writePiece(start, flip, end);
-			}
-			return statusCode;
-		}
-
-		/**
 		 * 分块下载，下载获取文件区块信息并写入文件
 		 *
 		 * @param start 块起始位
 		 * @param flip  断点位置,用于修正
 		 * @param end   块结束位
+		 * @param retry 重试次数
 		 * @return 下载并写入是否成功(状态码)
 		 */
-		@Contract(pure = true) protected int writePiece(long start, long flip, long end) {
+		@Contract(pure = true) protected int writePiece(long start, long flip, long end, int retry) {
 			org.haic.often.Network.Response piece = JsoupUtil.connect(url).proxy(proxy).headers(headers).header("range", "bytes=" + flip + "-" + end)
 					.cookies(cookies).execute();
-			return URIUtils.statusIsOK(piece.statusCode()) ? writePiece(start, flip, end, piece) : piece.statusCode();
+			return URIUtils.statusIsOK(piece.statusCode()) ?
+					writePiece(start, flip, end, piece, retry) :
+					unlimit || retry > 0 ? writePiece(start, flip, end, retry - 1) : piece.statusCode();
 		}
 
 		/**
@@ -763,22 +760,25 @@ public class NetworkUtil {
 		 * @param flip  断点位置,用于修正
 		 * @param end   块结束位
 		 * @param piece 块Response对象
+		 * @param retry 重试次数
 		 * @return 下载并写入是否成功(状态码)
 		 */
-		@Contract(pure = true) protected int writePiece(long start, long flip, long end, org.haic.often.Network.Response piece) {
+		@Contract(pure = true) protected int writePiece(long start, long flip, long end, org.haic.often.Network.Response piece, int retry) {
+			long count = 0;
 			try (InputStream inputStream = piece.bodyStream(); RandomAccessFile output = new RandomAccessFile(storage, "rw")) {
 				output.seek(flip);
 				byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
-				long count = 0;
 				for (int len; !Judge.isMinusOne(len = inputStream.read(buffer)); count += len, status.put(start, flip + count), schedule.addAndGet(len)) {
 					output.write(buffer, 0, len);
 				}
 				if (end - flip + 1 == count) {
 					return HttpStatus.SC_PARTIAL_CONTENT;
 				}
-
 			} catch (IOException e) {
-				// e.printStackTrace();
+				if (unlimit || retry > 0) {
+					MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP);
+					return writePiece(start, flip + count, end, retry - 1);
+				}
 			}
 			return HttpStatus.SC_REQUEST_TIMEOUT;
 		}
@@ -1009,6 +1009,14 @@ public class NetworkUtil {
 		 * @return 此连接，用于链接
 		 */
 		@Contract(pure = true) public abstract Connection hash(@NotNull String hash);
+
+		/**
+		 * 启用下载文件的MD5效验
+		 *
+		 * @param valid 是否开启,默认为开启
+		 * @return 此连接，用于链接
+		 */
+		@Contract(pure = true) public abstract Connection valid(boolean valid);
 
 		/**
 		 * 设置在多线程模式下载时,分块最大大小
