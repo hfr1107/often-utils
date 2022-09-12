@@ -5,7 +5,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import org.apache.commons.logging.LogFactory;
 import org.haic.often.Judge;
-import org.haic.often.Multithread.MultiThreadUtils;
+import org.haic.often.Multithread.MultiThreadUtil;
 import org.haic.often.StreamUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -336,7 +336,7 @@ public class HtmlUnitUtil {
 			Response response = executeProgram(request);
 			int statusCode = response.statusCode();
 			for (int i = 0; (URIUtils.statusIsTimeout(statusCode) || retryStatusCodes.contains(statusCode)) && (i < retry || unlimit); i++) {
-				MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP);
+				MultiThreadUtil.waitForThread(MILLISECONDS_SLEEP);
 				response = executeProgram(request);
 				statusCode = response.statusCode();
 			}

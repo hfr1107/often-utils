@@ -3,7 +3,7 @@ package org.haic.often.Network;
 import com.alibaba.fastjson.JSONObject;
 import org.haic.often.FilesUtils;
 import org.haic.often.Judge;
-import org.haic.often.Multithread.MultiThreadUtils;
+import org.haic.often.Multithread.MultiThreadUtil;
 import org.haic.often.Multithread.ParameterizedThread;
 import org.haic.often.ReadWriteUtils;
 import org.haic.often.StringUtils;
@@ -699,7 +699,7 @@ public class NetworkUtil {
 				}
 			} catch (IOException e) {
 				if (unlimit || retry > 0) {
-					MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP);
+					MultiThreadUtil.waitForThread(MILLISECONDS_SLEEP);
 					return FULL(retry - 1);
 				}
 			}
@@ -732,7 +732,7 @@ public class NetworkUtil {
 					}
 				}));
 			}
-			MultiThreadUtils.WaitForEnd(executorService); // 等待线程结束
+			MultiThreadUtil.waitForEnd(executorService); // 等待线程结束
 			return statusCodes.get();
 		}
 
@@ -776,7 +776,7 @@ public class NetworkUtil {
 				}
 			} catch (IOException e) {
 				if (unlimit || retry > 0) {
-					MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP);
+					MultiThreadUtil.waitForThread(MILLISECONDS_SLEEP);
 					return writePiece(start, flip + count, end, retry - 1);
 				}
 			}

@@ -3,7 +3,7 @@ package org.haic.often.Network;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.haic.often.Base64Utils;
-import org.haic.often.Multithread.MultiThreadUtils;
+import org.haic.often.Multithread.MultiThreadUtil;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.enums.ReadyState;
 import org.java_websocket.handshake.ServerHandshake;
@@ -349,7 +349,7 @@ public class Aria2Util {
 		socket.connect();
 		// 判断连接状态
 		while (socket.getReadyState() == ReadyState.NOT_YET_CONNECTED) {
-			MultiThreadUtils.WaitForThread(100);
+			MultiThreadUtil.waitForThread(100);
 		}
 		return String.valueOf(result);
 	}

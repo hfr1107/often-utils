@@ -27,7 +27,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.brotli.dec.BrotliInputStream;
 import org.haic.often.Judge;
-import org.haic.often.Multithread.MultiThreadUtils;
+import org.haic.often.Multithread.MultiThreadUtil;
 import org.haic.often.StreamUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -363,7 +363,7 @@ public class HttpClientUtil {
 			Response response = executeProgram(request);
 			int statusCode = response.statusCode();
 			for (int i = 0; (URIUtils.statusIsTimeout(statusCode) || retryStatusCodes.contains(statusCode)) && (i < retry || unlimit); i++) {
-				MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP); // 程序等待
+				MultiThreadUtil.waitForThread(MILLISECONDS_SLEEP); // 程序等待
 				response = executeProgram(request);
 				statusCode = response.statusCode();
 			}

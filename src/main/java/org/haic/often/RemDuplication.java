@@ -1,6 +1,6 @@
 package org.haic.often;
 
-import org.haic.often.Multithread.MultiThreadUtils;
+import org.haic.often.Multithread.MultiThreadUtil;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -68,7 +68,7 @@ public class RemDuplication {
 				}
 			}));
 		}
-		MultiThreadUtils.WaitForEnd(executorService); // 等待线程结束
+		MultiThreadUtil.waitForEnd(executorService); // 等待线程结束
 		return new ArrayList<>(result);
 	}
 

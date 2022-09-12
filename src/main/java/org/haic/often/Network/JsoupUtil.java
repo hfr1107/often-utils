@@ -2,7 +2,7 @@ package org.haic.often.Network;
 
 import org.brotli.dec.BrotliInputStream;
 import org.haic.often.Judge;
-import org.haic.often.Multithread.MultiThreadUtils;
+import org.haic.often.Multithread.MultiThreadUtil;
 import org.haic.often.StreamUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -280,7 +280,7 @@ public class JsoupUtil {
 			Response res = executeProgram(conn);
 			int statusCode = res.statusCode();
 			for (int i = 0; (URIUtils.statusIsTimeout(statusCode) || retryStatusCodes.contains(statusCode)) && (i < retry || unlimit); i++) {
-				MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP); // 程序等待
+				MultiThreadUtil.waitForThread(MILLISECONDS_SLEEP); // 程序等待
 				res = executeProgram(conn);
 				statusCode = res.statusCode();
 			}

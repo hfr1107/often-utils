@@ -8,7 +8,7 @@ import com.googlecode.mp4parser.authoring.Track;
 import com.googlecode.mp4parser.authoring.builder.DefaultMp4Builder;
 import com.googlecode.mp4parser.authoring.container.mp4.MovieCreator;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.haic.often.Multithread.MultiThreadUtils;
+import org.haic.often.Multithread.MultiThreadUtil;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -728,7 +728,7 @@ public class FilesUtils {
 			e.printStackTrace();
 		}
 		System.gc();
-		MultiThreadUtils.WaitForThread(50);
+		MultiThreadUtil.waitForThread(50);
 		return success;
 	}
 

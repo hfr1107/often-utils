@@ -2,7 +2,7 @@ package org.haic.often.Network;
 
 import org.brotli.dec.BrotliInputStream;
 import org.haic.often.Judge;
-import org.haic.often.Multithread.MultiThreadUtils;
+import org.haic.often.Multithread.MultiThreadUtil;
 import org.haic.often.StreamUtils;
 import org.haic.often.Tuple.ThreeTuple;
 import org.haic.often.Tuple.Tuple;
@@ -97,11 +97,14 @@ public class HttpsUtil {
 
 		@Contract(pure = true) public Connection url(@NotNull String url) {
 			this.url = url;
+			params = "";
+			file = null;
 			return this;
 		}
 
 		@Contract(pure = true) public Connection newRequest() {
 			params = "";
+			file = null;
 			headers = new HashMap<>();
 			method = Method.GET;
 			initialization("");
@@ -274,7 +277,7 @@ public class HttpsUtil {
 			Response response = executeProgram(url);
 			int statusCode = response.statusCode();
 			for (int i = 0; (URIUtils.statusIsTimeout(statusCode) || retryStatusCodes.contains(statusCode)) && (i < retry || unlimit); i++) {
-				MultiThreadUtils.WaitForThread(MILLISECONDS_SLEEP); // 程序等待
+				MultiThreadUtil.waitForThread(MILLISECONDS_SLEEP); // 程序等待
 				response = executeProgram(url);
 				statusCode = response.statusCode();
 			}
