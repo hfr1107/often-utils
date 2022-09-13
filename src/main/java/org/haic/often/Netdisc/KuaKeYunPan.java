@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URLConnection;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -280,7 +281,7 @@ public class KuaKeYunPan {
 				preData.put("dir_name", "");
 				preData.put("size", file.length());
 				preData.put("file_name", file.getName());
-				preData.put("format_type", "image/jpeg");
+				preData.put("format_type", URLConnection.guessContentTypeFromName(file.getName()));
 				JSONObject preInfo = JSONObject.parseObject(conn.url(preUrl).requestBody(preData.toJSONString()).post().text()).getJSONObject("data");
 				String authInfo = preInfo.getString("auth_info");
 				String taskId = preInfo.getString("task_id");
@@ -295,12 +296,11 @@ public class KuaKeYunPan {
 						+ "?partNumber=1&uploadId=" + uploadId);
 				String auth = JSONObject.parseObject(conn.url(authUrl).requestBody(authData.toJSONString()).post().text()).getJSONObject("data")
 						.getString("auth_key");
-				String uploadUrl = "https://" + bucket + ".oss-cn-zhangjiakou.aliyuncs.com/" + key + "?uploadId=" + uploadId + "&partNumber=";
-				conn.url(uploadUrl + 1).file(file.getName(), in)//
-						.header("x-oss-date", date)//
-						.header("x-oss-user-agent", userAgent)//
-						.header("authorization", auth)//
-						.method(Method.PUT).execute();
+				String uploadUrl = "https://" + bucket + ".oss-cn-zhangjiakou.aliyuncs.com/" + key + "?uploadId=" + uploadId + "&partNumber=1";
+				Map<String, String> headers = new HashMap<>();
+				headers.put("x-oss-date", date);
+				headers.put("x-oss-user-agent", userAgent);
+				conn.url(uploadUrl).file(file.getName(), in).headers(headers).auth(auth).method(Method.PUT).execute();
 				JSONObject hashData = new JSONObject();
 				hashData.put("md5", FilesUtils.getMD5(file));
 				hashData.put("sha1", FilesUtils.getSHA1(file));
