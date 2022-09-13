@@ -1,17 +1,20 @@
 package org.haic.often.Netdisc;
 
 import com.alibaba.fastjson.JSONObject;
+import org.haic.often.FilesUtils;
 import org.haic.often.Judge;
 import org.haic.often.Network.Connection;
 import org.haic.often.Network.HttpsUtil;
+import org.haic.often.Network.Method;
 import org.haic.often.Network.URIUtils;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * 蓝奏云盘API
@@ -43,6 +46,10 @@ public class KuaKeYunPan {
 		public static final String passwordUrl = "https://drive.quark.cn/1/clouddrive/share/password?pr=ucpro&fr=pc";
 		public static final String detailUrl = "https://drive.quark.cn/1/clouddrive/share/mypage/detail?pr=ucpro&fr=pc&_size=2147483647";
 		public static final String categoryUrl = "https://drive.quark.cn/1/clouddrive/file/category?pr=ucpro&fr=pc&_size=10240&cat=";
+		public static final String preUrl = "https://drive.quark.cn/1/clouddrive/file/upload/pre?pr=ucpro&fr=pc";
+		public static final String authUrl = "https://drive.quark.cn/1/clouddrive/file/upload/auth?pr=ucpro&fr=pc";
+		public static final String hashUrl = "https://drive.quark.cn/1/clouddrive/file/update/hash?pr=ucpro&fr=pc";
+
 		protected Connection conn = HttpsUtil.newSession();
 
 		protected KuaKeYunPanAPI(Map<String, String> cookies) {
@@ -241,6 +248,68 @@ public class KuaKeYunPan {
 		@Contract(pure = true) public List<JSONObject> getInfosAsHomeOfFolder(@NotNull String folderId) {
 			return JSONObject.parseArray(JSONObject.parseObject(conn.url(sortUrl + folderId).get().text()).getJSONObject("data").getString("list"),
 					JSONObject.class);
+		}
+
+		/**
+		 * 上传文件(大文件可能不会成功)
+		 *
+		 * @param src 待上传的文件路径
+		 * @param fid 存放目录ID
+		 * @return 上传状态
+		 */
+		@Contract(pure = true) public boolean upload(@NotNull String src, @NotNull String fid) {
+			return upload(new File(src), fid);
+		}
+
+		/**
+		 * 上传文件(大文件可能不会成功)
+		 *
+		 * @param file 待上传的文件
+		 * @param fid  存放目录ID
+		 * @return 上传状态
+		 */
+		@Contract(pure = true) public boolean upload(@NotNull File file, @NotNull String fid) {
+			try (FileInputStream in = new FileInputStream(file)) {
+				SimpleDateFormat format = new SimpleDateFormat("E, dd MMM yyyy HH:mm:ss z", Locale.US);
+				format.setTimeZone(TimeZone.getTimeZone("GMT"));
+				String date = format.format(new Date());
+				JSONObject preData = new JSONObject();
+				preData.put("ccp_hash_update", true);
+				preData.put("parallel_upload", true);
+				preData.put("pdir_fid", fid);
+				preData.put("dir_name", "");
+				preData.put("size", file.length());
+				preData.put("file_name", file.getName());
+				preData.put("format_type", "image/jpeg");
+				JSONObject preInfo = JSONObject.parseObject(conn.url(preUrl).requestBody(preData.toJSONString()).post().text()).getJSONObject("data");
+				String authInfo = preInfo.getString("auth_info");
+				String taskId = preInfo.getString("task_id");
+				String bucket = preInfo.getString("bucket");
+				String key = preInfo.getString("obj_key");
+				String uploadId = preInfo.getString("upload_id");
+				String userAgent = "aliyun-sdk-js/1.0.0 Chrome 102.0.5139.184 on Linux i686";
+				JSONObject authData = new JSONObject();
+				authData.put("auth_info", authInfo);
+				authData.put("task_id", taskId);
+				authData.put("auth_meta", "PUT\n\nimage/jpeg\n" + date + "\nx-oss-date:" + date + "\nx-oss-user-agent:" + userAgent + "\n" + bucket + "/" + key
+						+ "?partNumber=1&uploadId=" + uploadId);
+				String auth = JSONObject.parseObject(conn.url(authUrl).requestBody(authData.toJSONString()).post().text()).getJSONObject("data")
+						.getString("auth_key");
+				String uploadUrl = "https://" + bucket + ".oss-cn-zhangjiakou.aliyuncs.com/" + key + "?uploadId=" + uploadId + "&partNumber=";
+				conn.url(uploadUrl + 1).file(file.getName(), in)//
+						.header("x-oss-date", date)//
+						.header("x-oss-user-agent", userAgent)//
+						.header("authorization", auth)//
+						.method(Method.PUT).execute();
+				JSONObject hashData = new JSONObject();
+				hashData.put("md5", FilesUtils.getMD5(file));
+				hashData.put("sha1", FilesUtils.getSHA1(file));
+				hashData.put("task_id", taskId);
+				return JSONObject.parseObject(conn.newRequest().url(hashUrl).requestBody(hashData.toJSONString()).post().text()).getJSONObject("data")
+						.getBoolean("finish");
+			} catch (IOException e) {
+				return false;
+			}
 		}
 
 	}
