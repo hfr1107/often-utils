@@ -232,7 +232,8 @@ public class URIUtils {
 	 */
 	@Contract(pure = true) public static String getMd5(@NotNull Map<String, String> headers) {
 		String md5 = headers.get("x-cos-meta-md5");
-		return Judge.isNull(md5) ? headers.get("content-md5") : md5;
+		md5 = Judge.isNull(md5) ? headers.get("content-md5") : md5;
+		return md5.length() == 32 ? md5 : null;
 	}
 
 	/**
