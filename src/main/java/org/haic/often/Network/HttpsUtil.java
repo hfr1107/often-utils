@@ -295,7 +295,7 @@ public class HttpsUtil {
 		@NotNull @Contract(pure = true) protected Response executeProgram(@NotNull String url) {
 			Response res = new HttpResponse(this, null);
 			try {
-				HttpURLConnection conn = null;
+				HttpURLConnection conn;
 				switch (method) {
 				case GET -> {
 					conn = connection(Judge.isEmpty(params) ? url : url + (url.contains("?") ? "&" : "?") + params);
@@ -326,6 +326,7 @@ public class HttpsUtil {
 						return res;
 					}
 				}
+				default -> throw new RuntimeException("Unknown mode");
 				}
 				conn.disconnect();
 				res = new HttpResponse(this, conn);

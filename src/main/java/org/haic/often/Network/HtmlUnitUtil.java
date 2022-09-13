@@ -168,21 +168,16 @@ public class HtmlUnitUtil {
 
 		@Contract(pure = true) public Connection setHeaders(@NotNull Map<String, String> headers) {
 			request.getAdditionalHeaders().clear();
-			headers(headers);
-			String cookie = this.cookies.toString().replaceAll(",", ";");
-			return header("cookie", cookie.substring(1, cookie.length() - 1));
+			return headers(headers).cookies(cookies);
 		}
 
 		@Contract(pure = true) public Connection cookie(@NotNull String name, @NotNull String value) {
-			cookies.put(name, value);
-			String cookie = request.getAdditionalHeader("cookie");
-			return header("cookie", (Judge.isEmpty(cookie) ? "" : cookie + "; ") + name + "=" + value);
+			return cookies(Map.of(name, value));
 		}
 
 		@Contract(pure = true) public Connection cookies(@NotNull Map<String, String> cookies) {
 			this.cookies.putAll(cookies);
-			String cookie = this.cookies.toString().replaceAll(",", ";");
-			return header("cookie", cookie.substring(1, cookie.length() - 1));
+			return header("cookie", this.cookies.entrySet().stream().map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.joining("; ")));
 		}
 
 		@Contract(pure = true) public Connection setCookies(@NotNull Map<String, String> cookies) {

@@ -311,7 +311,7 @@ public class HttpClientUtil {
 		}
 
 		@NotNull @Contract(pure = true) public Response execute() {
-			HttpUriRequest request = null;
+			HttpUriRequest request;
 			try {
 				URI builder = new URIBuilder(url).setParameters(params).build();
 				RequestConfig requestConfig = RequestConfig.custom().setRedirectsEnabled(followRedirects).setConnectTimeout(timeout).setProxy(proxy).build();
@@ -344,9 +344,9 @@ public class HttpClientUtil {
 				case TRACE -> request = new HttpTrace(builder) {{
 					setConfig(requestConfig);
 				}};
+				default -> throw new RuntimeException("Unknown mode");
 				}
 			} catch (Exception e) {
-				// e.printStackTrace();
 				return new HttpResponse(null, null, null);
 			}
 

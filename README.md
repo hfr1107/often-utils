@@ -87,7 +87,7 @@ Aria2Util.connect("127.0.0.1", 6800)  //地址以及端口
 ### 简单示例:
 
 ```
-Document doc = JsoupUtil.connect("https://www.baidu.com")
+Document doc = HttpsUtil.connect("https://www.baidu.com")
 .proxy(proxyHost, proxyPort) // or socks() 设置代理  
 .retry(MAX_RETRY, MILLISECONDS_SLEEP) // 重试次数，重试等待间隔   
 .get(); // post() execute().body()  
