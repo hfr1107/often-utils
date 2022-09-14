@@ -4,6 +4,7 @@ import org.brotli.dec.BrotliInputStream;
 import org.haic.often.Judge;
 import org.haic.often.Multithread.MultiThreadUtil;
 import org.haic.often.StreamUtils;
+import org.haic.often.StringUtils;
 import org.haic.often.Tuple.ThreeTuple;
 import org.haic.often.Tuple.Tuple;
 import org.jetbrains.annotations.Contract;
@@ -413,19 +414,14 @@ public class HttpsUtil {
 		}
 
 		@Contract(pure = true) public String header(@NotNull String name) {
-			String header = headers().get(name);
-			if (Judge.isNull(header)) {
-				return null;
-			}
-			header = header.startsWith("[") ? header.substring(1) : header;
-			return header.endsWith("]") ? header.substring(0, header.length() - 1) : header;
+			return headers().get(name);
 		}
 
 		@Contract(pure = true) public Map<String, String> headers() {
-			Map<String, String> headers = conn.getHeaderFields().entrySet().stream()
-					.collect(Collectors.toMap(l -> String.valueOf(l.getKey()).toLowerCase(), l -> l.getValue().toString(), (e1, e2) -> e2));
-			headers.remove("null");
-			return headers;
+			return conn.getHeaderFields().entrySet().stream().filter(l -> !Judge.isNull(l.getKey())).collect(Collectors.toMap(l -> l.getKey().toLowerCase(),
+					l -> l.getKey().equals("Set-Cookie") ?
+							l.getValue().stream().filter(v -> !v.equals("-")).map(v -> v.substring(0, v.indexOf(";"))).collect(Collectors.joining("; ")) :
+							StringUtils.join(l.getValue(), "; "), (e1, e2) -> e2));
 		}
 
 		@Contract(pure = true) public Response header(@NotNull String key, @NotNull String value) {

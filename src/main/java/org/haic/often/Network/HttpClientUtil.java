@@ -466,12 +466,7 @@ public class HttpClientUtil {
 		}
 
 		@Contract(pure = true) public String header(@NotNull String name) {
-			String header = headers().get(name);
-			if (Judge.isNull(header)) {
-				return null;
-			}
-			header = header.startsWith("[") ? header.substring(1) : header;
-			return header.endsWith("]") ? header.substring(0, header.length() - 1) : header;
+			return headers().get(name);
 		}
 
 		@Contract(pure = true) public Map<String, String> headers() {
@@ -479,9 +474,10 @@ public class HttpClientUtil {
 			for (Header header : res.getAllHeaders()) {
 				String name = header.getName().toLowerCase();
 				String value = header.getValue();
-				if (name.equals("set-cookie")) {
+				if (name.equals("set-cookie") && !value.equals("-")) {
 					String cookie = headers.get(name);
-					headers.put(name, Judge.isEmpty(cookie) ? "[" + value + "]" : cookie.substring(0, cookie.length() - 1) + ", " + value + "]");
+					value = value.substring(0, value.indexOf(";"));
+					headers.put(name, Judge.isNull(cookie) ? value : cookie + "; " + value);
 				} else {
 					headers.put(name, value);
 				}
