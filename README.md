@@ -39,8 +39,8 @@ Maven依赖添加:
 NetworkUtil.Response res = NetworkUtil.connect(fileUrl)  
 .fileName("qq.apk")  //设置文件名，文件名会替换非法字符，不设置会自动获取文件名   
 .retry(4，1000)  //重试次数,以及重试等待间隔, true为无限重试
-.multithread(10)  //多线程下载,无法获取文件大小转为全量下载,默认线程16  
-.download(folder); //设置存放的文件夹
+.multithread(10)  //多线程下载,无法获取文件大小转为全量下载,默认线程10  
+.download(folder); //设置存放的文件夹,并开始下载
 res.statusCode(); // 下载完成状态
 res.headers(); // 返回请求头
 ```
@@ -98,9 +98,8 @@ Document doc = HttpsUtil.connect("https://www.baidu.com")
 
 ### 说明:
 
-1.写操作默认为追加  
-2.写操作默认为添加换行,bytes除外,添加方法关闭  
-3.支持randomAccessFile,FileChannel,MappedByteBuffer,但是在实际应用中默认io接口的方法速度反而更快,可能是ssd的原因,大文件应该可以看出差别
+1.写操作默认为追加,append(boolean)方法修改   
+2.支持randomAccessFile,FileChannel,MappedByteBuffer,但是在实际应用中默认io接口的方法速度反而更快,可能是ssd的原因,大文件应该可以看出差别
 
 ### 简单示例:
 
