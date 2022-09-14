@@ -225,15 +225,21 @@ public class URIUtils {
 	}
 
 	/**
-	 * 由于不同网站请求头中的md5键不一致,使用可能的的键从请求头中获取md5,注意返回值可能是null
+	 * 由于不同网站请求头中的hash存放位置不一致或者不规范,将从可能的的键中获取hash值,注意返回值可能为null
 	 *
 	 * @param headers 请求头
-	 * @return md5值
+	 * @return hash值, 自行根据长度判断hash类型
 	 */
-	@Contract(pure = true) public static String getMd5(@NotNull Map<String, String> headers) {
-		String md5 = headers.get("x-cos-meta-md5");
-		md5 = Judge.isNull(md5) ? headers.get("content-md5") : md5;
-		return md5.length() == 32 ? md5 : null;
+	@Contract(pure = true) public static String getHash(@NotNull Map<String, String> headers) {
+		String hash;
+		if (!Judge.isNull(hash = headers.get("x-cos-meta-md5"))) {
+			return hash;
+		} else if (!Judge.isNull(hash = headers.get("x-oss-hash-value"))) {
+			return hash;
+		} else if (!Judge.isNull(hash = headers.get("content-md5")) && hash.length() == 32) {
+			return hash;
+		}
+		return null;
 	}
 
 	/**
@@ -253,13 +259,10 @@ public class URIUtils {
 	 * @return 新浪微博Cookies
 	 */
 	@NotNull @Contract(pure = true) public static Map<String, String> getWeiBoCookies() {
-		String ajaxUrl = "https://weibo.com/ajax/"; // API
 		String genvisitor = "https://passport.weibo.com/visitor/genvisitor";
 		String visitor = "https://passport.weibo.com/visitor/visitor";
 
-		Map<String, String> cookies = JsoupUtil.connect(ajaxUrl).execute().cookies(); // 获取XSRF-TOKEN
-
-		String genvisitorInfo = JsoupUtil.connect(genvisitor).data("cb", "gen_callback").post().text();
+		String genvisitorInfo = HttpsUtil.connect(genvisitor).data("cb", "gen_callback").post().text();
 		genvisitorInfo = genvisitorInfo.substring(genvisitorInfo.indexOf("{"), genvisitorInfo.lastIndexOf("}") + 1);
 		String tid = JSONObject.parseObject(genvisitorInfo).getJSONObject("data").getString("tid");
 		Map<String, String> visitorData = new HashMap<>();
@@ -267,12 +270,12 @@ public class URIUtils {
 		visitorData.put("cb", "cross_domain");
 		visitorData.put("from", "weibo");
 		visitorData.put("t", tid);
-		String visitorInfo = JsoupUtil.connect(visitor).data(visitorData).get().text();
+		String visitorInfo = HttpsUtil.connect(visitor).data(visitorData).get().text();
 		visitorInfo = visitorInfo.substring(visitorInfo.indexOf("{"), visitorInfo.lastIndexOf("}") + 1);
 		JSONObject visitorInfoData = JSONObject.parseObject(visitorInfo).getJSONObject("data");
+		Map<String, String> cookies = new HashMap<>();
 		cookies.put("SUB", visitorInfoData.getString("sub"));
 		cookies.put("SUBP", visitorInfoData.getString("subp"));
-
 		return cookies;
 	}
 

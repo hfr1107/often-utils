@@ -360,7 +360,7 @@ public class NetworkUtil {
 				if (Judge.isEmpty(url) || Judge.isEmpty(fileName)) {
 					throw new RuntimeException("Info is error -> " + session);
 				}
-				request.setHash(hash = fileInfo.getString("md5"));
+				request.setHash(hash = fileInfo.getString("hash"));
 				fileSize = fileInfo.getLong("fileSize");
 				headers = StringUtils.jsonToMap(fileInfo.getString("header"));
 				cookies = StringUtils.jsonToMap(fileInfo.getString("cookie"));
@@ -484,7 +484,7 @@ public class NetworkUtil {
 		}
 
 		@Contract(pure = true) public Connection hash(@NotNull String hash) {
-			request.setHash(this.hash = hash);
+			request.setHash(this.hash = hash.toLowerCase());
 			return this;
 		}
 
@@ -517,7 +517,7 @@ public class NetworkUtil {
 			request.setStorage(file).setFileSize(file.length()).setHash(FilesUtils.getMD5(file));
 			org.haic.often.Network.Response res;
 			try (InputStream in = new BufferedInputStream(new FileInputStream(file), DEFAULT_BUFFER_SIZE)) {
-				res = JsoupUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies).file(Judge.isEmpty(fileName) ? file.getName() : fileName, in)
+				res = HttpsUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies).file(Judge.isEmpty(fileName) ? file.getName() : fileName, in)
 						.retry(retry, MILLISECONDS_SLEEP).retry(unlimit).errorExit(errorExit).method(org.haic.often.Network.Method.POST).execute();
 				request.headers(res.headers()).cookies(res.cookies());
 			} catch (IOException e) {
@@ -557,7 +557,7 @@ public class NetworkUtil {
 				fileInfo.remove("renew");
 			}
 			case FULL, PIECE, MULTITHREAD, MANDATORY -> {    // 获取文件信息
-				res = JsoupUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies).retry(retry, MILLISECONDS_SLEEP).retry(unlimit)
+				res = HttpsUtil.connect(url).proxy(proxy).headers(headers).cookies(cookies).retry(retry, MILLISECONDS_SLEEP).retry(unlimit)
 						.retryStatusCodes(retryStatusCodes).errorExit(errorExit).execute();
 				// 获取URL连接状态
 				int statusCode = res.statusCode();
@@ -593,11 +593,12 @@ public class NetworkUtil {
 				String contentLength = res.header("content-length"); // 获取文件大小
 				request.setFileSize(fileSize = Judge.isNull(contentLength) ? fileSize : Long.parseLong(contentLength));
 				method = Judge.isEmpty(fileSize) ? Method.FULL : method;// 如果文件大小获取失败或线程为1，使用全量下载模式
-				request.setHash(hash = Judge.isEmpty(hash) ? URIUtils.getMd5(request.headers()) : hash); // 获取文件md5
+				hash = Judge.isEmpty(hash) ? URIUtils.getHash(request.headers()) : hash; // 获取文件hash
+				request.setHash(Judge.isNull(hash) ? null : (hash = hash.toLowerCase()));
 				// 创建并写入文件配置信息
 				fileInfo.put("fileName", fileName);
 				fileInfo.put("fileSize", fileSize);
-				fileInfo.put("md5", hash);
+				fileInfo.put("hash", hash);
 				fileInfo.put("threads", MAX_THREADS);
 				fileInfo.put("method", method.name());
 				fileInfo.put("header", JSONObject.toJSONString(headers));
@@ -633,23 +634,24 @@ public class NetworkUtil {
 			}
 			Runtime.getRuntime().removeShutdownHook(abnormal);
 
-			String md5; // 效验文件完整性
-			if (valid && !Judge.isEmpty(hash) && !(md5 = FilesUtils.getMD5(storage)).equals(hash)) {
+			// 效验文件完整性
+			String fileHash;
+			if (valid && !Judge.isEmpty(hash) && !(fileHash = FilesUtils.hashGet(storage, hash)).equals(hash)) {
 				storage.delete(); // 删除下载错误的文件
 				ReadWriteUtils.orgin(session).append(false).write(fileInfo.toJSONString()); // 重置信息文件
 				String errorText;
 				if (unlimit) {
-					if (md5.equals(lastHash)) {
+					if (fileHash.equals(lastHash)) {
 						errorText = "Server file is corrupt";
 					} else {
-						lastHash = md5;
+						lastHash = fileHash;
 						return download(folder, Method.FILE);
 					}
 				} else {
 					errorText = "File verification is not accurate";
 				}
 				if (errorExit) {
-					throw new RuntimeException(errorText + ", Server md5:" + hash + " Local md5: " + md5 + " URL: " + url);
+					throw new RuntimeException(errorText + ", Server md5:" + hash + " Local md5: " + fileHash + " URL: " + url);
 				} else {
 					return new HttpResponse(this, request.statusCode(HttpStatus.SC_SERVER_RESOURCE_ERROR));
 				}
@@ -675,7 +677,7 @@ public class NetworkUtil {
 		 * @return 下载并写入是否成功(状态码)
 		 */
 		@Contract(pure = true) protected int FULL(int retry) {
-			org.haic.often.Network.Response piece = JsoupUtil.connect(url).proxy(proxy).headers(headers).header("range", "bytes=" + MAX_COMPLETED + "-")
+			org.haic.often.Network.Response piece = HttpsUtil.connect(url).proxy(proxy).headers(headers).header("range", "bytes=" + MAX_COMPLETED + "-")
 					.cookies(cookies).errorExit(errorExit).execute();
 			return URIUtils.statusIsOK(piece.statusCode()) ? FULL(piece, retry) : unlimit || retry > 0 ? FULL(retry - 1) : piece.statusCode();
 		}
@@ -746,7 +748,7 @@ public class NetworkUtil {
 		 * @return 下载并写入是否成功(状态码)
 		 */
 		@Contract(pure = true) protected int writePiece(long start, long flip, long end, int retry) {
-			org.haic.often.Network.Response piece = JsoupUtil.connect(url).proxy(proxy).headers(headers).header("range", "bytes=" + flip + "-" + end)
+			org.haic.often.Network.Response piece = HttpsUtil.connect(url).proxy(proxy).headers(headers).header("range", "bytes=" + flip + "-" + end)
 					.cookies(cookies).execute();
 			return URIUtils.statusIsOK(piece.statusCode()) ?
 					writePiece(start, flip, end, piece, retry) :

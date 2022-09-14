@@ -55,7 +55,7 @@ public class FilesUtils {
 	 *
 	 * @param filePath 文件路径
 	 * @param hash     待效验的值
-	 * @return 判断是否匹配, 如果格式不正确返回false
+	 * @return 判断是否匹配
 	 */
 	@Contract(pure = true) public static boolean hashValidity(@NotNull String filePath, @NotNull String hash) {
 		return hashValidity(new File(filePath), hash);
@@ -66,23 +66,46 @@ public class FilesUtils {
 	 *
 	 * @param file 文件
 	 * @param hash 待效验的值
-	 * @return 判断是否匹配, 如果格式不正确返回false
+	 * @return 判断是否匹配
 	 */
 	@Contract(pure = true) public static boolean hashValidity(@NotNull File file, @NotNull String hash) {
-		if (hash.length() == 16) {
-			return FilesUtils.getMD5(file).substring(8, 24).equals(hash);
-		} else if (hash.length() == 32) {
-			return FilesUtils.getMD5(file).equals(hash);
+		return hashGet(file, hash).equals(hash.toLowerCase());
+	}
+
+	/**
+	 * 根据所给hash位数,获取相应类型的文件hash值
+	 *
+	 * @param filePath 文件路径
+	 * @param hash     hash值
+	 * @return 文件hash值
+	 */
+	@Contract(pure = true) public static String hashGet(@NotNull String filePath, @NotNull String hash) {
+		return hashGet(new File(filePath), hash);
+	}
+
+	/**
+	 * 根据所给hash位数,获取相应类型的文件hash值
+	 *
+	 * @param file 文件
+	 * @param hash hash值
+	 * @return 文件hash值
+	 */
+	@Contract(pure = true) public static String hashGet(@NotNull File file, @NotNull String hash) {
+		String result;
+		if (hash.length() == 32) {
+			result = FilesUtils.getMD5(file);
 		} else if (hash.length() == 40) {
-			return FilesUtils.getSHA1(file).equals(hash);
+			result = FilesUtils.getSHA1(file);
 		} else if (hash.length() == 64) {
-			return FilesUtils.getSHA256(file).equals(hash);
+			result = FilesUtils.getSHA256(file);
 		} else if (hash.length() == 96) {
-			return FilesUtils.getSHA384(file).equals(hash);
+			result = FilesUtils.getSHA384(file);
 		} else if (hash.length() == 128) {
-			return FilesUtils.getSHA512(file).equals(hash);
+			result = FilesUtils.getSHA512(file);
+		} else {
+			throw new RuntimeException("hash值位数不正确");
 		}
-		return false;
+		return result.toLowerCase();
 	}
 
 	/**
@@ -570,11 +593,13 @@ public class FilesUtils {
 	 * @return MD5 值
 	 */
 	@NotNull @Contract(pure = true) public static String getMD5(@NotNull File file) {
+		String result = "";
 		try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-			return DigestUtils.md5Hex(inputStream);
+			result = DigestUtils.md5Hex(inputStream);
 		} catch (IOException e) {
-			return "";
+			e.printStackTrace();
 		}
+		return result;
 	}
 
 	/**
@@ -594,11 +619,13 @@ public class FilesUtils {
 	 * @return SHA1 值
 	 */
 	@NotNull @Contract(pure = true) public static String getSHA1(@NotNull File file) {
+		String result = "";
 		try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-			return DigestUtils.sha1Hex(inputStream);
+			result = DigestUtils.sha1Hex(inputStream);
 		} catch (IOException e) {
-			return "";
+			e.printStackTrace();
 		}
+		return result;
 	}
 
 	/**
@@ -618,11 +645,13 @@ public class FilesUtils {
 	 * @return SHA256 值
 	 */
 	@NotNull @Contract(pure = true) public static String getSHA256(@NotNull File file) {
+		String result = "";
 		try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-			return DigestUtils.sha256Hex(inputStream);
+			result = DigestUtils.sha256Hex(inputStream);
 		} catch (IOException e) {
-			return "";
+			e.printStackTrace();
 		}
+		return result;
 	}
 
 	/**
@@ -642,11 +671,13 @@ public class FilesUtils {
 	 * @return SHA384 值
 	 */
 	@NotNull @Contract(pure = true) public static String getSHA384(@NotNull File file) {
+		String result = "";
 		try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-			return DigestUtils.sha384Hex(inputStream);
+			result = DigestUtils.sha384Hex(inputStream);
 		} catch (IOException e) {
-			return "";
+			e.printStackTrace();
 		}
+		return result;
 	}
 
 	/**
@@ -666,11 +697,13 @@ public class FilesUtils {
 	 * @return SHA512 值
 	 */
 	@NotNull @Contract(pure = true) public static String getSHA512(@NotNull File file) {
+		String result = "";
 		try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-			return DigestUtils.sha512Hex(inputStream);
+			result = DigestUtils.sha512Hex(inputStream);
 		} catch (IOException e) {
-			return "";
+			e.printStackTrace();
 		}
+		return result;
 	}
 
 	/**
