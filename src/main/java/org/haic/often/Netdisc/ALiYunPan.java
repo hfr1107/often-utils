@@ -9,10 +9,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jsoup.nodes.Document;
 
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
 
 /**
- * 阿里云盘API(开发中)
+ * 阿里云盘API
  *
  * @author haicdust
  * @version 1.0
@@ -20,7 +23,7 @@ import java.util.*;
  */
 public class ALiYunPan {
 
-	public static final String shareByAnonymousUrl = "https://api.aliyundrive.com/adrive/v3/share_link/get_share_by_anonymous";
+	public static final String fileListUrl = "https://api.aliyundrive.com/adrive/v3/file/list";
 	public static final String shareTokenUrl = "https://api.aliyundrive.com/v2/share_link/get_share_token";
 
 	/**
@@ -34,31 +37,47 @@ public class ALiYunPan {
 	}
 
 	/**
-	 * 获取分享页面文件的信息
+	 * 获取分享页面的文件信息
 	 *
-	 * @param shareId 分享链接ID
-	 * @return Map - 文件名,文件ID
+	 * @param shareUrl 分享链接
+	 * @return 文件信息列表
 	 */
-	public static Map<String, String> getInfosAsPage(String shareId) {
-		Document doc = JsoupUtil.connect(shareByAnonymousUrl).requestBody(new JSONObject().fluentPut("share_id", shareId).toJSONString()).post();
-		JSONArray fileInfoArray = JSONObject.parseObject(doc.text()).getJSONArray("file_infos");
-		Map<String, String> filesInfo = new HashMap<>();
-		for (int i = 0; i < fileInfoArray.size(); i++) {
-			JSONObject fileInfo = fileInfoArray.getJSONObject(i);
-			filesInfo.put(fileInfo.getString("file_name"), fileInfo.getString("file_id"));
-		}
-		return filesInfo;
+	public static List<JSONObject> getInfosAsPage(String shareUrl) {
+		return shareUrl.contains("#") ?
+				getInfosAsPage(shareUrl.substring(0, shareUrl.indexOf("#")), shareUrl.substring(shareUrl.indexOf("#") + 1)) :
+				getInfosAsPage(shareUrl, "");
 	}
 
 	/**
-	 * 获得分享链接的ShareToken
+	 * 获取分享页面的文件信息
 	 *
-	 * @param shareId 分享链接ID
-	 * @return ShareToken
+	 * @param shareUrl 分享链接
+	 * @param sharePwd 提取码
+	 * @return 文件信息列表
 	 */
-	public static String getShareToken(String shareId) {
-		return getShareToken(shareId, "");
+	public static List<JSONObject> getInfosAsPage(@NotNull String shareUrl, @NotNull String sharePwd) {
+		String shareId = shareUrl.substring(shareUrl.lastIndexOf("/") + 1);
+		return getInfosAsPage(shareId, getShareToken(shareId, sharePwd), "root", "/");
+	}
 
+	private static List<JSONObject> getInfosAsPage(@NotNull String shareId, @NotNull String shareToken, @NotNull String parentId, @NotNull String path) {
+		List<JSONObject> filesInfo = new ArrayList<>();
+		JSONObject data = new JSONObject();
+		data.put("limit", 100);
+		data.put("order_by", "name");
+		data.put("fields", "*");
+		data.put("parent_file_id", parentId);
+		data.put("share_id", shareId);
+		for (JSONObject fileInfo : JSONObject.parseArray(
+				JSONObject.parseObject(HttpsUtil.connect(fileListUrl).requestBody(data.toJSONString()).header("x-share-token", shareToken).post().text())
+						.getString("items"), JSONObject.class)) {
+			if (fileInfo.getString("type").equals("folder")) {
+				filesInfo.addAll(getInfosAsPage(shareId, shareToken, fileInfo.getString("file_id"), path + fileInfo.getString("name") + "/"));
+			} else {
+				filesInfo.add(fileInfo.fluentPut("path", path));
+			}
+		}
+		return filesInfo;
 	}
 
 	/**
@@ -82,7 +101,7 @@ public class ALiYunPan {
 	public static class ALiYunPanAPI {
 
 		public static final String shareLinkDownloadUrl = "https://api.aliyundrive.com/v2/file/get_share_link_download_url";
-		public static final String fileListUrl = "https://api.aliyundrive.com/adrive/v3/file/list";
+		public static final String downloadUrl = "https://api.aliyundrive.com/v2/file/get_download_url";
 		public static final String createWithFoldersUrl = "https://api.aliyundrive.com/adrive/v2/file/createWithFolders";
 		public static final String userInfoUrl = "https://api.aliyundrive.com/v2/user/get";
 		public static final String fileSearchUrl = "https://api.aliyundrive.com/adrive/v3/file/search";
@@ -411,47 +430,46 @@ public class ALiYunPan {
 		}
 
 		/**
-		 * 获得分享页面所有文件直链(方法暂时废弃,阿里云盘限制,分享页面获取链接无用,需保存至个人盘内才能获取直链)
+		 * 获得分享页面所有文件直链(注意下载链接需要添加referer请求头参数 <a href="https://www.aliyundrive.com/">https://www.aliyundrive.com/</a>)
 		 *
 		 * @param shareUrl 分享链接
-		 * @return Map - 文件名, 文件直链
+		 * @return 文件信息列表
 		 */
-		public Map<String, String> getStraightsAsPage(@NotNull String shareUrl) {
-			return getStraightsAsPage(shareUrl, "");
+		public List<JSONObject> getStraightsAsPage(@NotNull String shareUrl) {
+			return shareUrl.contains("#") ?
+					getStraightsAsPage(shareUrl.substring(0, shareUrl.indexOf("#")), shareUrl.substring(shareUrl.indexOf("#") + 1)) :
+					getStraightsAsPage(shareUrl, "");
 		}
 
 		/**
-		 * 获得分享页面所有文件直链(方法暂时废弃,阿里云盘限制,分享页面获取链接无用,需保存至个人盘内才能获取直链)
+		 * 获得分享页面所有文件直链(注意下载链接需要添加referer请求头参数 <a href="https://www.aliyundrive.com/">https://www.aliyundrive.com/</a>)
 		 *
 		 * @param shareUrl 分享链接
 		 * @param sharePwd 提取码
-		 * @return Map - 文件名, 文件直链
+		 * @return 文件信息列表
 		 */
-		public Map<String, String> getStraightsAsPage(@NotNull String shareUrl, @NotNull String sharePwd) {
+		public List<JSONObject> getStraightsAsPage(@NotNull String shareUrl, @NotNull String sharePwd) {
 			String shareId = shareUrl.substring(shareUrl.lastIndexOf("/") + 1);
 			String shareToken = getShareToken(shareId, sharePwd);
-			Map<String, String> filesStraight = new HashMap<>();
-			for (Map.Entry<String, String> entry : getInfosAsPage(shareId).entrySet()) {
-				filesStraight.put(entry.getKey(), getStraight(shareId, entry.getValue(), shareToken));
+			List<JSONObject> filesInfo = getInfosAsPage(shareId, sharePwd);
+			for (JSONObject fileInfo : filesInfo) {
+				JSONObject data = new JSONObject().fluentPut("share_id", shareId).fluentPut("file_id", fileInfo.getString("file_id"));
+				Connection connection = conn.url(shareLinkDownloadUrl).header("x-share-token", shareToken).requestBody(data.toJSONString());
+				fileInfo.put("url", JSONObject.parseObject(connection.post().text()).getString("download_url"));
+				connection.newRequest();
 			}
-			return filesStraight;
+			return filesInfo;
 		}
 
 		/**
-		 * 获取文件直链
+		 * 获取用户主页的文件直链(注意下载链接需要添加referer请求头参数 <a href="https://www.aliyundrive.com/">https://www.aliyundrive.com/</a>)
 		 *
-		 * @param shareId    分享链接ID
-		 * @param fileid     文件ID
-		 * @param shareToken shareToken
+		 * @param fileid 文件ID
 		 * @return 文件直链
 		 */
-		public String getStraight(String shareId, String fileid, String shareToken) {
-			JSONObject apiJson = new JSONObject();
-			apiJson.put("share_id", shareId);
-			apiJson.put("file_id", fileid);
-			Document doc = conn.url(shareLinkDownloadUrl).header("x-share-token", shareToken).requestBody(apiJson.toString()).post();
-			conn.newRequest();
-			return JSONObject.parseObject(doc.text()).getString("download_url");
+		public String getStraight(@NotNull String fileid) {
+			JSONObject data = new JSONObject().fluentPut("drive_id", userInfo.getString("default_drive_id")).fluentPut("file_id", fileid);
+			return JSONObject.parseObject(conn.url(downloadUrl).requestBody(data.toJSONString()).post().text()).getString("url");
 		}
 	}
 
