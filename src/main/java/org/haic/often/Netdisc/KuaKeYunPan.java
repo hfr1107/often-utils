@@ -18,17 +18,23 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * 蓝奏云盘API
+ * 夸克云盘API
  *
  * @author haicdust
  * @version 1.0
- * @since 2022/1/18 23:59
+ * @since 2022/9/13 23:59
  */
 public class KuaKeYunPan {
 
 	protected KuaKeYunPan() {
 	}
 
+	/**
+	 * 登陆云盘
+	 *
+	 * @param cookies cookies
+	 * @return KuaKeYunPanAPI
+	 */
 	@Contract(pure = true) public static KuaKeYunPanAPI login(@NotNull Map<String, String> cookies) {
 		return new KuaKeYunPanAPI(cookies);
 	}
