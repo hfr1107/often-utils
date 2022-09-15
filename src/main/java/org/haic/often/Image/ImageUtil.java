@@ -1,5 +1,6 @@
 package org.haic.often.Image;
 
+import org.haic.often.Judge;
 import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
@@ -22,6 +23,7 @@ import java.util.function.Function;
  */
 public class ImageUtil {
 	protected BufferedImage src;
+	protected int imageType = BufferedImage.TYPE_3BYTE_BGR;
 
 	protected ImageUtil() {
 	}
@@ -92,6 +94,8 @@ public class ImageUtil {
 
 	private ImageUtil image(@NotNull BufferedImage image) {
 		this.src = image;
+		int imageType = image.getType();
+		this.imageType = Judge.isEmpty(imageType) ? this.imageType : imageType;
 		return this;
 	}
 
@@ -101,7 +105,7 @@ public class ImageUtil {
 	 * @return 图片对象
 	 */
 	public BufferedImage toGray() {
-		if (src.getType() == BufferedImage.TYPE_BYTE_GRAY) {
+		if (imageType == BufferedImage.TYPE_BYTE_GRAY) {
 			return src;
 		} else { // 图像转灰
 			BufferedImage grayImage = new BufferedImage(src.getWidth(), src.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
@@ -138,7 +142,7 @@ public class ImageUtil {
 	 * @return 图片对象
 	 */
 	public BufferedImage resize(int width, int height) {
-		BufferedImage resultImage = new BufferedImage(width, height, src.getType());
+		BufferedImage resultImage = new BufferedImage(width, height, imageType);
 		Graphics graphics = resultImage.createGraphics();
 		graphics.drawImage(src.getScaledInstance(width, height, BufferedImage.SCALE_SMOOTH), 0, 0, null);
 		graphics.dispose();
@@ -168,7 +172,7 @@ public class ImageUtil {
 	 * @return 裁剪后的图像
 	 */
 	public BufferedImage cutOffRound(int x, int y, int width, int height) {
-		BufferedImage resultImage = new BufferedImage(width, height, src.getType());
+		BufferedImage resultImage = new BufferedImage(width, height, imageType);
 		Ellipse2D.Double shape = new Ellipse2D.Double(x, y, width, height);
 		Graphics2D graphics = resultImage.createGraphics();
 		graphics.setClip(shape);
@@ -210,7 +214,7 @@ public class ImageUtil {
 		};
 		int resultWidth = getX.apply(Math.acos(centerX / radius)).intValue();
 		int resultHeight = getY.apply(Math.asin(centerY / radius)).intValue();
-		BufferedImage resultImage = new BufferedImage(resultWidth, resultHeight, src.getType());
+		BufferedImage resultImage = new BufferedImage(resultWidth, resultHeight, imageType);
 		Graphics2D graphics = resultImage.createGraphics();
 		graphics.rotate(Math.toRadians(theta), (double) resultWidth / 2, (double) resultHeight / 2);
 		graphics.drawImage(src, (resultWidth - width) / 2, (resultHeight - height) / 2, null);
@@ -227,7 +231,7 @@ public class ImageUtil {
 	public BufferedImage mirror() {
 		int width = src.getWidth();
 		int height = src.getHeight();
-		BufferedImage resultImage = new BufferedImage(width, height, src.getType());
+		BufferedImage resultImage = new BufferedImage(width, height, imageType);
 		Graphics graphics = resultImage.createGraphics();
 		graphics.drawImage(src, 0, 0, width, height, width, 0, 0, height, null);
 		graphics.dispose();
